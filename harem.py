@@ -1,0 +1,3144 @@
+import os
+import re
+import math
+import json
+import time
+import random
+import sqlite3
+import asyncio
+import zipfile
+import html
+import traceback
+from io import BytesIO
+from typing import Dict, List, Optional, Tuple
+
+import requests
+from PIL import Image, ImageDraw, ImageFont
+
+import cloudinary
+import cloudinary.uploader
+
+from telegram import (
+    Update,
+    InputFile,
+    InputMediaPhoto,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    InlineQueryResultPhoto,
+    InlineQueryResultArticle,
+    InlineQueryResultCachedPhoto,
+    InputTextMessageContent
+)
+from telegram.constants import ParseMode
+from telegram.ext import (
+    ContextTypes,
+    CommandHandler,
+    MessageHandler,
+    CallbackQueryHandler,
+    InlineQueryHandler,
+    filters
+)
+
+# Configuration
+ADMIN_ID = [5192424390]
+import os
+USE_MOUNT = os.path.exists("/mnt/data")
+BASE_PATH = "/mnt/data" if USE_MOUNT else "."
+DB_PATH = os.path.join(BASE_PATH, "quiz.db")
+os.makedirs("/mnt/data", exist_ok=True)
+CHARACTER_JSON_PATH = os.path.join(BASE_PATH, "characters.json")
+CHARACTER_IMAGE_DIR = os.path.join(BASE_PATH, "characters")
+IMAGE_ZIP_PATH = os.path.join(BASE_PATH, "characters_backup.zip")
+
+import json
+
+json_path = "/mnt/data/characters.json"
+
+if not os.path.exists(json_path):
+    with open(json_path, "w") as f:
+        json.dump({}, f) 
+
+
+# Rarity system
+
+RARITY_CONFIG = {
+    "Musician": {"cost": 25, "display": "🎸 Musician", "chance": 0.75, "symbol": "🎸"},
+    "School": {"cost": 20, "display": "🎓 School", "chance": 0.75, "symbol": "🎓"},
+    "Winter": {"cost": 20, "display": "❄️ Winter", "chance": 0.75, "symbol": "❄️"},
+    "Kimono": {"cost": 30, "display": "🪭 Kimono", "chance": 0.50, "symbol": "🪭"},
+    "Maid": {"cost": 20, "display": "🧹 Maid", "chance": 0.75, "symbol": "🧹"},
+    "Saree": {"cost": 30, "display": "🥻 Saree", "chance": 0.50, "symbol": "🥻"},
+    "Basketball": {"cost": 20, "display": "🏀 Basketball", "chance": 0.75, "symbol": "🏀"},
+    "Halloween": {"cost": 25, "display": "🎃 Halloween", "chance": 0.75, "symbol": "🎃"},
+    "Tennis": {"cost": 20, "display": "🥎 Tennis", "chance": 0.75, "symbol": "🥎"},
+    "Bride": {"cost": 30, "display": "👰 Bride", "chance": 0.50, "symbol": "👰"},
+    "Celestial": {"cost": 25, "display": "🎐 Celestial", "chance": 0.75, "symbol": "🎐"},
+    "Nurse": {"cost": 30, "display": "💉 Nurse", "chance": 0.50, "symbol": "🩺"},
+    "Christmas": {"cost": 25, "display": "🎄 Christmas", "chance": 0.75, "symbol": "🎄"},
+    "Diwali": {"cost": 35, "display": "🪔 Diwali", "chance": 0.50, "symbol": "🪔"}
+}
+
+
+AUTHORIZED_USERS = [5105207985, 5192424390,6057581189,5716946356,6792709908]
+import sqlite3
+
+def init_harem_database():
+    """Initialize SQLite database for harem system with updated anti-spam schema"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    # User inventory table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS user_inventory (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            char_id TEXT NOT NULL,
+            stack_count INTEGER DEFAULT 1,
+            acquired_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            is_favorite BOOLEAN DEFAULT FALSE
+        )
+    ''')
+
+    # Message drop interval setting (new table)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS drop_interval (
+            chat_id INTEGER PRIMARY KEY,
+            interval INTEGER DEFAULT 50
+        )
+    ''')
+
+    # Active drops table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS active_drops (
+            chat_id INTEGER PRIMARY KEY,
+            char_id TEXT NOT NULL,
+            char_name TEXT NOT NULL,
+            rarity INTEGER NOT NULL,
+            expires_at INTEGER NOT NULL
+        )
+    ''')
+
+    # Message counter for drop cooldown (without spam columns)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS message_counter (
+            chat_id INTEGER PRIMARY KEY,
+            count INTEGER DEFAULT 0,
+            last_drop TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # Spam blocks table for tracking temporarily blocked users
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS spam_blocks (
+            chat_id INTEGER,
+            user_id INTEGER,
+            block_until INTEGER,
+            PRIMARY KEY (chat_id, user_id)
+        )
+    ''')
+
+    # New table: message_streaks for per-user spam streak tracking
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS message_streaks (
+            chat_id INTEGER,
+            user_id INTEGER,
+            streak_count INTEGER DEFAULT 0,
+            PRIMARY KEY (chat_id, user_id)
+        )
+    ''')
+
+    conn.commit()
+    conn.close()
+
+    print("✅ Database tables created successfully!")
+
+def create_user_preferences_table():
+    """Create table to store user preferences"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS user_preferences (
+            user_id INTEGER PRIMARY KEY,
+            rarity_filter TEXT DEFAULT NULL,
+            sort_preference TEXT DEFAULT 'date'
+        )
+    ''')
+    conn.commit()
+    conn.close()
+    print('rarity created')
+
+
+
+CHAR_FOLDER = "/mnt/data/characters"
+
+
+# Setup Cloudinary
+cloudinary.config(
+    cloud_name='dvpz1tzam',
+    api_key='895687319552522',
+    api_secret='RHMZdboQRoneTPZv8SyaSg0ITfg')
+DB_PATH = "/mnt/data/quiz.db"
+
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
+    print(f"❌ Exception: {context.error}")
+    if isinstance(update, Update) and update.message:
+        await update.message.reply_text("⚠️ An unexpected error occurred.")
+
+import re
+import sqlite3
+from collections import Counter
+from html import escape as html_escape
+
+from telegram import (
+    Update,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    InlineQueryResultPhoto,
+    InlineQueryResultCachedPhoto,
+)
+from telegram.ext import ContextTypes
+
+# ---------- MarkdownV2 escaping ----------
+
+def md2_escape(s: str) -> str:
+    if s is None:
+        return ""
+    s = str(s)
+    # escape backslash first
+    s = s.replace("\\", "\\\\")
+    # Telegram MarkdownV2 special chars
+    specials = "_*[]()~`>#+-=|{}.! "
+    out = []
+    for ch in s:
+        if ch in specials:
+            out.append("\\" + ch)
+        else:
+            out.append(ch)
+    return "".join(out)
+
+# ---------- Search parsing ----------
+
+def parse_search_term(search_term: str):
+    s = (search_term or "").strip().lower()
+
+    # multiplicity xN
+    m = re.fullmatch(r"x(\d+)", s)
+    multiplicity_ge = int(m.group(1)) if m else None
+
+    # numeric id with possible leading zeros
+    id_eq = None
+    if multiplicity_ge is None and s.isdigit():
+        id_eq = int(s)  # '038' -> 38
+
+    text = "" if (multiplicity_ge is not None or id_eq is not None) else s
+    return {"text": text, "id_eq": id_eq, "multiplicity_ge": multiplicity_ge}
+
+# ---------- In-memory text matching ----------
+
+def matches_text(char, text, RARITY_CONFIG):
+    if not text:
+        return True
+    name = str(char.get("name", "")).lower()
+    rarity_val = char.get("rarity")
+    rarity_str = str(rarity_val).lower()
+    symbol = str(RARITY_CONFIG.get(rarity_val, {}).get("symbol", "")).lower()
+    return (text in name) or (text == rarity_str) or (text in symbol)
+
+def filter_harem_in_memory(harem, search_term, RARITY_CONFIG):
+    q = parse_search_term(search_term)
+
+    if q["multiplicity_ge"] is not None:
+        counts = Counter(c.get("char_id") for c in harem)
+        have_ge = {cid for cid, cnt in counts.items() if cnt >= q["multiplicity_ge"]}
+    else:
+        have_ge = set()
+
+    matched = []
+    for c in harem:
+        if q["multiplicity_ge"] is not None and c.get("char_id") not in have_ge:
+            continue
+
+        if q["id_eq"] is not None:
+            try:
+                if int(c.get("char_id")) != q["id_eq"]:
+                    continue
+            except Exception:
+                continue
+
+        if not matches_text(c, q["text"], RARITY_CONFIG):
+            continue
+
+        matched.append(c)
+
+    return matched
+
+# ---------- DB helpers (authoritative for ID and multiplicity) ----------
+
+def db_fetch_char_exact(owner_id: int, char_id_int: int):
+    char_id_norm = str(char_id_int).zfill(3)
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT ui.char_id, ui.stack_count, ui.is_favorite, ui.acquired_date
+        FROM user_inventory ui
+        WHERE ui.user_id = ? AND ui.char_id = ?
+    """, (owner_id, char_id_norm))
+    rows = cur.fetchall()
+    conn.close()
+
+    if not rows:
+        return []
+
+    characters = load_characters()
+    out = []
+    for cid, stack_count, is_favorite, acquired_date in rows:
+        ch = characters.get(cid)
+        if not ch:
+            continue
+        out.append({
+            "char_id": cid,
+            "name": ch.get("name"),
+            "rarity": ch.get("rarity"),
+            "stack_count": int(stack_count or 1),
+            "is_favorite": bool(is_favorite),
+            "image_path": ch.get("image_path"),
+            "acquired_date": acquired_date,
+        })
+    return out
+
+def db_fetch_char_by_multiplicity(owner_id: int, n: int):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT ui.char_id, ui.stack_count, ui.is_favorite, ui.acquired_date
+        FROM user_inventory ui
+        WHERE ui.user_id = ? AND ui.stack_count >= ?
+        ORDER BY ui.char_id
+    """, (owner_id, n))
+    rows = cur.fetchall()
+    conn.close()
+
+    if not rows:
+        return []
+
+    characters = load_characters()
+    out = []
+    for cid, stack_count, is_favorite, acquired_date in rows:
+        ch = characters.get(cid)
+        if not ch:
+            continue
+        out.append({
+            "char_id": cid,
+            "name": ch.get("name"),
+            "rarity": ch.get("rarity"),
+            "stack_count": int(stack_count or 1),
+            "is_favorite": bool(is_favorite),
+            "image_path": ch.get("image_path"),
+            "acquired_date": acquired_date,
+        })
+    return out
+
+# ---------- Inline Handlers ----------
+
+async def inline_harem_gallery_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    qraw = (update.inline_query.query or "").strip()
+    if not qraw.startswith("harem:"):
+        return
+
+    # Parse "harem:<owner_id> [search]"
+    parts = qraw.split(" ", 1)
+    head = parts[0]
+    if ":" not in head:
+        print(f"[gallery] bad query format: '{qraw}'")
+        return
+    try:
+        owner_id = int(head.split(":", 1)[1])
+    except Exception:
+        print(f"[gallery] bad owner id in query: '{qraw}'")
+        return
+    search_term = parts[1].strip().lower() if len(parts) > 1 else ""
+
+    # Pagination
+    offset_str = update.inline_query.offset or "0"
+    try:
+        offset = int(offset_str)
+    except ValueError:
+        offset = 0
+    if offset < 0:
+        offset = 0
+    page_size = 50
+
+    # Decide data source
+    q = parse_search_term(search_term)
+    if q["id_eq"] is not None:
+        matched = db_fetch_char_exact(owner_id, q["id_eq"])
+    elif q["multiplicity_ge"] is not None:
+        matched = db_fetch_char_by_multiplicity(owner_id, q["multiplicity_ge"])
+    else:
+        harem = get_user_harem(owner_id) or []
+        matched = filter_harem_in_memory(harem, search_term, RARITY_CONFIG)
+
+    # Sort stable
+    matched.sort(key=lambda c: (str(c.get("name", "")).lower(), str(c.get("char_id", ""))))
+
+    end = min(offset + page_size, len(matched))
+    page = matched[offset:end]
+
+    if not page:
+        print(f"[gallery] empty page owner={owner_id} term='{search_term}' matched={len(matched)} offset={offset}")
+        await update.inline_query.answer([], cache_time=1, is_personal=True, next_offset="")
+        return
+
+    results = []
+    # Escape display name for MarkdownV2
+    owner_name_md = md2_escape(get_user_display_name(owner_id) or "User")
+
+    for i, char in enumerate(page):
+        name_raw = str(char.get("name", "Unknown"))
+        name_md = md2_escape(name_raw.title())
+        char_id = str(char.get("char_id"))
+        char_id_md = md2_escape(char_id)
+        rarity = str(char.get("rarity"))
+        rarity_md = md2_escape(rarity)
+        image_url = char.get("image_path")
+        if not image_url or not str(image_url).startswith(("http://", "https://")):
+            print(f"[gallery] skip invalid image_url for {char_id}: {image_url}")
+            continue
+        symbol = RARITY_CONFIG.get(rarity, {}).get("symbol", "⭐")
+        symbol_md = md2_escape(symbol)
+        count = int(char.get("stack_count", 1) or 1)
+
+        # MarkdownV2 caption
+        caption = (
+            f"Look\\! Who is here👀 *{owner_name_md}*'s waifu\\!\n\n"
+            f"`{char_id_md}` • *{name_md}* x{count}\n"
+            f"🔮 *Rarity:* {symbol_md} `{rarity_md}`"
+        )
+
+        keyboard = InlineKeyboardMarkup([[
+            InlineKeyboardButton("📦 Who collected?", callback_data=f"who_{char_id}")
+        ]])
+
+        results.append(
+            InlineQueryResultPhoto(
+                id=f"{char_id}:{offset+i}",
+                photo_url=image_url,
+                thumbnail_url=image_url,
+                title=name_raw,
+                caption=caption,
+                parse_mode="MarkdownV2",
+                reply_markup=keyboard
+            )
+        )
+
+    next_offset = str(end) if end < len(matched) and results else ""
+
+    print(f"[gallery] owner={owner_id} term='{search_term}' matched={len(matched)} offset={offset} end={end} returned={len(results)} next='{next_offset}'")
+    if results:
+        print(f"[gallery] first_result id={results[0].id} url={page[0].get('image_path')}")
+
+    await update.inline_query.answer(
+        results,
+        cache_time=1,
+        is_personal=True,
+        next_offset=next_offset
+    )
+
+async def inline_all_waifus_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query_text = (update.inline_query.query or "").strip().lower()
+    offset_str = update.inline_query.offset or "0"
+    try:
+        offset = int(offset_str)
+    except ValueError:
+        offset = 0
+    if offset < 0:
+        offset = 0
+    page_size = 50
+
+    characters = load_characters()
+    all_chars = list(characters.items())
+    total = len(all_chars)
+
+    if query_text:
+        matched = [
+            (char_id, char) for char_id, char in all_chars
+            if query_text in char.get('name', '').lower()
+            or query_text in str(char.get('rarity', '')).lower()
+            or query_text in str(RARITY_CONFIG.get(char.get('rarity'), {}).get("symbol", ""))
+        ]
+    else:
+        matched = all_chars
+
+    matched.sort(key=lambda kv: (str(kv[1].get("name","")).lower(), str(kv[0])))
+
+    end = min(offset + page_size, len(matched))
+    if offset >= len(matched):
+        print(f"[all] empty page q='{query_text}' matched={len(matched)} offset={offset}")
+        await update.inline_query.answer([], cache_time=1, is_personal=True, next_offset="")
+        return
+
+    results = []
+    for i in range(offset, end):
+        char_id, char = matched[i]
+        name_raw = char.get("name", "Unknown")
+        name_md = md2_escape(name_raw.title())
+        rarity = str(char.get("rarity", "❓"))
+        rarity_md = md2_escape(rarity)
+        symbol = RARITY_CONFIG.get(rarity, {}).get("symbol", "⭐")
+        symbol_md = md2_escape(symbol)
+        file_id = char.get("file_id")
+        image_url = char.get("image_path")
+        char_id_md = md2_escape(str(char_id))
+
+        count_line_md = md2_escape(f"Found: {len(matched)}" if query_text else f"Total: {total}")
+        caption = (
+            f"{count_line_md}\n"
+            f"OwO\\! Look who we found\\!\n"
+            f"`{char_id_md}` • {symbol_md} *{name_md}*\n"
+            f"🔮 *Rarity:* {symbol_md} `{rarity_md}`"
+        )
+
+        keyboard = InlineKeyboardMarkup([[
+            InlineKeyboardButton("📦 Who collected?", callback_data=f"who_{char_id}")
+        ]])
+
+        if file_id:
+            result = InlineQueryResultCachedPhoto(
+                id=f"{char_id}_{offset+i}",
+                photo_file_id=file_id,
+                title=f"{char_id} • {name_raw}",
+                caption=caption,
+                parse_mode="MarkdownV2",
+                reply_markup=keyboard
+            )
+        elif image_url and image_url.startswith(("http://","https://")):
+            result = InlineQueryResultPhoto(
+                id=f"{char_id}_{offset+i}",
+                photo_url=image_url,
+                thumbnail_url=image_url,
+                title=name_raw,
+                caption=caption,
+                parse_mode="MarkdownV2",
+                reply_markup=keyboard
+            )
+        else:
+            print(f"[all] skip invalid image for {char_id}: {image_url}")
+            continue
+
+        results.append(result)
+
+    next_offset = str(end) if end < len(matched) and results else ""
+
+    print(f"[all] q='{query_text}' total={total} matched={len(matched)} offset={offset} end={end} returned={len(results)} next='{next_offset}'")
+    if results:
+        first = results[0]
+        origin = "file_id" if isinstance(first, InlineQueryResultCachedPhoto) else "url"
+        print(f"[all] first_result origin={origin} id={first.id}")
+
+    await update.inline_query.answer(
+        results,
+        cache_time=1,
+        is_personal=True,
+        next_offset=next_offset
+    )
+
+async def who_collected_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    data = query.data
+    parts = data.split("_", 1)
+    if len(parts) != 2:
+        await query.answer("⚠️ Invalid data.", show_alert=True)
+        return
+    char_id = parts[1]
+
+    characters = load_characters()
+    char = characters.get(char_id)
+    if not char:
+        await query.answer("⚠️ Character not found.", show_alert=True)
+        return
+
+    name_md = md2_escape(char.get("name", "Unknown").title())
+    rarity = str(char.get("rarity", "❓"))
+    rarity_md = md2_escape(rarity)
+    symbol = RARITY_CONFIG.get(rarity, {}).get("symbol", "⭐")
+    symbol_md = md2_escape(symbol)
+    char_id_md = md2_escape(str(char_id))
+
+    base_caption = (
+        f"OwO\\! Look who we found\\!\n"
+        f"`{char_id_md}` • {symbol_md} *{name_md}*\n"
+        f"🔮 *Rarity:* {symbol_md} `{rarity_md}`"
+    )
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT user_id, stack_count
+        FROM user_inventory
+        WHERE char_id = ?
+        ORDER BY stack_count DESC
+        LIMIT 10
+    """, (char_id,))
+    rows = cursor.fetchall()
+    conn.close()
+
+    if not rows:
+        await query.answer("❌ Nobody has collected this waifu yet.", show_alert=True)
+        return
+
+    lines = ["📦 *Top Collectors:*"]
+    for user_id, stack_count in rows:
+        username = get_user_display_name(user_id) or "User"
+        username_md = md2_escape(username)
+        lines.append(f"• [${username_md}](tg://user?id={user_id}) x{int(stack_count or 1)}".replace("$", ""))
+
+    full_caption = base_caption + "\n\n" + "\n".join(lines)
+
+    try:
+        if query.inline_message_id:
+            await context.bot.edit_message_caption(
+                inline_message_id=query.inline_message_id,
+                caption=full_caption,
+                parse_mode="MarkdownV2"
+            )
+        elif query.message:
+            await query.message.edit_caption(full_caption, parse_mode="MarkdownV2")
+        else:
+            await query.answer("⚠️ Can't edit caption.", show_alert=True)
+            return
+        await query.answer()
+    except Exception as e:
+        err = str(e)
+        if "message is not modified" in err.lower():
+            await query.answer()
+            return
+        print(f"[❌ Caption Edit Error] {err}")
+        await query.answer("⚠️ Could not update caption.", show_alert=True)
+
+
+
+def ensure_names_table():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS names (
+            user_id INTEGER PRIMARY KEY,
+            username TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+
+def ensure_name_exists(user_id: int, username: str = None):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    # Insert if not exists
+    cursor.execute('''
+        INSERT OR IGNORE INTO names (user_id, username)
+        VALUES (?, ?)
+    ''', (user_id, username or "Unknown"))
+
+    # Update name if provided
+    if username:
+        cursor.execute('''
+            UPDATE names SET username = ? WHERE user_id = ?
+        ''', (username, user_id))
+
+    conn.commit()
+    conn.close()
+
+
+def get_user_display_name(user_id: int) -> str:
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT username FROM names WHERE user_id = ?", (user_id,))
+    result = cursor.fetchone()
+    conn.close()
+    return result[0] if result else "Unknown"
+
+# Load character data
+def load_characters() -> Dict:
+    """Load characters from persistent JSON file"""
+    if not os.path.exists(CHARACTER_JSON_PATH):
+        return {}
+    with open(CHARACTER_JSON_PATH, "r") as f:
+        return json.load(f)
+
+# Database helper functions
+def get_db_connection():
+    conn = sqlite3.connect(DB_PATH, timeout=20)  # Increase timeout so SQLite waits longer for locks
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL;")  # Enable Write-Ahead Logging for better concurrency
+    return conn
+
+
+def normalize_name(name: str) -> str:
+    return ''.join(name.lower().split())
+
+
+def names_match(user_input: str, actual_name: str) -> bool:
+    """Check if user input matches any whole word in actual name"""
+    user_clean = normalize_name(user_input)
+    if user_clean.startswith('/'):
+        user_clean = user_clean[1:]
+    
+    actual_clean = actual_name.lower().split()  # split into words (keep spaces to separate words)
+    
+    # Normalize each word in actual name for flexible matching
+    actual_words = [''.join(word.split()) for word in actual_clean]
+    
+    # Match if user input equals any whole word in actual name
+    return user_clean in actual_words
+
+
+# Drop system functions
+ALLOWED_CHAT_IDS = [ -1002043895840,-1002120721604]  
+
+def should_trigger_drop(chat_id: int) -> tuple[bool, str]:
+    """Check if drop should be triggered based on message count, only in allowed chats."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Check if counter row exists
+    cursor.execute('SELECT count FROM message_counter WHERE chat_id = ?', (chat_id,))
+    result = cursor.fetchone()
+    if not result:
+        cursor.execute('INSERT INTO message_counter (chat_id, count) VALUES (?, 1)', (chat_id,))
+        conn.commit()
+        conn.close()
+        return False, ""
+
+    count = result[0]
+
+    # Get interval (default to 50 if not set)
+    cursor.execute('SELECT interval FROM drop_interval WHERE chat_id = ?', (chat_id,))
+    interval_result = cursor.fetchone()
+    interval = interval_result[0] if interval_result else 50
+
+    
+
+    if chat_id not in ALLOWED_CHAT_IDS:
+        if count >= interval:
+            # Reset so it doesn't spam every message
+            cursor.execute('UPDATE message_counter SET count = 0 WHERE chat_id = ?', (chat_id,))
+            conn.commit()
+            conn.close()
+            return False
+        else:
+            conn.close()
+            return False, ""
+
+    # Allowed group
+    conn.close()
+    return (count >= interval), ""
+
+
+def create_drop(chat_id: int) -> Optional[Dict]:
+    """Create a new character drop only for rarity 'school'"""
+    characters = load_characters()
+    
+    if not characters:
+        print("❌ No characters available to drop.")
+        return None
+
+    Diwali_characters = {cid: c for cid, c in characters.items() if c.get('rarity', '').lower() == 'diwali'}
+
+    
+    if not Diwali_characters:
+        print("❌ No 'Diwali' rarity characters available to drop.")
+        return None
+
+    char_id = random.choice(list(Diwali_characters.keys()))
+    char = Diwali_characters[char_id]
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    expires_at = int(time.time()) + 180 
+
+    cursor.execute('''
+        INSERT OR REPLACE INTO active_drops 
+        (chat_id, char_id, char_name, rarity, expires_at) 
+        VALUES (?, ?, ?, ?, ?)
+    ''', (chat_id, char_id, char['name'], char['rarity'], expires_at))
+    
+    cursor.execute('UPDATE message_counter SET count = 0 WHERE chat_id = ?', (chat_id,))
+    
+    conn.commit()
+    conn.close()
+    
+    return {
+        'char_id': char_id,
+        'char_name': char['name'],
+        'rarity': char['rarity'],
+        'image_path': char['image_path']
+    }
+
+
+
+def get_active_drop(chat_id: int) -> Optional[Dict]:
+    """Get active drop for chat"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT char_id, char_name, rarity, expires_at FROM active_drops WHERE chat_id = ?', (chat_id,))
+    result = cursor.fetchone()
+    
+    if not result:
+        conn.close()
+        return None
+    
+    char_id, char_name, rarity, expires_at = result
+    
+    # Check if expired
+    if time.time() > expires_at:
+        cursor.execute('DELETE FROM active_drops WHERE chat_id = ?', (chat_id,))
+        conn.commit()
+        conn.close()
+        return None
+    
+    conn.close()
+    return {
+        'char_id': char_id,
+        'char_name': char_name,
+        'rarity': rarity
+    }
+
+def clear_active_drop(chat_id: int):
+    """Clear active drop for chat"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM active_drops WHERE chat_id = ?', (chat_id,))
+    conn.commit()
+    conn.close()
+
+def get_primogem_balance(user_id: int) -> int:
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT primogems FROM users WHERE user_id = ?", (user_id,))
+        result = cursor.fetchone()
+        return result[0] if result else 0
+
+def deduct_primogems(user_id: int, amount: int) -> bool:
+    """Safely deduct primogems from a user."""
+    try:
+        current = current = get_primogem_balance(user_id)
+
+        if isinstance(current, int) and current >= amount:
+            with sqlite3.connect(DB_PATH) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "UPDATE users SET primogems = primogems - ? WHERE user_id = ?",
+                    (amount, user_id)
+                )
+                conn.commit()
+                return True
+    except Exception as e:
+        print(f"[❌ deduct_primogems ERROR] {e}")
+    return False
+def get_balance(user_id: int, table_name: str) -> int:
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(f"SELECT balance FROM {table_name} WHERE user_id = ?", (user_id,))
+    result = cursor.fetchone()
+    return result[0] if result else 0
+
+def deduct_currency(user_id: int, table_name: str, amount: int) -> bool:
+    try:
+        current = get_balance(user_id, table_name)
+        if current >= amount:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                    f"UPDATE {table_name} SET balance = balance - ? WHERE user_id = ?",
+                    (amount, user_id)
+                )
+            conn.commit()
+            return True
+    except Exception as e:
+        print(f"[❌ deduct_currency ERROR] {e}")
+    return False
+def add_currency(user_id: int, table_name: str, amount: int):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    if table_name == "users":
+        cursor.execute("SELECT primogems FROM users WHERE user_id = ?", (user_id,))
+        current = cursor.fetchone()
+        if current is None:
+            cursor.execute(
+                "INSERT INTO users (user_id, primogems) VALUES (?, ?)",
+                (user_id, amount)
+            )
+        else:
+            cursor.execute(
+                "UPDATE users SET primogems = primogems + ? WHERE user_id = ?",
+                (amount, user_id)
+            )
+    else:
+        cursor.execute(f"SELECT balance FROM {table_name} WHERE user_id = ?", (user_id,))
+        current = cursor.fetchone()
+        if current is None:
+            cursor.execute(
+                f"INSERT INTO {table_name} (user_id, balance) VALUES (?, ?)",
+                (user_id, amount)
+            )
+        else:
+            cursor.execute(
+                f"UPDATE {table_name} SET balance = balance + ? WHERE user_id = ?",
+                (amount, user_id)
+            )
+    conn.commit()
+def ensure_user_exists(user_id: int):
+    """Ensure user exists in database (using your existing get_user_data logic)"""
+    with sqlite3.connect(DB_PATH) as conn:
+        c = conn.cursor()
+        c.execute("INSERT OR IGNORE INTO gacha_state (user_id) VALUES (?)", (user_id,))
+        c.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
+        conn.commit()
+def get_character_by_id(char_id: str) -> dict | None:
+    characters = load_characters()
+    return characters.get(char_id)
+
+def add_character_to_inventory(user_id: int, char_id: str):
+    """Add character to user's inventory or increment stack"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Check if user already has this character
+    cursor.execute('SELECT stack_count FROM user_inventory WHERE user_id = ? AND char_id = ?', (user_id, char_id))
+    result = cursor.fetchone()
+
+    if result:
+        # Increment stack
+        new_count = result[0] + 1
+        cursor.execute(
+            'UPDATE user_inventory SET stack_count = ? WHERE user_id = ? AND char_id = ?',
+            (new_count, user_id, char_id)
+        )
+    else:
+        # Add new character with stack = 1
+        cursor.execute(
+            'INSERT INTO user_inventory (user_id, char_id, stack_count) VALUES (?, ?, 1)',
+            (user_id, char_id)
+        )
+
+    conn.commit()
+    conn.close()
+
+def remove_character(user_id:int,char_id:str):
+    conn=get_db_connection()
+    cursor=conn.cursor()
+    cursor.execute('SELECT stack_count FROM user_inventory WHERE user_id=? AND char_id=?',(user_id,char_id))
+    result=cursor.fetchone()
+    if not result:
+        conn.close()
+        return False 
+    stack_count = result[0]
+    if stack_count > 1:
+        cursor.execute(
+            'UPDATE user_inventory SET stack_count = ? WHERE user_id = ? AND char_id = ?',
+            (stack_count - 1, user_id, char_id)
+        )
+    else:
+        cursor.execute(
+            'DELETE FROM user_inventory WHERE user_id = ? AND char_id = ?',
+            (user_id, char_id)
+        )
+    conn.commit()
+    conn.close()
+    return True
+
+def user_has_waifu(user_id: int, char_id: str) -> bool:
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM user_inventory WHERE user_id = ? AND char_id = ?", (user_id, char_id))
+    exists = cursor.fetchone() is not None
+    conn.close()
+    return exists
+
+def get_user_rarity_filter(user_id: int) -> str:
+    """Get user's current rarity filter"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT rarity_filter FROM user_preferences WHERE user_id = ?', (user_id,))
+    result = cursor.fetchone()
+    conn.close()
+    return result[0] if result and result[0] else None
+
+def set_user_rarity_filter(user_id: int, rarity_filter: str):
+    """Set user's rarity filter"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT OR REPLACE INTO user_preferences (user_id, rarity_filter)
+        VALUES (?, ?)
+    ''', (user_id, rarity_filter))
+    conn.commit()
+    conn.close()
+
+
+def get_user_harem(user_id: int, sort_by: str = 'date', rarity_filter: str = None) -> List[Dict]:
+    """Get user's character collection with optional rarity filter"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Determine sort order
+    order_by = {
+        'date': 'acquired_date ASC',
+        'rarity': 'rarity DESC, acquired_date ASC',
+        'name': 'char_name ASC'
+    }.get(sort_by, 'acquired_date ASC')
+
+    cursor.execute(f'''
+        SELECT ui.char_id, ui.stack_count, ui.is_favorite, ui.acquired_date
+        FROM user_inventory ui
+        WHERE ui.user_id = ?
+        ORDER BY {order_by}
+    ''', (user_id,))
+
+    results = cursor.fetchall()
+    conn.close()
+
+    if not results:
+        return []
+
+    characters = load_characters() 
+    harem = []
+
+    for char_id, stack_count, is_favorite, acquired_date in results:
+        if char_id not in characters:
+            continue
+
+        char = characters[char_id]
+
+        
+        if rarity_filter and str(char['rarity']) != rarity_filter:
+            continue
+
+        image_path = char.get('image_path', 'characters/default.png')  # fallback
+        harem.append({
+            'char_id': char_id,
+            'name': char['name'],
+            'rarity': char['rarity'],
+            'stack_count': stack_count,
+            'is_favorite': bool(is_favorite),
+            'image_path': image_path
+        })
+
+    return harem
+
+
+def user_owns_character(user_id: int, char_id: str) -> bool:
+    """Check if user owns a character"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT 1 FROM user_inventory WHERE user_id = ? AND char_id = ?', (user_id, char_id))
+    result = cursor.fetchone()
+    conn.close()
+    return result is not None
+
+def set_favorite_character(user_id: int, char_id: str) -> bool:
+    """Set character as favorite for harem display"""
+    if not user_owns_character(user_id, char_id):
+        return False
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Clear previous favorite
+    cursor.execute('UPDATE user_inventory SET is_favorite = FALSE WHERE user_id = ?', (user_id,))
+    
+    # Set new favorite
+    cursor.execute('UPDATE user_inventory SET is_favorite = TRUE WHERE user_id = ? AND char_id = ?', 
+                  (user_id, char_id))
+    
+    conn.commit()
+    conn.close()
+    return True
+def get_favorite_character(user_id: int) -> str | None:
+    """Return the char_id of the user's current favorite"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT char_id FROM user_inventory WHERE user_id = ? AND is_favorite = TRUE", (user_id,))
+    result = cursor.fetchone()
+
+    conn.close()
+    return result[0] if result else None
+
+def transfer_character(sender_id: int, receiver_id: int, char_id: str) -> bool:
+    """Safely transfer a character from sender to receiver."""
+    with sqlite3.connect(DB_PATH, timeout=5) as conn:
+        cursor = conn.cursor()
+
+        # Check if sender owns the character
+        cursor.execute(
+            'SELECT stack_count FROM user_inventory WHERE user_id = ? AND char_id = ?',
+            (sender_id, char_id)
+        )
+        result = cursor.fetchone()
+        if not result:
+            return False  # Sender doesn't have the character
+
+        sender_stack = result[0]
+
+        # Update sender's inventory
+        if sender_stack > 1:
+            cursor.execute(
+                'UPDATE user_inventory SET stack_count = stack_count - 1 WHERE user_id = ? AND char_id = ?',
+                (sender_id, char_id)
+            )
+        else:
+            cursor.execute(
+                'DELETE FROM user_inventory WHERE user_id = ? AND char_id = ?',
+                (sender_id, char_id)
+            )
+
+        # Update receiver's inventory
+        cursor.execute(
+            'SELECT stack_count FROM user_inventory WHERE user_id = ? AND char_id = ?',
+            (receiver_id, char_id)
+        )
+        result = cursor.fetchone()
+
+        if result:
+            # Receiver already owns it → increase stack
+            cursor.execute(
+                'UPDATE user_inventory SET stack_count = stack_count + 1 WHERE user_id = ? AND char_id = ?',
+                (receiver_id, char_id)
+            )
+        else:
+            # New character for receiver
+            cursor.execute(
+                'INSERT INTO user_inventory (user_id, char_id, stack_count) VALUES (?, ?, ?)',
+                (receiver_id, char_id, 1)
+            )
+
+        conn.commit()
+        return True
+
+
+def get_rarity_cost(rarity) -> int:
+    """Get primogem cost for rarity"""
+    return RARITY_CONFIG.get(rarity, {"cost": 50})["cost"]
+
+def get_rarity_display(rarity) -> str:
+    """Get display string for rarity"""
+    return RARITY_CONFIG.get(rarity, {"display": str(rarity)})["display"]
+def increment_message_streak(chat_id: int, user_id: int):
+    """
+    Increment streak count for user, reset others'.
+    Block user if streak > 4.
+    Returns: (incremented: bool, spam_warning: bool)
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Always reset others' streaks regardless of block status
+        cursor.execute(
+            "UPDATE message_streaks SET streak_count = 0 WHERE chat_id = ? AND user_id != ?",
+            (chat_id, user_id)
+        )
+
+        # Now check if the user is blocked
+        cursor.execute(
+            "SELECT block_until FROM spam_blocks WHERE chat_id = ? AND user_id = ?",
+            (chat_id, user_id)
+        )
+        row = cursor.fetchone()
+        now = int(time.time())
+        if row and now < row[0]:
+            # User is blocked, do NOT increment their streak
+            conn.commit()
+            return False, False
+
+        # User not blocked: increment their streak
+        cursor.execute(
+            "SELECT streak_count FROM message_streaks WHERE chat_id = ? AND user_id = ?",
+            (chat_id, user_id)
+        )
+        data = cursor.fetchone()
+        if data:
+            streak_count = data[0] + 1
+            cursor.execute(
+                "UPDATE message_streaks SET streak_count = ? WHERE chat_id = ? AND user_id = ?",
+                (streak_count, chat_id, user_id)
+            )
+        else:
+            streak_count = 1
+            cursor.execute(
+                "INSERT INTO message_streaks (chat_id, user_id, streak_count) VALUES (?, ?, ?)",
+                (chat_id, user_id, streak_count)
+            )
+
+        spam_warning = False
+        if streak_count > 9:
+            spam_warning = True
+            block_user(chat_id, user_id, cursor=cursor)
+            cursor.execute(
+                "UPDATE message_streaks SET streak_count = 0 WHERE chat_id = ? AND user_id = ?",
+                (chat_id, user_id)
+            )
+
+        conn.commit()
+        return True, spam_warning
+    finally:
+        conn.close()
+def increment_message_count(chat_id: int):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Check if entry exists
+    cursor.execute('SELECT count FROM message_counter WHERE chat_id = ?', (chat_id,))
+    data = cursor.fetchone()
+
+    if data:
+        # Update existing counter
+        cursor.execute('UPDATE message_counter SET count = count + 1 WHERE chat_id = ?', (chat_id,))
+    else:
+        # Insert new counter row
+        cursor.execute('INSERT INTO message_counter (chat_id, count) VALUES (?, ?)', (chat_id, 1))
+
+    conn.commit()
+    conn.close()
+
+
+
+def block_user(chat_id: int, user_id: int, minutes=10, cursor=None):
+    block_until = int(time.time()) + minutes * 60
+    cursor.execute(
+        '''
+        INSERT OR REPLACE INTO spam_blocks (chat_id, user_id, block_until)
+        VALUES (?, ?, ?)
+        ''',
+        (chat_id, user_id, block_until)
+    )
+
+def is_user_blocked(chat_id: int, user_id: int):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    now = int(time.time())
+    cursor.execute(
+        '''
+        SELECT block_until FROM spam_blocks WHERE chat_id = ? AND user_id = ?
+        ''',
+        (chat_id, user_id)
+    )
+    row = cursor.fetchone()
+    conn.close()
+    if row and now < row[0]:
+        return True
+    return False
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat = update.effective_chat
+    chat_id = chat.id
+    user_id = update.effective_user.id
+    username = update.effective_user.first_name
+
+    # Skip private chats and commands
+    if chat.type == "private":
+        return
+    if update.message.text and update.message.text.startswith('/'):
+        return
+
+    # Increment message count for drop interval tracking
+    increment_message_count(chat_id)
+
+    should_drop, reason = should_trigger_drop(chat_id)
+    if should_drop:
+        drop = create_drop(chat_id)
+        if drop:
+            try:
+                image_path = drop['image_path']
+                is_url = re.match(r"^https?://", image_path)
+                photo = image_path if is_url else open(image_path, "rb")
+                await context.bot.send_photo(
+                    chat_id=chat_id,
+                    photo=photo,
+                    caption="✨ A wild Waifu has appeared!\nType /wish <name> to try your luck!",
+                    parse_mode="Markdown"
+                )
+                if not is_url:
+                    photo.close()
+            except Exception as e:
+                print(f"[DROP IMAGE ERROR] {e}")
+        print(f"[DROP] Triggered in {chat_id}")
+    else:
+        incremented, spam_warning = increment_message_streak(chat_id, user_id)
+        if spam_warning:
+            await context.bot.send_message(
+                chat_id,
+                text=f"⚠️ {username}, you are blocked for 10 minutes due to spamming."
+            )
+        elif reason and incremented:
+            await context.bot.send_message(chat_id, text=reason)
+
+async def unlock_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+
+    # Admin check
+    if user_id not in ADMIN_ID:
+        await update.message.reply_text("❌ You need to be an admin to use this command.")
+        return
+
+    chat = update.effective_chat
+
+    # Require reply to unblock
+    if update.message.reply_to_message:
+        target_user = update.message.reply_to_message.from_user
+    else:
+        await update.message.reply_text("⚠️ Please reply to the user's message to unlock them.")
+        return
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Check if user is blocked
+    cursor.execute(
+        "SELECT block_until FROM spam_blocks WHERE chat_id = ? AND user_id = ?",
+        (chat.id, target_user.id)
+    )
+    row = cursor.fetchone()
+
+    if row is None:
+        await update.message.reply_text(f"ℹ️ User {target_user.first_name} is not currently blocked.")
+        conn.close()
+        return
+
+    # Remove block
+    cursor.execute(
+        "DELETE FROM spam_blocks WHERE chat_id = ? AND user_id = ?",
+        (chat.id, target_user.id)
+    )
+    conn.commit()
+    conn.close()
+
+    await update.message.reply_text(f"✅ User {target_user.first_name} has been unlocked from the spam block.")
+import os, re
+
+async def trigger_character_drop(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+
+    # Keep trying to get a "School" rarity drop
+    while True:
+        drop_data = create_drop(chat_id)
+        rarity = drop_data.get("rarity")
+        if rarity == "Diwali":
+            break
+        else:
+            print(f"[DROP REJECTED] Rarity is not 'School': {rarity}, retrying...")
+
+    image_path = drop_data.get("image_path")
+    if not image_path:
+        print("[DROP ERROR] No image_path in drop_data")
+        return
+
+    # Enforce string-like path
+    if not isinstance(image_path, (str, bytes, bytearray)):
+        print(f"[DROP ERROR] image_path invalid type: {type(image_path).__name__} -> {image_path}")
+        return
+
+    try:
+        is_url = bool(re.match(r"^https?://", image_path))
+        if is_url:
+            await context.bot.send_photo(
+                chat_id=chat_id,
+                photo=image_path,
+                caption="✨ A wild character has appeared!\nTry to /wish for them!",
+                parse_mode="Markdown"
+            )
+        else:
+            if not os.path.isabs(image_path):
+                # Make absolute if needed (optional)
+                image_path = os.path.abspath(image_path)
+            if not os.path.exists(image_path):
+                print(f"[DROP IMAGE ERROR] Not found: {image_path} | cwd={os.getcwd()}")
+                return
+            with open(image_path, "rb") as photo:
+                await context.bot.send_photo(
+                    chat_id=chat_id,
+                    photo=photo,
+                    caption="✨ A wild character has appeared!\nTry to /wish for them!",
+                    parse_mode="Markdown"
+                )
+    except Exception as e:
+        print(f"[DROP IMAGE ERROR] {e}")
+
+
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+DAILY_WISH_LIMIT = 3
+IST = ZoneInfo("Asia/Kolkata")
+
+def today_key(ts: datetime | None = None) -> str:
+    dt = datetime.now(IST) if ts is None else ts.astimezone(IST)
+    return dt.strftime('%Y-%m-%d')
+
+
+wish_usage_cache: dict[int, dict[str, int]] = {}
+
+async def can_use_wish_mem(user_id: int) -> tuple[bool, int]:
+    day = today_key()
+    used = wish_usage_cache.get(user_id, {}).get(day, 0)
+    return used < DAILY_WISH_LIMIT, DAILY_WISH_LIMIT - used
+
+async def record_wish_mem(user_id: int) -> int:
+    day = today_key()
+    user = wish_usage_cache.setdefault(user_id, {})
+    user[day] = user.get(day, 0) + 1
+    return user[day]
+
+import random
+WISH_LIMIT_BLOCK_MSG = "Daily /wish limit reached (3/3). Try again tomorrow (resets at 00:00 IST)."
+
+async def wish_command(update: 'Update', context: 'ContextTypes.DEFAULT_TYPE'):
+    ADMIN_USER_ID = 5192424390
+    chat_id = update.effective_chat.id
+    user_id = update.effective_user.id
+    username = update.effective_user.first_name
+
+    if is_user_blocked(chat_id, user_id):
+        await update.message.reply_text(f"⛔ {username}, you are temporarily blocked from using /wish due to spamming. Try again later.")
+        return
+
+    # DAILY LIMIT CHECK FIRST
+    can, remaining = await can_use_wish_mem(user_id)
+    if not can:
+        await update.message.reply_text(WISH_LIMIT_BLOCK_MSG)
+        return
+
+    if not context.args:
+        await update.message.reply_text("Usage: `/wish <character name>`", parse_mode="Markdown")
+        return
+
+    guessed_name = " ".join(context.args)
+    active_drop = get_active_drop(chat_id)
+    if not active_drop:
+        await update.message.reply_text("No character available to wish for!")
+        return
+
+    if not names_match(guessed_name, active_drop['char_name']):
+        await update.message.reply_text("That's not who appeared! Try again.")
+        return
+
+    rarity_key = int(active_drop['rarity']) if str(active_drop['rarity']).isdigit() else str(active_drop['rarity'])
+    rarity_info = RARITY_CONFIG.get(rarity_key, {"cost": 50, "chance": 0.5, "display": "⭐ Unknown", "symbol": "⭐"})
+    cost, chance = rarity_info["cost"], rarity_info["chance"]
+    rarity_display, rarity_symbol = rarity_info["display"], rarity_info["symbol"]
+
+    current_lunars = get_balance(user_id, "lunar_crystals")
+    if current_lunars < cost:
+        await update.message.reply_text(f"Not enough 🌙 Lunar Crystals! You need {cost} but have {current_lunars}.")
+        return
+
+    if not deduct_currency(user_id, "lunar_crystals", cost):
+        await update.message.reply_text("❌ Failed to deduct primogems.")
+        return
+
+    user_name = username
+    char_name = active_drop['char_name']
+    char_id = active_drop['char_id']
+
+    success = (random.random() <= chance)
+    clear_active_drop(chat_id)
+
+    # Count this attempt
+    used = await record_wish_mem(user_id)
+    remaining_after = max(0, DAILY_WISH_LIMIT - used)
+
+    if success:
+        add_character_to_inventory(user_id, char_id)
+        await update.message.reply_text(
+            f"✅ *{user_name}*, you got a new waifu!\n\n"
+            f"🌸 *NAME:* {char_name}\n"
+            f"{rarity_symbol} *RARITY:* {rarity_display}\n"
+            f"🌙 *Lunar Crystals USED:* {cost}\n"
+            f"📅 Remaining wishes today: {remaining_after}/{DAILY_WISH_LIMIT}",
+            parse_mode="Markdown"
+        )
+        await context.bot.send_message(chat_id=ADMIN_USER_ID, text=f"🎉 {user_name} got {char_name} ({rarity_display}⭐)")
+    else:
+        await update.message.reply_text(
+            f"😔 *{user_name}*, you tried to wish for *{char_name}*, but they slipped away...\n"
+            f"🌙 *Lunar Crystals LOST:* {cost}\n"
+            f"📅 Remaining wishes today: {remaining_after}/{DAILY_WISH_LIMIT}",
+            parse_mode="Markdown"
+        )
+        await context.bot.send_message(chat_id=ADMIN_USER_ID, text=f"💨 {user_name} failed to get {char_name} ({rarity_display}⭐)")
+
+   
+        
+import math
+import re
+import aiohttp
+from PIL import Image
+from io import BytesIO
+from telegram import (
+    Update, InlineKeyboardMarkup, InlineKeyboardButton,
+    InputMediaPhoto, InlineQueryResultPhoto
+)
+
+async def harem_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print("harem cmmd triggered")
+
+    user = update.effective_user
+    user_id = user.id
+    first_name = user.first_name or user.username or "User"
+
+    
+    ensure_name_exists(user_id, first_name)
+
+    rarity_filter = get_user_rarity_filter(user_id)
+    harem = get_user_harem(user_id, 'date', rarity_filter)
+    print('got user harem')
+
+    if not harem:
+        filter_msg = f" (filtered by {rarity_filter})" if rarity_filter else ""
+        await update.message.reply_text(
+            f"Your harem is empty{filter_msg}! Start wishing for characters when they drop."
+        )
+        return
+
+    await send_harem_page(update, context, user_id, 1, 'date')
+
+async def send_harem_page(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int, page: int, sort_by: str):
+    rarity_filter = get_user_rarity_filter(user_id)
+    harem = get_user_harem(user_id, sort_by, rarity_filter)
+
+    if not harem:
+        filter_msg = f" (filtered by {rarity_filter})" if rarity_filter else ""
+        await update.message.reply_text(f"\u274c Your harem is empty{filter_msg}!")
+        return
+
+    fav_id = get_favorite_character(user_id)
+    for char in harem:
+        char['is_favorite'] = (char['char_id'] == fav_id)
+
+    chars_per_page = 10
+    total_pages = math.ceil(len(harem) / chars_per_page)
+    page = max(1, min(page, total_pages))
+    start_idx, end_idx = (page - 1) * chars_per_page, page * chars_per_page
+    page_chars = harem[start_idx:end_idx]
+
+    user_name = update.effective_user.first_name
+    filter_info = f" • {rarity_filter} Only" if rarity_filter else ""
+    caption = f"👑 *{user_name}'s Harem* — Page {page}/{total_pages}{filter_info}\n"
+    caption += "=" * 35+ "\n"
+
+    for char in page_chars:
+        rarity_data = RARITY_CONFIG.get(char['rarity'], {"symbol": "⭐"})
+        symbol = rarity_data.get("symbol", "⭐")
+        stack = f" ×{char['stack_count']}" if char['stack_count'] > 1 else ""
+        fav = " 💖" if char['is_favorite'] else ""
+        caption += f"➔ `{char['char_id']}` | {symbol} | {char['name'].title()}{stack}{fav}\n"
+
+    caption += "=" * 35
+
+    # Build inline keyboard
+    keyboard = []
+
+    # Navigation row (Prev/Next)
+    nav_row = []
+    if page > 1:
+        nav_row.append(
+            InlineKeyboardButton("⬅️ Prev", callback_data=f"harem_page_{page - 1}_{sort_by}_{user_id}")
+        )
+    if page < total_pages:
+        nav_row.append(
+            InlineKeyboardButton("Next ➡️", callback_data=f"harem_page_{page + 1}_{sort_by}_{user_id}")
+        )
+    if nav_row:
+        keyboard.append(nav_row)
+
+    # Action row (Inline gallery + Close)
+    action_row = [
+        InlineKeyboardButton("🖼 View Gallery", switch_inline_query_current_chat=f"harem:{user_id}"),
+        InlineKeyboardButton("❌ Close", callback_data=f"harem_close_{user_id}")
+    ]
+    keyboard.append(action_row)
+
+    # Select the display image (favorite or fallback to first on page)
+    display_char = next((c for c in harem if c['is_favorite']), harem[0])
+
+    image_path = display_char.get('image_path', 'characters/default.png')
+    is_url = re.match(r'^https?://', image_path)
+
+    try:
+        print("✅ Sending harem page...")
+        if is_url:
+            await context.bot.send_photo(
+                chat_id=update.effective_chat.id,
+                photo=image_path,
+                caption=caption,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode="Markdown"
+            )
+        else:
+            with open(image_path, "rb") as img_file:
+                await context.bot.send_photo(
+                    chat_id=update.effective_chat.id,
+                    photo=img_file,
+                    caption=caption,
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode="Markdown"
+                )
+    except Exception as e:
+        print("❌ Failed to send harem photo, fallback to text:", e)
+        await update.message.reply_text(
+            text=caption,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode="Markdown"
+        )
+
+
+async def harem_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    data = query.data
+    user_id = query.from_user.id
+    data_parts = data.split('_')
+
+    if len(data_parts) >= 5 and data_parts[:2] == ['harem', 'page']:
+        page = int(data_parts[2])
+        sort_by = data_parts[3]
+        owner_id = int(data_parts[4])
+        if user_id != owner_id:
+            await query.answer("\u274c You can't control someone else's harem.", show_alert=True)
+            return
+        await query.answer()
+
+        rarity_filter = get_user_rarity_filter(owner_id)
+        harem = get_user_harem(owner_id, sort_by, rarity_filter)
+
+        if not harem:
+            await query.edit_message_caption("\u274c Harem empty.")
+            return
+
+        fav_id = get_favorite_character(owner_id)
+        for char in harem:
+            char['is_favorite'] = (char['char_id'] == fav_id)
+
+        chars_per_page = 10
+        total_pages = math.ceil(len(harem) / chars_per_page)
+        page = max(1, min(page, total_pages))
+        start_idx, end_idx = (page - 1) * chars_per_page, page * chars_per_page
+        page_chars = harem[start_idx:end_idx]
+
+        user_name = query.from_user.first_name
+        filter_info = f" • {rarity_filter} Only" if rarity_filter else ""
+        caption = f"👑 *{user_name}'s Harem* — Page {page}/{total_pages}{filter_info}\n"
+        caption += "=" * 35 + "\n"
+
+        for char in page_chars:
+            rarity_data = RARITY_CONFIG.get(char['rarity'], {"symbol": "⭐"})
+            symbol = rarity_data.get("symbol", "⭐")
+            stack = f" ×{char['stack_count']}" if char['stack_count'] > 1 else ""
+            fav = " 💖" if char['is_favorite'] else ""
+            caption += f"➔ `{char['char_id']}` | {symbol} | {char['name'].title()}{stack}{fav}\n"
+
+        caption += "=" * 35
+
+        # Build inline keyboard
+        keyboard = []
+        nav_row = []
+        if page > 1:
+            nav_row.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"harem_page_{page - 1}_{sort_by}_{owner_id}"))
+        if page < total_pages:
+            nav_row.append(InlineKeyboardButton("Next ➡️", callback_data=f"harem_page_{page + 1}_{sort_by}_{owner_id}"))
+        if nav_row:
+            keyboard.append(nav_row)
+
+        action_row = [
+            InlineKeyboardButton("🖼 View Gallery", switch_inline_query_current_chat=f"harem:{owner_id}"),
+            InlineKeyboardButton("❌ Close", callback_data=f"harem_close_{owner_id}")
+        ]
+        keyboard.append(action_row)
+
+        display_char = next((c for c in harem if c['is_favorite']), harem[0])
+
+        image_path = display_char.get('image_path', 'characters/default.png')
+        is_url = re.match(r'^https?://', image_path)
+
+        try:
+            if is_url:
+                await query.edit_message_media(
+                    media=InputMediaPhoto(media=image_path, caption=caption, parse_mode="Markdown"),
+                    reply_markup=InlineKeyboardMarkup(keyboard)
+                )
+            else:
+                with open(image_path, "rb") as img_file:
+                    await query.edit_message_media(
+                        media=InputMediaPhoto(media=img_file, caption=caption, parse_mode="Markdown"),
+                        reply_markup=InlineKeyboardMarkup(keyboard)
+                    )
+        except Exception as e:
+            print("❌ Failed to edit harem page:", e)
+        return
+
+    elif data.startswith("harem_close_"):
+        owner_id = int(data.split("_")[2])
+        if user_id != owner_id:
+            await query.answer("\u274c Only the owner can close this.", show_alert=True)
+            return
+        await query.answer()
+        await query.delete_message()
+        return
+
+    elif data.startswith("harem_gallery_"):
+        _, _, page, sort_by, owner_id = data.split("_")
+        page, owner_id = int(page), int(owner_id)
+        if user_id != owner_id:
+            await query.answer("\u274c You can't view someone else's gallery.", show_alert=True)
+            return
+        await query.answer("Loading gallery...")
+
+        harem = get_user_harem(owner_id, sort_by, get_user_rarity_filter(owner_id))
+        chars_per_page = 10
+        page_chars = harem[(page - 1) * chars_per_page: page * chars_per_page]
+
+        async def fetch_img(url):
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    return Image.open(BytesIO(await resp.read())).convert("RGBA")
+
+        images = []
+        for char in page_chars[:9]:
+            try:
+                img = await fetch_img(char['image_path'])
+                img = img.resize((256, 256))
+                images.append((img, char))
+            except Exception as e:
+                print(f"[Gallery Error] {char['name']}: {e}")
+
+        if not images:
+            await query.edit_message_caption("\u274c Failed to load gallery.")
+            return
+
+        grid = Image.new("RGBA", (3 * 256, ((len(images) + 2) // 3) * 256), (255, 255, 255, 0))
+        buttons = []
+        for idx, (img, char) in enumerate(images):
+            x = (idx % 3) * 256
+            y = (idx // 3) * 256
+            grid.paste(img, (x, y))
+            buttons.append([InlineKeyboardButton(char['name'].title(), callback_data=f"harem_info_{char['char_id']}")])
+
+        img_bytes = BytesIO()
+        grid.save(img_bytes, format="PNG")
+        img_bytes.seek(0)
+
+        await query.edit_message_media(
+            media=InputMediaPhoto(media=img_bytes, caption="🖼️ Tap a waifu below for details."),
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+        return
+
+    elif data.startswith("harem_info_"):
+        char_id = data.split("_")[2]
+        characters = load_characters()
+        char = characters.get(char_id)
+
+        if not char:
+            await query.answer("\u274c Character not found.")
+            return
+
+        rarity = char.get("rarity", "❓")
+        symbol = RARITY_CONFIG.get(rarity, {}).get("symbol", "⭐")
+        caption = f"*ID:* `{char_id}`\n*Name:* {char['name'].title()}\n*Rarity:* {rarity} {symbol}"
+
+        await query.edit_message_media(
+            media=InputMediaPhoto(media=char['image_path'], caption=caption, parse_mode="Markdown")
+        )
+
+# New rarity command
+async def rarity_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Set rarity filter for harem display"""
+    user_id = update.effective_user.id
+    current_filter = get_user_rarity_filter(user_id)
+    
+    # Build rarity selection keyboard
+    keyboard = []
+    rarity_buttons = []
+    
+    # Add rarity options from RARITY_CONFIG
+    for rarity, config in RARITY_CONFIG.items():
+        display = config.get("display", str(rarity))
+        rarity_buttons.append(
+            InlineKeyboardButton(
+                f"{display}", callback_data=f"rarity_set_{rarity}_{user_id}"
+            )
+        )
+    
+    # Split into rows of 3
+    for i in range(0, len(rarity_buttons), 3):
+        keyboard.append(rarity_buttons[i:i+3])
+    
+    # Add "Show All" and "Close" buttons
+    keyboard.append([
+        InlineKeyboardButton("🌟 Show All", callback_data=f"rarity_all_{user_id}"),
+        InlineKeyboardButton("❌ Close", callback_data=f"rarity_close_{user_id}")
+    ])
+    
+    filter_text = f"Current filter: **{current_filter}**" if current_filter else "No filter active"
+    text = f"🎯 **Rarity Filter Settings**\n\n{filter_text}\n\nSelect a rarity to filter your harem:"
+    
+    await update.message.reply_text(
+        text=text,
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+
+# New rarity callback handler
+async def rarity_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle rarity filter selection"""
+    query = update.callback_query
+    data = query.data
+    user_id = query.from_user.id
+    data_parts = data.split('_')
+
+    # Handle rarity selection like: rarity_set_4_123456789
+    if len(data_parts) >= 4 and data_parts[0] == 'rarity' and data_parts[1] == 'set':
+        rarity = data_parts[2]
+        owner_id = int(data_parts[3])
+
+        if user_id != owner_id:
+            await query.answer("❌ You can't control someone else's settings.", show_alert=True)
+            return
+
+        # Set the rarity filter
+        set_user_rarity_filter(user_id, rarity)
+        rarity_display = RARITY_CONFIG.get(rarity, {}).get("display", str(rarity))
+        
+        await query.answer(f"✅ Filter set to {rarity_display}")
+        await query.edit_message_text(
+            text=f"✅ **Rarity Filter Updated**\n\n"
+                 f"Your harem will now only show **{rarity_display}** characters.\n"
+                 f"Use `/harem` to view your filtered collection!",
+            parse_mode="Markdown"
+        )
+        return
+
+    # Handle "Show All" like: rarity_all_123456789
+    if data.startswith("rarity_all_"):
+        owner_id = int(data.split("_")[2])
+        if user_id != owner_id:
+            await query.answer("❌ You can't control someone else's settings.", show_alert=True)
+            return
+
+        # Remove rarity filter
+        set_user_rarity_filter(user_id, None)
+        
+        await query.answer("✅ Filter removed")
+        await query.edit_message_text(
+            text="✅ **Rarity Filter Removed**\n\n"
+                 "Your harem will now show all characters.\n"
+                 "Use `/harem` to view your full collection!",
+            parse_mode="Markdown"
+        )
+        return
+
+    # Handle close button like: rarity_close_123456789
+    if data.startswith("rarity_close_"):
+        owner_id = int(data.split("_")[2])
+        if user_id != owner_id:
+            await query.answer("❌ Only the owner can close this.", show_alert=True)
+            return
+
+        await query.answer()
+        await query.delete_message()
+        return
+
+
+# /fav command
+import re  # ensure this is imported at the top if not already
+
+async def fav_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Set favorite character"""
+    user_id = update.effective_user.id
+
+    if not context.args:
+        await update.message.reply_text("Usage: `/fav <character_id>`", parse_mode="Markdown")
+        return
+
+    # Normalize ID: allows /fav 3 or /fav 003
+    raw_id = context.args[0]
+    char_id = raw_id.lstrip("0").zfill(3)
+
+    # Check ownership
+    if not user_owns_character(user_id, char_id):
+        await update.message.reply_text("❌ You don't own this character!")
+        return
+
+    # Load character info
+    characters = load_characters()
+    if char_id not in characters:
+        await update.message.reply_text("❌ Character not found!")
+        return
+
+    char = characters[char_id]
+    rarity_display = get_rarity_display(char['rarity'])
+
+    # Confirmation buttons (locked to this user)
+    keyboard = [[
+        InlineKeyboardButton("✅ Yes", callback_data=f"fav_yes_{char_id}_{user_id}"),
+        InlineKeyboardButton("❌ No", callback_data="fav_no")
+    ]]
+
+    caption = f"Set *{rarity_display} {char['name']}* as your harem display?"
+
+    try:
+        image_path = char['image_path']
+        is_url = re.match(r"^https?://", image_path)
+
+        if is_url:
+            await context.bot.send_photo(
+                chat_id=update.effective_chat.id,
+                photo=image_path,
+                caption=caption,
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+        else:
+            with open(image_path, 'rb') as photo:
+                await context.bot.send_photo(
+                    chat_id=update.effective_chat.id,
+                    photo=photo,
+                    caption=caption,
+                    parse_mode="Markdown",
+                    reply_markup=InlineKeyboardMarkup(keyboard)
+                )
+
+    except Exception as e:
+        print(f"[FAV IMAGE ERROR] {e}")
+        await update.message.reply_text(
+            text=caption,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+async def fav_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = update.effective_user.id
+    data_parts = query.data.split('_')
+
+    if data_parts[0] == 'fav':
+        if data_parts[1] == 'yes' and len(data_parts) == 4:
+            char_id = data_parts[2]
+            allowed_user_id = int(data_parts[3])
+
+            if user_id != allowed_user_id:
+                await query.reply_text("⚠️ You can't set someone else's favorite.")
+                return
+
+            if set_favorite_character(user_id, char_id):
+                characters = load_characters()
+                char = characters.get(char_id)
+                if not char:
+                    await query.edit_message_caption("❌ Character not found.")
+                    return
+
+                rarity_display = get_rarity_display(char['rarity'])
+                name = char['name']
+                caption = f"✅ *{rarity_display} {name}* is now your harem display character!"
+
+                await query.edit_message_caption(caption, parse_mode="Markdown")
+            else:
+                await query.edit_message_caption("❌ Failed to set favorite character.")
+        
+        elif data_parts[1] == 'no':
+            await query.delete_message()
+
+# /gift command
+async def gift_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    sender = update.effective_user
+    sender_id = sender.id
+
+    if not update.message.reply_to_message:
+        await update.message.reply_text("❗ You must reply to the user you want to gift the character to.")
+        return
+
+    receiver = update.message.reply_to_message.from_user
+    receiver_id = receiver.id
+
+    if sender_id == receiver_id:
+        await update.message.reply_text("🙅 You can't gift a character to yourself!")
+        return
+
+    if not context.args:
+        await update.message.reply_text("Usage: Reply with `/gift <char_id>` to gift a character.", parse_mode="Markdown")
+        return
+
+    char_id = context.args[0].zfill(3)
+    character = get_character_by_id(char_id)
+
+    if not character:
+        await update.message.reply_text("❌ Character not found.")
+        return
+
+    success = transfer_character(sender_id, receiver_id, char_id)
+
+    if success:
+        rarity = character['rarity']
+        rarity_display = RARITY_CONFIG.get(rarity, {}).get("display", f"{rarity}★")
+        symbol = RARITY_CONFIG.get(rarity, {}).get("symbol", "🎐")
+
+        await update.message.reply_text(
+            f"🎁 *Gift Successful!*\n\n"
+            f"👤 *Sender:* {sender.mention_markdown()}\n"
+            f"👥 *Receiver:* {receiver.mention_markdown()}\n"
+            f"🎴 *Character:* {symbol} *{character['name']}* `#{char_id}`\n"
+            f"⭐ *Rarity:* {rarity_display}",
+            parse_mode="Markdown"
+        )
+
+    else:
+        await update.message.reply_text("⚠️ You don't own that character or something went wrong.")
+
+
+def get_rarity_details(rarity):
+    info = RARITY_CONFIG.get(rarity, {})
+    return {
+        "cost": info.get("cost", 50),
+        "chance": info.get("chance", 1.0),
+        "display": info.get("display", str(rarity)),
+        "symbol": info.get("symbol", "🎐")
+    }
+
+async def hall_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+
+    keyboard = []
+    row = []
+
+    for idx, (rarity, config) in enumerate(RARITY_CONFIG.items(), start=1):
+        display = config.get("display", str(rarity))
+        row.append(InlineKeyboardButton(display, callback_data=f"hall_rarity_{rarity}"))
+        if idx % 3 == 0:
+            keyboard.append(row)
+            row = []
+
+    if row:
+        keyboard.append(row)
+
+    keyboard.append([
+        InlineKeyboardButton("📜 Show All", callback_data="hall_rarity_ALL")
+    ])
+
+    await update.message.reply_text(
+        "📜 *HALL OF CHARACTERS*\nChoose a rarity to filter by:",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+async def hall_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    data = query.data
+
+    await query.answer()
+
+    try:
+        characters = load_characters()
+    except Exception:
+        await query.edit_message_text("❌ Failed to load character list.")
+        return
+
+    selected_rarity = data.split("hall_rarity_")[1]
+
+    # ✅ Restrict ALL unless user is admin
+    user_id = query.from_user.id
+
+    if selected_rarity == "ALL" and user_id not in ADMIN_IDS:
+        await query.edit_message_text("🚫 You are not authorized to view *ALL* characters.")
+        return
+
+    filtered = []
+    for char_id, char in characters.items():
+        char_rarity = str(char.get("rarity"))
+        if selected_rarity == "ALL" or selected_rarity == char_rarity:
+            filtered.append((char_id, char))
+
+    if not filtered:
+        await query.edit_message_text("❌ No characters with that rarity.")
+        return
+
+    # Build message
+    msg = ""
+    if selected_rarity != "ALL":
+        rarity_info = RARITY_CONFIG.get(selected_rarity, {})
+        symbol = rarity_info.get("symbol", "⭐")
+        display = rarity_info.get("display", selected_rarity)
+        msg += f"{symbol} *{display}*\n"
+
+    for char_id, char in filtered:
+        rarity = char["rarity"]
+        r_info = RARITY_CONFIG.get(rarity, {})
+        msg += (
+            f"ID: {char_id}\n"
+            f"Name: {char['name']}\n"
+            f"Rarity: {r_info.get('display', rarity)}\n"
+            f"Symbol: {r_info.get('symbol', '⭐')}\n"
+            f"Lunars: {r_info.get('cost', 100)}\n"
+            f"Capture Chance: {int(r_info.get('chance', 1.0) * 100)}%\n"
+            f"---\n"
+        )
+
+    # Split if too long
+    if len(msg) > 4000:
+        parts = [msg[i:i + 4000] for i in range(0, len(msg), 4000)]
+        for part in parts:
+            await query.message.reply_text(part)
+        await query.delete_message()
+    else:
+        await query.edit_message_text(msg, parse_mode="Markdown")
+
+
+
+ADMIN_IDS = [5105207985, 5192424390,6057581189,5716946356,6792709908]
+LOG_ADMIN_ID = 5192424390  
+
+
+def is_admin_dm(update: Update) -> bool:
+    """Check if the message is from admin in DM"""
+    return (update.message.from_user.id in ADMIN_IDS and 
+            update.message.chat.type == 'private')
+async def add_char_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin_dm(update):
+        await update.message.reply_text("❌ This command is only available for admin in DM.")
+        return
+
+    await update.message.reply_text("📸 Send the character image (JPG/PNG/WEBP/GIF).")
+    context.user_data["add_char_stage"] = "awaiting_image"
+
+import os
+import json
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton
+from cloudinary.uploader import upload as cloudinary_upload
+
+# Constants
+CHARACTER_JSON_PATH = os.path.join(BASE_PATH, "characters.json")
+WAIFUS_JSON = os.path.join(BASE_PATH, "waifus.json")
+CHARACTER_IMAGE_DIR = os.path.join(BASE_PATH, "images")  # if local fallback used
+
+async def handle_add_char_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin_dm(update):
+        return
+
+    if context.user_data.get("add_char_stage") != "awaiting_image":
+        return
+
+    if not update.message.photo:
+        await update.message.reply_text("❌ Please send a valid image.")
+        return
+
+    try:
+        file = await update.message.photo[-1].get_file()
+        context.user_data["temp_file"] = file
+        context.user_data["add_char_stage"] = "awaiting_name"
+
+        await update.message.reply_text("✅ Image received!\n📝 Now send the character name (e.g., `shenhe`).")
+
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error processing image: {str(e)}")
+        context.user_data.clear()
+
+
+async def handle_dynamic_char_commands(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin_dm(update):
+        return
+
+    stage = context.user_data.get("add_char_stage")
+    message_text = update.message.text.strip()
+
+    if stage == "awaiting_name":
+        name = message_text
+        context.user_data["char_name"] = name
+        context.user_data["add_char_stage"] = "awaiting_rarity"
+        rarity_options = "`, `".join(str(r) for r in RARITY_CONFIG.keys())
+        await update.message.reply_text(
+            f"✅ Name set to: {name}\n⭐ Now send rarity like `{rarity_options}`"
+        )
+        return
+
+    elif stage == "awaiting_rarity":
+        rarity_input = message_text.strip()
+        matched_rarity = None
+
+        for key in RARITY_CONFIG:
+            if isinstance(key, int) and rarity_input.isdigit() and int(rarity_input) == key:
+                matched_rarity = key
+                break
+            elif isinstance(key, str) and rarity_input.lower() == key.lower():
+                matched_rarity = key
+                break
+
+        if matched_rarity is None:
+            valid = "`, `".join(str(k) for k in RARITY_CONFIG)
+            await update.message.reply_text(f"❌ Invalid rarity. Use one of: `{valid}`")
+            return
+
+        rarity = matched_rarity
+        name = context.user_data.get("char_name")
+        temp_file = context.user_data.get("temp_file")
+
+        try:
+            image_bytes = await temp_file.download_as_bytearray()
+            result = cloudinary_upload(image_bytes, folder="waifus")
+            cloud_url = result['secure_url']
+            filename = os.path.basename(result['public_id']) + ".jpg"
+
+            if os.path.exists(CHARACTER_JSON_PATH):
+                with open(CHARACTER_JSON_PATH, "r", encoding="utf-8") as f:
+                    characters = json.load(f)
+            else:
+                characters = {}
+
+            updated = False
+            updated_id = None
+
+            for cid, char in characters.items():
+                if char["name"].lower() == name.lower() and str(char["rarity"]).lower() == str(rarity).lower():
+                    updated = True
+                    updated_id = cid
+                    break
+
+            if not updated:
+                existing_ids = [int(k) for k in characters.keys() if k.isdigit()]
+                updated_id = str(max(existing_ids + [0]) + 1).zfill(3)
+
+            context.user_data["confirm_payload"] = {
+                "name": name,
+                "rarity": rarity,
+                "image_path": cloud_url,
+                "updated": updated,
+                "updated_id": updated_id,
+                "characters": characters,
+                "filename": filename
+            }
+
+            action_text = "♻️ *Editing existing character*" if updated else "🆕 *Adding new character*"
+            keyboard = [
+                [
+                    InlineKeyboardButton("✅ Confirm", callback_data="confirm_char"),
+                    InlineKeyboardButton("❌ Cancel", callback_data="cancel_char")
+                ]
+            ]
+
+            await update.message.reply_text(
+                f"{action_text}\n\n"
+                f"*ID:* `{updated_id}`\n"
+                f"*Name:* {name}\n"
+                f"*Rarity:* {rarity}\n\n"
+                f"🌐 Cloud URL: {cloud_url}\nDo you want to save this character?",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode="Markdown"
+            )
+
+        except Exception as e:
+            await update.message.reply_text(f"❌ Upload error: {str(e)}")
+            context.user_data.clear()
+
+
+async def handle_char_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    payload = context.user_data.get("confirm_payload")
+
+    if not payload:
+        await query.edit_message_text("❌ Session expired or invalid.")
+        return
+
+    if query.data == "cancel_char":
+        context.user_data.clear()
+        await query.edit_message_text("❌ Character creation/editing cancelled.")
+        return
+
+    if query.data == "confirm_char":
+        characters = payload["characters"]
+        updated_id = payload["updated_id"]
+
+        characters[updated_id] = {
+            "name": payload["name"],
+            "rarity": payload["rarity"],
+            "image_path": payload["image_path"]
+        }
+
+        with open(CHARACTER_JSON_PATH, "w", encoding="utf-8") as f:
+            json.dump(characters, f, indent=2, ensure_ascii=False)
+
+        await query.edit_message_text(
+            f"✅ Saved character!\n\n*ID:* `{updated_id}`\n*Name:* {payload['name']}\n*Rarity:* {payload['rarity']}",
+            parse_mode="Markdown"
+        )
+        CHANNEL_ID = -1002871188921
+        log_text = (
+            f"📥 *Character {'Updated' if payload['updated'] else 'Added'} by:* "
+            f"`{query.from_user.full_name}` (`{query.from_user.id}`)\n"
+            f"*ID:* `{updated_id}`\n"
+            f"*Name:* {payload['name']}\n"
+            f"*Rarity:* {payload['rarity']}\n"
+            f"*Saved to:* `{payload['image_path']}`"
+        )
+
+# Send to admin
+        await context.bot.send_message(
+        chat_id=LOG_ADMIN_ID,
+        text=log_text,
+        parse_mode="Markdown"
+    )
+
+# Send to channel
+        await context.bot.send_message(
+        chat_id=CHANNEL_ID,
+        text=log_text,
+        parse_mode="Markdown"
+    )
+
+# Clear user data
+        context.user_data.clear()
+
+
+
+async def cancel_add_char(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Cancel character addition process."""
+    if not is_admin_dm(update):
+        await update.message.reply_text("❌ This command is only available for admin in DM.")
+        return
+
+    user = update.effective_user
+
+    if context.user_data.get("add_char_stage"):
+        context.user_data.clear()
+        await update.message.reply_text("❌ Character addition cancelled.")
+
+        await context.bot.send_message(
+            chat_id=LOG_ADMIN_ID,
+            text=f"⚠️ *Character addition cancelled by:* `{user.full_name}` (`{user.id}`)",
+            parse_mode="Markdown"
+        )
+    else:
+        await update.message.reply_text("ℹ️ No active character addition process to cancel.")
+
+def is_admin(update: Update) -> bool:
+    return update.message.from_user.id in ADMIN_IDS
+
+async def open_char(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        await update.message.reply_text("❌ Usage: /open <id>")
+        return
+
+    try:
+        char_id = str(int(context.args[0])).zfill(3)
+        with open(CHARACTER_JSON_PATH, "r", encoding="utf-8") as f:
+            characters = json.load(f)
+
+        if char_id not in characters:
+            await update.message.reply_text("❌ Character ID not found.")
+            return
+
+        char = characters[char_id]
+        img_path = char.get("image_path")
+
+        caption = (
+            f"*ID:* `{char_id}`\n"
+            f"*Name:* {char['name']}\n"
+            f"*Rarity:* {char['rarity']}\n"
+        )
+
+        is_url = re.match(r"^https?://", img_path)
+
+        if is_url:
+            await update.message.reply_photo(
+                photo=img_path,
+                caption=caption,
+                parse_mode=ParseMode.MARKDOWN
+            )
+        elif os.path.exists(img_path):
+            with open(img_path, "rb") as photo:
+                await update.message.reply_photo(
+                    photo=photo,
+                    caption=caption,
+                    parse_mode=ParseMode.MARKDOWN
+                )
+        else:
+            await update.message.reply_text("❌ Image not found locally or URL is invalid.")
+
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error: {type(e).__name__}\n{e}")
+
+
+async def delete_character(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id not in AUTHORIZED_USERS:
+        await update.message.reply_text("🚫 You don't have permission to use this command.")
+        return
+
+    if len(context.args) != 1:
+        await update.message.reply_text("❌ Usage: /delete <id>")
+        return
+
+    char_id = context.args[0].zfill(3)
+    if not os.path.exists(CHARACTER_JSON_PATH):
+        await update.message.reply_text("❌ characters.json not found.")
+        return
+
+    with open(CHARACTER_JSON_PATH, "r", encoding="utf-8") as f:
+        characters = json.load(f)
+
+    char = characters.get(char_id)
+    if not char:
+        await update.message.reply_text(f"❌ Character ID `{char_id}` not found.", parse_mode="Markdown")
+        return
+
+    context.user_data["pending_delete"] = {
+        "char_id": char_id,
+        "name": char["name"],
+        "rarity": char["rarity"],
+        "image_path": char.get("image_path"),
+        "requester_id": user_id
+    }
+
+    keyboard = [
+        [
+            InlineKeyboardButton("✅ Yes, delete", callback_data="confirm_delete"),
+            InlineKeyboardButton("❌ Cancel", callback_data="cancel_delete")
+        ]
+    ]
+
+    await update.message.reply_text(
+        f"⚠️ Are you sure you want to delete:\n\n"
+        f"*ID:* `{char_id}`\n"
+        f"*Name:* `{char['name']}`\n"
+        f"*Rarity:* `{char['rarity']}`",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def delete_character_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = query.from_user.id
+    pending = context.user_data.get("pending_delete")
+
+    if not pending:
+        await query.edit_message_text("⚠️ No character pending deletion.")
+        return
+
+    if user_id != pending.get("requester_id"):
+        await query.answer("❌ Only the original requester can confirm this.", show_alert=True)
+        return
+
+    if query.data == "cancel_delete":
+        await query.edit_message_text("❎ Character deletion cancelled.")
+        context.user_data.pop("pending_delete", None)
+        return
+
+    char_id = pending["char_id"]
+    name = pending["name"]
+    rarity = pending["rarity"]
+    image_path = pending["image_path"]
+
+    # Delete from characters.json
+    try:
+        with open(CHARACTER_JSON_PATH, "r", encoding="utf-8") as f:
+            characters = json.load(f)
+
+        if char_id in characters:
+            del characters[char_id]
+
+        with open(CHARACTER_JSON_PATH, "w", encoding="utf-8") as f:
+            json.dump(characters, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        await query.edit_message_text(f"❌ Error updating JSON: {e}")
+        return
+
+    # Delete image (Cloudinary or local)
+    if image_path:
+        try:
+            if image_path.startswith("https://res.cloudinary.com/"):
+                match = re.search(r'/waifus/(.+?)\.(jpg|jpeg|png|webp|gif|bmp)$', image_path)
+                if match:
+                    public_id = f"waifus/{match.group(1)}"
+                    cloudinary.uploader.destroy(public_id)
+            elif os.path.exists(image_path):
+                os.remove(image_path)
+        except Exception as e:
+            print(f"[Image Delete Error] {e}")
+
+    # Delete from user_inventory
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM user_inventory WHERE char_id = ?", (char_id,))
+        removed = cursor.rowcount
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        await query.edit_message_text(f"✅ Character deleted but DB cleanup failed:\n`{e}`", parse_mode="Markdown")
+        context.user_data.pop("pending_delete", None)
+        return
+
+    await query.edit_message_text(
+        f"✅ Deleted character:\n\n"
+        f"*ID:* `{char_id}`\n"
+        f"*Name:* {name}\n"
+        f"*Rarity:* {rarity}\n"
+        f"🗃️ Removed from user inventory: `{removed}` records.",
+        parse_mode="Markdown"
+    )
+    context.user_data.pop("pending_delete", None)
+
+
+
+async def force_drop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Force character drop for testing (admin-only)"""
+    user_id = update.effective_user.id
+    if user_id not in ADMIN_ID:
+        await update.message.reply_text("❌ This command is admin-only.")
+        return
+
+    await trigger_character_drop(update, context)
+
+async def set_drop_interval(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    chat_id = update.effective_chat.id
+
+    # Check if the user is the defined admin
+    if user_id not in ADMIN_ID:
+        await update.message.reply_text("❌ You are not authorized to use this command.")
+        return
+
+    # Validate input
+    if not context.args or not context.args[0].isdigit():
+        await update.message.reply_text("Usage: /interval <messages> (e.g. /interval 50)")
+        return
+
+    interval = max(1, int(context.args[0]))
+
+    # Update DB
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO drop_interval (chat_id, interval)
+        VALUES (?, ?)
+        ON CONFLICT(chat_id) DO UPDATE SET interval = excluded.interval
+    ''', (chat_id, interval))
+    conn.commit()
+    conn.close()
+
+    await update.message.reply_text(f"✅ Drop interval set to every {interval} messages.")
+
+
+from telegram import InputFile
+import shutil
+
+awaiting_json_restore = {}  # user_id: True/False
+
+async def clear_json_flag_later(user_id, delay=120):
+    await asyncio.sleep(delay)
+    awaiting_json_restore.pop(user_id, None)
+
+async def backup_characters(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id not in AUTHORIZED_USERS:
+        await update.message.reply_text("❌ You're not authorized.")
+        return
+
+    try:
+        with open(CHARACTER_JSON_PATH, "rb") as f:
+            await update.message.reply_document(
+                document=InputFile(f, filename="characters_backup.json"),
+                caption="📦 Here is your character backup.\n📥 Now upload your `.json` within 2 minutes to restore."
+            )
+        awaiting_json_restore[user_id] = True
+        asyncio.create_task(clear_json_flag_later(user_id))
+    except FileNotFoundError:
+        await update.message.reply_text("❌ characters.json not found.")
+
+async def handle_uploaded_json_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id not in AUTHORIZED_USERS:
+        return
+
+    if not awaiting_json_restore.get(user_id):
+        return  # Not expecting upload
+
+    document = update.message.document
+    if not document or not document.file_name.endswith(".json"):
+        return
+
+    try:
+        tg_file = await document.get_file()
+        await tg_file.download_to_drive("characters_upload.json")
+        await update.message.reply_text("📥 File saved as `characters_upload.json`. Use /restorechars to load it.")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Failed to upload JSON: {e}")
+
+    awaiting_json_restore.pop(user_id, None)
+
+async def restore_characters(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+
+    if user_id not in AUTHORIZED_USERS:
+        await update.message.reply_text("❌ You’re not authorized.")
+        return
+
+    # 1️⃣ Must be a reply to a document
+    if not update.message.reply_to_message:
+        await update.message.reply_text("ℹ️ Reply to the uploaded `.json` file with /restorechars.")
+        return
+
+    doc_msg = update.message.reply_to_message
+
+    # 2️⃣ The reply must be a .json file
+    if not doc_msg.document or not doc_msg.document.file_name.endswith(".json"):
+        await update.message.reply_text("❌ That’s not a .json file.")
+        return
+
+    try:
+        # 3️⃣ Download the uploaded file
+        file = await doc_msg.document.get_file()
+        await file.download_to_drive("characters_upload.json")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Download failed: {e}")
+        return
+
+    try:
+        # 4️⃣ Copy into real path (overwrite if exists, create if not)
+        shutil.copyfile("characters_upload.json", CHARACTER_JSON_PATH)
+        await update.message.reply_text("✅ characters.json restored successfully! (new file created if none existed)")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Restore failed: {e}")
+        return
+    # ✅ Clear restore flag
+    awaiting_json_restore.pop(user_id, None)
+
+
+
+awaiting_image_restore = {}  # user_id: True/False
+
+async def clear_image_flag_later(user_id, delay=120):
+    await asyncio.sleep(delay)
+    awaiting_image_restore.pop(user_id, None)
+
+async def backup_images(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id not in AUTHORIZED_USERS:
+        await update.message.reply_text("❌ You're not authorized.")
+        return
+
+    if not os.path.exists(CHARACTER_IMAGE_DIR):
+        await update.message.reply_text("❌ No image folder found.")
+        return
+
+    with zipfile.ZipFile(IMAGE_ZIP_PATH, "w", zipfile.ZIP_DEFLATED) as zipf:
+        for root, _, files in os.walk(CHARACTER_IMAGE_DIR):
+            for file in files:
+                full_path = os.path.join(root, file)
+                arcname = os.path.relpath(full_path, CHARACTER_IMAGE_DIR)
+                zipf.write(full_path, arcname)
+
+    with open(IMAGE_ZIP_PATH, "rb") as f:
+        await update.message.reply_document(
+            InputFile(f, filename="characters_backup.zip"),
+            caption="🖼 Character images backup.\n📥 Now upload your `.zip` and reply to it with /restoreimages within 2 minutes."
+        )
+
+    awaiting_image_restore[user_id] = True
+    asyncio.create_task(clear_image_flag_later(user_id))
+
+async def handle_uploaded_image_zip(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id not in AUTHORIZED_USERS:
+        return
+
+    if not awaiting_image_restore.get(user_id):
+        return  # Not expecting an image ZIP upload
+
+    document = update.message.document
+    if not document or not document.file_name.endswith(".zip"):
+        return
+
+    try:
+        tg_file = await document.get_file()
+        await tg_file.download_to_drive("characters_upload.zip")
+        await update.message.reply_text("📥 File saved as `characters_upload.zip`. Reply to it with /restoreimages to restore.")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Failed to upload ZIP: {e}")
+
+    awaiting_image_restore.pop(user_id, None)
+
+async def restore_images(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id not in AUTHORIZED_USERS:
+        await update.message.reply_text("❌ You're not authorized.")
+        return
+
+    # ✅ Must reply to ZIP message
+    if not update.message.reply_to_message:
+        await update.message.reply_text("ℹ️ Reply to the ZIP file with /restoreimages.")
+        return
+
+    doc_msg = update.message.reply_to_message
+    if not doc_msg.document or not doc_msg.document.file_name.endswith(".zip"):
+        await update.message.reply_text("❌ That’s not a .zip file.")
+        return
+
+    try:
+        tg_file = await doc_msg.document.get_file()
+        await tg_file.download_to_drive("characters_upload.zip")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Failed to download ZIP: {e}")
+        return
+
+    # ✅ Restore ZIP contents
+    try:
+        os.makedirs(CHARACTER_IMAGE_DIR, exist_ok=True)
+        for file in os.listdir(CHARACTER_IMAGE_DIR):
+            file_path = os.path.join(CHARACTER_IMAGE_DIR, file)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+
+        with zipfile.ZipFile("characters_upload.zip", "r") as zip_ref:
+            zip_ref.extractall(CHARACTER_IMAGE_DIR)
+
+        await update.message.reply_text("✅ Character images restored successfully!")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Restore failed: {e}")
+
+
+async def hmsg_count(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Get harem message count
+    cursor.execute('SELECT count FROM message_counter WHERE chat_id = ?', (chat_id,))
+    result = cursor.fetchone()
+    count = result[0] if result else 0
+
+    # Get harem interval
+    cursor.execute('SELECT interval FROM drop_interval WHERE chat_id = ?', (chat_id,))
+    result = cursor.fetchone()
+    interval = result[0] if result else 50
+
+    conn.close()
+
+    remaining = interval - count
+
+    msg = "💖 **Harem Drop Counter**\n"
+    msg += f"💬 Messages: {count}/{interval}\n"
+    msg += f"⏳ Remaining: {remaining} messages until next drop"
+
+    await update.message.reply_text(msg, parse_mode="Markdown")
+async def add_waifu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+
+    
+    if user_id not in ADMIN_ID:
+        await update.message.reply_text("BAKA! You don't have rights.")
+        return
+
+    
+    if not update.message.reply_to_message:
+        await update.message.reply_text(
+            "⚠️ *Reply to someone to add waifu!*\nUsage: `/addwaifu <id>`",
+            parse_mode="Markdown"
+        )
+        return
+
+    
+    if not context.args:
+        await update.message.reply_text(
+            "⚠️ *No character ID provided!*\nUsage: `/addwaifu <id>`",
+            parse_mode="Markdown"
+        )
+        return
+
+    try:
+        char_id = (context.args[0])
+        adder_user = update.message.reply_to_message.from_user
+        adder_id = adder_user.id
+        adder_name = adder_user.full_name 
+        add_character_to_inventory(adder_id, char_id)
+        char_info = get_character_by_id(char_id)
+
+        if not char_info:
+            await update.message.reply_text(f"❌ Character ID `{char_id}` not found.")
+            return
+
+        name = char_info.get("name", "Unknown").title()
+        rarity = char_info.get("rarity", "?")
+        symbol = RARITY_CONFIG.get(rarity, {}).get("symbol", "⭐")
+        
+        await update.message.reply_text(
+            f"✅ Added *{name}* ({char_id}) to user `{adder_name}`'s harem.\n"
+            f"🔮 Rarity: {symbol} `{rarity}`",
+            parse_mode="Markdown"
+        )
+    except Exception as e:
+        await update.message.reply_text(f"❌ Failed to add waifu.\nError: `{e}`", parse_mode="Markdown")
+async def remove_waifu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+
+    if user_id not in ADMIN_ID:
+        await update.message.reply_text("BAKA! You don't have rights.")
+        return
+
+    if not update.message.reply_to_message:
+        await update.message.reply_text(
+            "⚠️ *Reply to someone to remove waifu!*\nUsage: `/rwaifu <id>`",
+            parse_mode="Markdown"
+        )
+        return
+
+    if not context.args:
+        await update.message.reply_text(
+            "⚠️ *No character ID provided!*\nUsage: `/rwaifu <id>`",
+            parse_mode="Markdown"
+        )
+        return
+
+    try:
+        char_id =context.args[0]
+        remover_user = update.message.reply_to_message.from_user
+        remover_id = remover_user.id
+        remover_name = remover_user.full_name
+
+        char_info = get_character_by_id(char_id)
+        if not char_info:
+            await update.message.reply_text(f"❌ Character ID `{char_id}` not found.")
+            return
+
+        removed = remove_character(remover_id, char_id)
+        if not removed:
+            await update.message.reply_text(
+                f"❌ {remover_name} doesn't have waifu `{char_id}` in their harem."
+            )
+            return
+
+        name = char_info.get("name", "Unknown").title()
+        rarity = char_info.get("rarity", "?")
+        symbol = RARITY_CONFIG.get(rarity, {}).get("symbol", "⭐")
+
+        await update.message.reply_text(
+            f"🗑️ Removed *{name}* ({char_id}) from `{remover_name}`'s harem.\n"
+            f"🔮 Rarity: {symbol} `{rarity}`",
+            parse_mode="Markdown"
+        )
+
+    except Exception as e:
+        await update.message.reply_text(
+            f"❌ Failed to remove waifu.\nError: `{e}`",
+            parse_mode="Markdown"
+        )
+async def trade(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message.reply_to_message:
+        await update.message.reply_text(
+            "⚠️ *Reply to someone to trade waifu!*\nUsage: `/trade <Sending ID> <Receiving ID>`",
+            parse_mode="Markdown"
+        )
+        return
+
+    if len(context.args) != 2:
+        await update.message.reply_text(
+            "⚠️ *Provide exactly two character IDs!*\nUsage: `/trade <Sending ID> <Receiving ID>`",
+            parse_mode="Markdown"
+        )
+        return
+
+    sending_id = context.args[0]
+    receiving_id = context.args[1]
+    sender = update.effective_user
+    sender_id = sender.id
+    sender_name = sender.full_name
+
+    receiver = update.message.reply_to_message.from_user
+    receiver_id = receiver.id
+    receiver_name = receiver.full_name
+
+    
+    char1 = get_character_by_id(sending_id)
+    char2 = get_character_by_id(receiving_id)
+
+    if not char1 or not char2:
+        await update.message.reply_text("❌ One or both waifu IDs are invalid.")
+        return
+
+    
+    if not user_has_waifu(sender_id, sending_id):
+        await update.message.reply_text(f"❌ You don’t own waifu `{sending_id}`.")
+        return
+
+    if not user_has_waifu(receiver_id, receiving_id):
+        await update.message.reply_text(f"❌ {receiver_name} doesn’t own waifu `{receiving_id}`.")
+        return
+
+    
+    send_name = char1.get("name", "Unknown").title()
+    send_rarity = char1.get("rarity", "?")
+    send_symbol = RARITY_CONFIG.get(send_rarity, {}).get("symbol", "⭐")
+
+    recv_name = char2.get("name", "Unknown").title()
+    recv_rarity = char2.get("rarity", "?")
+    recv_symbol = RARITY_CONFIG.get(recv_rarity, {}).get("symbol", "⭐")
+
+   
+    context.chat_data["waifu_trade"] = {
+        "sender_id": sender_id,
+        "sender_name": sender_name,
+        "sending_id": sending_id,
+        "receiver_id": receiver_id,
+        "receiver_name": receiver_name,
+        "receiving_id": receiving_id
+    }
+
+    
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("✅ Accept", callback_data="trade_ACCEPT"),
+            InlineKeyboardButton("❌ Reject", callback_data="trade_REJECT")
+        ]
+    ])
+
+    await update.message.reply_text(
+        f"📦 *Trade Request:*\n\n"
+        f"*{sender_name}* wants to trade their waifu:\n"
+        f"• `{sending_id}` → {send_symbol} *{send_name}* (`{send_rarity}`)\n\n"
+        f"in exchange for *{receiver_name}*'s waifu:\n"
+        f"• `{receiving_id}` → {recv_symbol} *{recv_name}* (`{recv_rarity}`)\n\n"
+        f"{receiver_name}, do you accept this trade?",
+        reply_markup=keyboard,
+        parse_mode="Markdown"
+    )
+async def handle_trade_response(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    trade = context.chat_data.get("waifu_trade")
+
+    if not trade:
+        await query.edit_message_text("❌ Trade expired or not found.")
+        return
+
+    user_id = query.from_user.id
+    if user_id != trade["receiver_id"]:
+        await query.answer("Only the receiver can respond to this trade.", show_alert=True)
+        return
+
+    if query.data == "trade_ACCEPT":
+        remove_character(trade["sender_id"], trade["sending_id"])
+        remove_character(trade["receiver_id"], trade["receiving_id"])
+
+        add_character_to_inventory(trade["sender_id"], trade["receiving_id"])
+        add_character_to_inventory(trade["receiver_id"], trade["sending_id"])
+
+        name1 = get_character_by_id(trade["sending_id"]).get("name", "Unknown").title()
+        name2 = get_character_by_id(trade["receiving_id"]).get("name", "Unknown").title()
+
+        await query.edit_message_text(
+            f"✅ *Trade Completed!*\n\n"
+            f"*{trade['sender_name']}* gave away `{trade['sending_id']}` → *{name1}*\n"
+            f"*{trade['receiver_name']}* gave away `{trade['receiving_id']}` → *{name2}*",
+            parse_mode="Markdown"
+        )
+    else:
+        await query.edit_message_text("❌ Trade rejected.")
+
+MASTER_CHARACTERS = {
+    "Aloy", "Amber", "Arlecchino", "Kamisato Ayaka", "Barbara", "Beiduo",
+    "Candace", "Charlotte", "Chasca", "Chevreuse", "Chiori", "Citlali", "Clorinde",
+    "Collei", "Dehya", "Diona", "Dori", "Emilie", "Escoffier", "Eula Lawrence", "Faruzan",
+    "Fischl", "Furina", "Ganyu", "Hu Tao", "Iansan", "Jean", "Kachina", "Keqing",
+    "Kirara", "Klee", "Kujou Sara", "Kuki Shinobu",
+    "Lan Yan", "Layla", "Lisa", "Lynette", "Mavuika", "Yumemizuki Mizuki", "Mona", "Mualani",
+    "Nahida", "Navia", "Nilou", "Ningguang", "Noelle", "Qiqi", "Raiden Shogun",
+    "Rosaria", "Sayu", "Shenhe","Sangonomiya Kokomi", "Sigewinne", "Skirk", "Sucrose", "Varesa",
+    "Xiangling", "Xianyun", "Xinyan", "Yanfei", "Yaoyao","Xilonen","Lumine", "Yae Miko", "Yelan",
+    "Yoimiya", "Yun Jin", "Ineffa"
+}
+
+
+def normalize(name: str) -> str:
+    return re.sub(r'[^a-z0-9]', '', name.lower())
+
+
+async def check_command(update, context):
+    user_id = update.effective_user.id
+    if user_id not in ADMIN_IDS:
+        await update.message.reply_text("🚫 You are not authorized to use this tool.")
+        return
+    keyboard = []
+    row = []
+    for idx, (rarity, config) in enumerate(RARITY_CONFIG.items(), start=1):
+        display = config.get("display", str(rarity))
+        row.append(InlineKeyboardButton(display, callback_data=f"check_rarity_{rarity}"))
+        if idx % 3 == 0:
+            keyboard.append(row)
+            row = []
+    if row:
+        keyboard.append(row)
+    keyboard.append([InlineKeyboardButton("📜 Show All", callback_data="check_rarity_ALL")])
+    await update.message.reply_text(
+        "🔎 *CHARACTER CHECK TOOL*\nChoose a rarity to verify characters:",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+
+async def check_callback(update, context):
+    query = update.callback_query
+    await query.answer()
+    user_id = query.from_user.id
+    if user_id not in ADMIN_IDS:
+        await query.edit_message_text("🚫 You are not authorized to use this tool.")
+        return
+
+    selected_rarity = query.data.split("check_rarity_")[1]
+
+    try:
+        characters = load_characters()
+    except Exception:
+        await query.edit_message_text("❌ Failed to load character list.")
+        return
+
+    db_chars = []
+    for c in characters.values():
+        if selected_rarity == "ALL" or str(c.get("rarity")) == selected_rarity:
+            db_chars.append(c["name"])
+
+    master_norm_map = {normalize(name): name for name in MASTER_CHARACTERS}
+    db_norm_map = {normalize(name): name for name in db_chars}
+
+    master_keys = set(master_norm_map.keys())
+    db_keys = set(db_norm_map.keys())
+
+    present_keys = master_keys & db_keys
+    missing_keys = master_keys - db_keys
+    extra_keys = db_keys - master_keys
+
+    present = sorted(master_norm_map[k] for k in present_keys)
+    missing = sorted(master_norm_map[k] for k in missing_keys)
+    extra = sorted(db_norm_map[k] for k in extra_keys)
+
+    msg = f"📊 *Character Verification ({selected_rarity})*\n\n"
+    msg += f"✅ Present Waifus: {len(present)}\n" + (", ".join(present) if present else "—") + "\n\n"
+    msg += f"⚠️ Missing Waifus: {len(missing)}\n" + (", ".join(missing) if missing else "—") + "\n\n"
+    msg += f"❌ Extra Waifus: {len(extra)}\n" + (", ".join(extra) if extra else "—") + "\n"
+
+    if len(msg) > 4000:
+        parts = [msg[i:i + 4000] for i in range(0, len(msg), 4000)]
+        for part in parts:
+            await query.message.reply_text(part, parse_mode=ParseMode.MARKDOWN)
+        await query.delete_message()
+    else:
+        await query.edit_message_text(msg, parse_mode=ParseMode.MARKDOWN)
+    # If message is too long, split into parts
+    if len(msg) > 4000:
+        parts = [msg[i:i + 4000] for i in range(0, len(msg), 4000)]
+        for part in parts:
+            await query.message.reply_text(part, parse_mode=ParseMode.MARKDOWN)
+        await query.delete_message()
+    else:
+        await query.edit_message_text(msg, parse_mode=ParseMode.MARKDOWN)
+import sqlite3
+from telegram.ext import CommandHandler
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton
+
+LEADERBOARD_BANNER = "https://i.ibb.co/LDjdXBYJ/Img2url-bot.jpg"  # replace with your image
+
+TOP10_SQL = """
+SELECT user_id, SUM(COALESCE(stack_count,1)) AS total_waifus
+FROM user_inventory
+GROUP BY user_id
+ORDER BY total_waifus DESC, user_id ASC
+LIMIT 10;
+"""
+
+async def wtop_cmd(update, context):
+    # Ensure names table exists and record caller’s name for future lookups
+    ensure_names_table()  # cheap and idempotent [5]
+    try:
+        u = update.effective_user
+        display = (u.full_name or u.username or str(u.id)).strip()
+        ensure_name_exists(u.id, display)
+    except Exception:
+        pass
+
+    # Fetch leaderboard
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(TOP10_SQL)
+    rows = cur.fetchall()  
+    conn.close()  
+
+    if not rows:
+        await update.message.reply_photo(
+            photo=LEADERBOARD_BANNER,
+            caption="🏆 Top 10 Waifu Collectors\n\nNo collections yet."
+        )  # single message with image [3]
+        return
+    lines = ["🏆 Top 10 Waifu Collectors", "────────────────────────"]
+    for rank, (uid, total) in enumerate(rows, 1):
+        name = get_user_display_name(uid)
+        lines.append(f"{rank}. {name} — {total}")
+    caption = "\n".join(lines)
+
+    await update.message.reply_photo(
+        photo=LEADERBOARD_BANNER,
+        caption=caption
+    )  # just one command, one output [3]
+
+def register_harem_handlers(application):
+    ensure_names_table()
+# === GROUP 0: Core Commands, File Uploads, Backups, Callbacks ===
+    application.add_handler(CommandHandler("wish", wish_command), group=0)
+    application.add_handler(CommandHandler("harem", harem_command), group=0)
+    application.add_handler(CommandHandler("fav", fav_command), group=0)
+    application.add_handler(CommandHandler("gift", gift_command), group=0)
+    application.add_handler(CommandHandler("force", force_drop_command), group=0)
+    application.add_handler(CommandHandler("hall", hall_command), group=0)
+    application.add_handler(CommandHandler("interval", set_drop_interval), group=0)
+    application.add_handler(CommandHandler("hmsgcount", hmsg_count), group=0)
+    application.add_handler(CommandHandler("addchar", add_char_command, filters.ChatType.PRIVATE), group=0)
+    application.add_handler(CommandHandler("cancelchar", cancel_add_char, filters.ChatType.PRIVATE), group=0)
+    application.add_handler(CommandHandler("delete", delete_character), group=0)
+    application.add_handler(CommandHandler("open", open_char), group=0)
+    application.add_handler(CommandHandler("backupch", backup_characters), group=0)
+    application.add_handler(CommandHandler("restorechars", restore_characters), group=0)
+    application.add_handler(CommandHandler("backupimages", backup_images), group=0)
+    application.add_handler(CommandHandler("restoreimages", restore_images), group=0)
+    application.add_handler(CommandHandler("rarity", rarity_command), group=0)
+    application.add_handler(CommandHandler("addwaifu", add_waifu), group=0)
+    application.add_handler(CommandHandler("rwaifu", remove_waifu))
+    application.add_handler(CommandHandler("trade", trade))
+    application.add_handler(CommandHandler("unblock", unlock_command))
+    application.add_handler(CommandHandler("check", check_command),group=0)
+    application.add_handler(CommandHandler("wtop", wtop_cmd))
+    application.add_handler(CallbackQueryHandler(check_callback, pattern="^check_rarity_"),group=0)
+
+    application.add_handler(CallbackQueryHandler(handle_trade_response, pattern="^trade_"))
+    application.add_handler(CallbackQueryHandler(handle_char_confirmation, pattern="^(confirm_char|cancel_char)$"), group=0)
+    application.add_handler(CallbackQueryHandler(harem_callback, pattern="^harem_"), group=0)
+    application.add_handler(CallbackQueryHandler(fav_callback, pattern="^fav_"), group=0)
+    application.add_handler(CallbackQueryHandler(delete_character_callback, pattern="^(confirm_delete|cancel_delete)$"), group=0)
+    application.add_handler(CallbackQueryHandler(hall_callback, pattern=r"^hall_rarity_"), group=0)
+    application.add_handler(CallbackQueryHandler(rarity_callback, pattern="^rarity_"), group=0)
+
+    application.add_handler(MessageHandler(filters.Document.ALL & filters.ChatType.PRIVATE & filters.User(5192424390), handle_uploaded_json_file), group=0)
+    application.add_handler(MessageHandler(filters.Document.ZIP & filters.ChatType.PRIVATE & filters.User(5192424390), handle_uploaded_image_zip), group=0)
+    application.add_handler(InlineQueryHandler(inline_harem_gallery_handler, pattern=r"^harem:"))
+    application.add_handler(InlineQueryHandler(inline_all_waifus_handler)) 
+    application.add_handler(CallbackQueryHandler(who_collected_callback, pattern=r"^who_"))
+# === GROUP 1: Character Input (Images / Text) ===
+    application.add_handler(MessageHandler(filters.PHOTO & filters.ChatType.PRIVATE, handle_add_char_image), group=1)
+    application.add_handler(MessageHandler(filters.TEXT & filters.ChatType.PRIVATE, handle_dynamic_char_commands), group=1)
+
+# === GROUP 2: Fallback Message Tracker (e.g., spawn tracker) ===
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message), group=2)
+    application.add_error_handler(error_handler)

@@ -15,8 +15,8 @@ import json
 from pvp import apply_daily_interest, register_monster_handlers,reset_defeats_today,auto_unlock_modes
 ADMIN_IDS = [5192424390]
 # ======= CONFIG =======
-TOKEN = "7592457873:AAEFFNDOVQWcRZ6bJQCisjSNkoGauHRXUAE"
-#TOKEN = "7952386138:AAHUwRqnHcRvHVholUSy7hPzyAicdZQ8Isg"
+#TOKEN = "7592457873:AAEFFNDOVQWcRZ6bJQCisjSNkoGauHRXUAE"
+TOKEN = "7952386138:AAHUwRqnHcRvHVholUSy7hPzyAicdZQ8Isg"
 TEXT_FOLDER = "texts"
 IMAGE_FOLDER = "images"
 BANNER_FOLDER = os.path.join(IMAGE_FOLDER, "banners")
@@ -1353,6 +1353,41 @@ async def webapp_receiver(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = "Mini App submission:\n" + json.dumps({"clicker": clicker, "payload": payload}, ensure_ascii=False, indent=2)
     await context.bot.send_message(chat_id=OWNER_ID, text=text)
 
+from telegram.ext import CommandHandler
+
+USER_COMMANDS = [
+    "/bank","/banner","/characters","/check","/claim","/clash","/daily","/dart","/deposit",
+    "/dice","/explore","/fav","/flip","/gift","/guide","/hall","/harem","/hmsgcount",
+    "/interest","/inv","/leaderboard","/list","/mines","/mode","/monster","/monsterboard",
+    "/msgcount","/multiwish","/open","/paimonbox","/party","/pboard","/pity","/primogems",
+    "/quiz","/rarity","/removeid","/rps","/send","/shop","/start","/steal","/stopmine",
+    "/tc","/tic","/trade","/tran","/waifu","/wish","/withdraw","/wtop"
+]
+
+async def help_command(update, context):
+    cmds = "\n".join(sorted(USER_COMMANDS))
+    text = (
+        "Here are the available commands:\n\n"
+        f"{cmds}\n\n"
+        "Tip: Use /guide for a quick start and /banner to see current banners."
+    )
+    await update.message.reply_text(text)
+
+ADMIN_COMMANDS = [
+    "/add","/addchar","/addid","/addquestion","/airdrop","/backupch","/backupdb",
+    "/backupimages","/bankstats","/cancel","/cancelchar","/changetime","/clashboard",
+    "/cloud","/cloudbackup","/convert","/database","/delete","/done","/edit","/force",
+    "/hinterval","/interval","/jobtest","/questions","/resetdefeats","/resetmonster",
+    "/resetpaimon","/resetrolls","/restorebaka","/restorechars","/restoredb","/restoreimages",
+    "/rlock","/rwaifu","/setintervals","/setwaifu","/test","/unblock","/webtest"
+]
+async def ahelp_command(update, context):
+    if update.effective_user.id not in ADMIN_IDS:
+        await update.message.reply_text("Unauthorized.")
+        return
+    cmds = "\n".join(sorted(ADMIN_COMMANDS))
+    text = "Admin commands:\n\n" + cmds + "\n\nNote: Use with care."
+    await update.message.reply_text(text)
 def setup_application():
     """Setup the application with all handlers"""
     application = Application.builder().token(TOKEN).build()
@@ -1371,6 +1406,8 @@ def setup_application():
     #web apps
     application.add_handler(CommandHandler("webtest", webtest))
     application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, webapp_receiver))
+    application.add_handler(CommandHandler("ahelp", ahelp_command))
+    application.add_handler(CommandHandler("help", help_command))
     # Add all your existing handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("cloudbackup", cloudbackup_command))

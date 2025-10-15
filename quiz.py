@@ -139,8 +139,6 @@ def get_leaderboard():
 import asyncio
 import shutil
 import os
-
-AUTHORIZED_USERS = {...}  # your IDs
 QUIZ_DB_PATH = "/mnt/data/quiz.db"
 
 awaiting_db_restore = {}  # user_id: True/False

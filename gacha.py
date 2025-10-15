@@ -96,7 +96,17 @@ def ensure_gacha_columns():
     with sqlite3.connect(DB_PATH) as conn:
         c = conn.cursor()
 
-        # 1) Create table if missing (no stray statements inside)
+        # 0) If any leftover object named Furina exists, drop it first (index or table)
+        c.execute("SELECT name, type FROM sqlite_master WHERE name='Furina';")
+        row = c.fetchone()
+        if row:
+            obj_type = row[1].lower()
+            if obj_type == "index":
+                c.execute("DROP INDEX IF EXISTS Furina;")
+            elif obj_type == "table":
+                c.execute("DROP TABLE IF EXISTS Furina;")
+
+        # 1) Create table (clean DDL)
         c.execute("""
             CREATE TABLE IF NOT EXISTS gacha_state (
                 user_id     INTEGER PRIMARY KEY,
@@ -107,21 +117,21 @@ def ensure_gacha_columns():
             );
         """)
 
-        # 2) Drop a bad index named Furina if it exists (run as its own statement)
-        c.execute("DROP INDEX IF EXISTS Furina;")
-
-        # 3) Add columns only if missing (avoid duplicates across versions)
+        # 2) Add columns if missing (idempotent)
         c.execute("PRAGMA table_info(gacha_state);")
-        cols = {row[1] for row in c.fetchall()}
-
-        if "pity_4" not in cols:
-            c.execute("ALTER TABLE gacha_state ADD COLUMN pity_4 INTEGER DEFAULT 0;")
+        cols = {r[1] for r in c.fetchall()}
         if "pity_5" not in cols:
             c.execute("ALTER TABLE gacha_state ADD COLUMN pity_5 INTEGER DEFAULT 0;")
+        if "pity_4" not in cols:
+            c.execute("ALTER TABLE gacha_state ADD COLUMN pity_4 INTEGER DEFAULT 0;")
         if "last_5star" not in cols:
             c.execute("ALTER TABLE gacha_state ADD COLUMN last_5star TEXT;")
         if "total_pulls" not in cols:
             c.execute("ALTER TABLE gacha_state ADD COLUMN total_pulls INTEGER DEFAULT 0;")
+
+        # 3) Final health check for logs
+        c.execute("PRAGMA integrity_check;")
+        print("DB integrity after gacha init:", c.fetchone()[0])
 
         conn.commit()
 

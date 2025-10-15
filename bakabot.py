@@ -1,7 +1,7 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto, ReplyKeyboardRemove, ForceReply
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters, CallbackContext, ConversationHandler
 from quiz import register_quiz_handlers
-from gacha import register_gacha_handlers
+from gacha import register_gacha_handlers,ensure_gacha_columns()
 from harem import register_harem_handlers,init_harem_database,create_user_preferences_table#create_sample_characters
 from mine import register_game_handlers
 import os
@@ -1401,7 +1401,9 @@ def setup_application():
     register_game_handlers(application)
     register_monster_handlers(application)
     register_shop_handlers(application)
+    
 
+    ensure_gacha_columns()
 
     #web apps
     application.add_handler(CommandHandler("webtest", webtest))

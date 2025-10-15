@@ -92,28 +92,37 @@ def update_character_powers():
         conn.commit()
 
 def ensure_gacha_columns():
+    os.makedirs(os.path.dirname(DB_PATH) or ".", exist_ok=True)
     with sqlite3.connect(DB_PATH) as conn:
         c = conn.cursor()
-    
+
+        # 1) Create table if missing (no stray statements inside)
         c.execute("""
             CREATE TABLE IF NOT EXISTS gacha_state (
-                user_id INTEGER PRIMARY KEY,
-                pity_5 INTEGER DEFAULT 0,
-                pity_4 INTEGER DEFAULT 0,
-                last_5star TEXT,
+                user_id     INTEGER PRIMARY KEY,
+                pity_5      INTEGER DEFAULT 0,
+                pity_4      INTEGER DEFAULT 0,
+                last_5star  TEXT,
                 total_pulls INTEGER DEFAULT 0
-            )
+            );
         """)
-        
-        # Check if columns exist before adding them
-        c.execute("PRAGMA table_info(gacha_state)")
-        columns = [col[1] for col in c.fetchall()]
-        
-        if "pity_4" not in columns:
-            c.execute("ALTER TABLE gacha_state ADD COLUMN pity_4 INTEGER DEFAULT 0")
-        
-        # Add any other missing columns here if needed
-        
+
+        # 2) Drop a bad index named Furina if it exists (run as its own statement)
+        c.execute("DROP INDEX IF EXISTS Furina;")
+
+        # 3) Add columns only if missing (avoid duplicates across versions)
+        c.execute("PRAGMA table_info(gacha_state);")
+        cols = {row[1] for row in c.fetchall()}
+
+        if "pity_4" not in cols:
+            c.execute("ALTER TABLE gacha_state ADD COLUMN pity_4 INTEGER DEFAULT 0;")
+        if "pity_5" not in cols:
+            c.execute("ALTER TABLE gacha_state ADD COLUMN pity_5 INTEGER DEFAULT 0;")
+        if "last_5star" not in cols:
+            c.execute("ALTER TABLE gacha_state ADD COLUMN last_5star TEXT;")
+        if "total_pulls" not in cols:
+            c.execute("ALTER TABLE gacha_state ADD COLUMN total_pulls INTEGER DEFAULT 0;")
+
         conn.commit()
 
 

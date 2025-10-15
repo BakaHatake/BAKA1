@@ -136,72 +136,98 @@ def get_leaderboard():
     conn.close()
     return leaderboard
 
-                            
-from telegram import InputFile
-
-def export_quiz_db():
-    
-    shutil.copyfile("/mnt/data/quiz.db", "quiz_backup.db")
-
 import asyncio
+import shutil
+import os
 
-awaiting_restore_upload = {}  # user_id: True/False
+AUTHORIZED_USERS = {...}  # your IDs
+QUIZ_DB_PATH = "/mnt/data/quiz.db"
 
-async def clear_upload_flag_later(user_id, delay=120):
+awaiting_db_restore = {}  # user_id: True/False
+
+async def clear_db_flag_later(user_id, delay=120):
     await asyncio.sleep(delay)
-    awaiting_restore_upload.pop(user_id, None)
+    awaiting_db_restore.pop(user_id, None)
 
-async def backup_db(update, context):
-    if update.effective_user.id not in AUTHORIZED_USERS:
-        return await update.message.reply_text("❌ Not authorized.")
-    try:
-        os.makedirs("/tmp", exist_ok=True)
-        src = "/mnt/data/quiz.db"
-        dst = "/tmp/quiz_backup.db"
-        shutil.copyfile(src, dst)
-        with open(dst, "rb") as f:
-            await update.message.reply_document(InputFile(f, filename="quiz_backup.db"),
-                                                caption="✅ Backup created. Send a .db to replace it.")
-        awaiting_restore_upload[update.effective_user.id] = True
-        asyncio.create_task(clear_upload_flag_later(update.effective_user.id))
-    except Exception as e:
-        await update.message.reply_text(f"⚠️ Backup failed: {e}")
-
-async def handle_uploaded_file(update, context):
-    if update.effective_user.id not in AUTHORIZED_USERS:
+async def backup_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id not in AUTHORIZED_USERS:
+        await update.message.reply_text("❌ You're not authorized.")
         return
-    doc = update.message.document
-    if not doc:
-        return await update.message.reply_text("Send the .db as a file, not as a photo.")
-    if not doc.file_name.lower().endswith(".db"):
-        return await update.message.reply_text("Only .db files are accepted.")
-    try:
-        os.makedirs("/tmp", exist_ok=True)
-        path = "/tmp/quiz_upload.db"
-        tg = await doc.get_file()
-        await tg.download_to_drive(path)
-        size = os.path.getsize(path)
-        await update.message.reply_text(f"📥 Uploaded {doc.file_name} ({size} bytes). Run /restoredb to apply.")
-    except Exception as e:
-        await update.message.reply_text(f"❌ Upload failed: {e}")
 
-async def restore_uploaded_db(update, context):
-    if update.effective_user.id not in AUTHORIZED_USERS:
-        return await update.message.reply_text("❌ Not authorized.")
-    upload_path = "/tmp/quiz_upload.db"
-    target_path = "/mnt/data/quiz.db"
     try:
-        os.makedirs("/mnt/data", exist_ok=True)
-        if not os.path.exists(upload_path):
-            # Create a new DB if none uploaded
-            conn = sqlite3.connect(target_path)
-            # TODO: create tables
-            conn.close()
-            return await update.message.reply_text("⚠️ No upload found; created a new empty DB at /mnt/data/quiz.db.")
-        shutil.copyfile(upload_path, target_path)
-        await update.message.reply_text("✅ Restored DB from upload. Restart the bot.")
+        # Open and send the live DB as-is
+        with open(QUIZ_DB_PATH, "rb") as f:
+            await update.message.reply_document(
+                document=InputFile(f, filename="quiz_backup.db"),
+                caption="📦 Here is your DB backup.\n📥 Now upload your `.db` within 2 minutes to restore."
+            )
+        awaiting_db_restore[user_id] = True
+        asyncio.create_task(clear_db_flag_later(user_id))
+    except FileNotFoundError:
+        await update.message.reply_text("❌ quiz.db not found.")
+
+async def handle_uploaded_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id not in AUTHORIZED_USERS:
+        return
+
+    if not awaiting_db_restore.get(user_id):
+        return  # Not expecting upload
+
+    document = update.message.document
+    if not document or not document.file_name.endswith(".db"):
+        return
+
+    try:
+        tg_file = await document.get_file()
+        await tg_file.download_to_drive("quiz_upload.db")
+        await update.message.reply_text("📥 File saved as `quiz_upload.db`. Use /restoredb to load it.")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Failed to upload DB: {e}")
+
+    awaiting_db_restore.pop(user_id, None)
+
+async def restore_uploaded_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+
+    if user_id not in AUTHORIZED_USERS:
+        await update.message.reply_text("❌ You’re not authorized.")
+        return
+
+    # 1️⃣ Must be a reply to a document
+    if not update.message.reply_to_message:
+        await update.message.reply_text("ℹ️ Reply to the uploaded `.db` file with /restoredb.")
+        return
+
+    doc_msg = update.message.reply_to_message
+
+    # 2️⃣ The reply must be a .db file
+    if not doc_msg.document or not doc_msg.document.file_name.endswith(".db"):
+        await update.message.reply_text("❌ That’s not a .db file.")
+        return
+
+    try:
+        # 3️⃣ Download the uploaded file
+        file = await doc_msg.document.get_file()
+        await file.download_to_drive("quiz_upload.db")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Download failed: {e}")
+        return
+
+    try:
+        # 4️⃣ Copy into real path (overwrite if exists, create if not)
+        os.makedirs(os.path.dirname(QUIZ_DB_PATH) or ".", exist_ok=True)
+        shutil.copyfile("quiz_upload.db", QUIZ_DB_PATH)
+        await update.message.reply_text("✅ quiz.db restored successfully! (new file created if none existed)")
     except Exception as e:
         await update.message.reply_text(f"❌ Restore failed: {e}")
+        return
+
+    # ✅ Clear restore flag
+    awaiting_db_restore.pop(user_id, None)
+
+
 
 # === QUIZ ===
 async def start_quiz(update: Update, context: ContextTypes.DEFAULT_TYPE, ignore_auth=False):

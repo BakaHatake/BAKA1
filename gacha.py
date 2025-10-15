@@ -136,8 +136,6 @@ def ensure_gacha_columns():
         conn.commit()
 
 
-ensure_gacha_columns()
-
 def init_gacha_db():
     with sqlite3.connect(DB_PATH) as conn:
         c = conn.cursor()

@@ -872,9 +872,10 @@ async def inv_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(message)
 
-ADMIN_GROUP_CHAT_ID = -1002120721604
+ADMIN_GROUP_CHAT_ID = -1002043895840
 
 TG_MSG_LIMIT = 4000
+
 def bold(text):
     return f"*{text}*"
 
@@ -892,13 +893,21 @@ async def airdrop(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ You are not authorized to use this command.")
         return
 
+    # Require at least amount; optional message follows
     if not context.args or not context.args[0].isdigit():
-        await update.message.reply_text("Usage: /airdrop <max_amount>\nExample: /airdrop 1000")
+        await update.message.reply_text("Usage: /airdrop <max_amount> [message]")
         return
 
     max_amount = int(context.args[0])
     if max_amount <= 0:
         await update.message.reply_text("Please specify a positive integer amount.")
+        return
+
+
+    msg_text = " ".join(context.args[1:]).strip()
+
+    if not msg_text:
+        await update.message.reply_text("Usage: /airdrop <max_amount> [message]")
         return
 
     user_ids = get_all_users_ids()
@@ -913,12 +922,17 @@ async def airdrop(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if amount > 0:
             add_currency(uid, "lunar_crystals", amount)
             try:
+                # Send DM to each user
                 await context.bot.send_message(
-                    chat_id=5192424390,
-                    text=f"🎉 You received {bold(str(amount))} Lunar Crystals as part of an airdrop! 🌙",
+                    chat_id=uid,
+                    text=(
+                        f"🎉 You received {bold(str(amount))} Lunar Crystals as part of an airdrop! 🌙\n"
+                        f"{msg_text}"
+                    ),
                     parse_mode="Markdown"
                 )
             except Exception as e:
+                # Likely the user hasn't started the bot or blocked it
                 print(f"Failed to send DM to user {uid}: {e}")
 
         results.append((uid, amount))
@@ -933,9 +947,12 @@ async def airdrop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for uid, amt in results:
         report_lines.append(f"✨ {mono(str(uid))} — _{amt} Lunar Crystals_ ")
 
+    report_lines.append("")
+    report_lines.append(f"{msg_text}")
     report_lines.append("━━━━━━━━━━━━━━━━━━━━")
     report_lines.append("🏮 *May your fortune shine bright in Teyvat!* 🏮")
 
+    # Chunk to respect Telegram message limits
     chunks = []
     current_chunk = []
     current_length = 0
@@ -961,6 +978,7 @@ async def airdrop(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     await update.message.reply_text("🎉 Airdrop completed! Report sent to the admin group.")
+
 
 
 def register_shop_handlers(application):

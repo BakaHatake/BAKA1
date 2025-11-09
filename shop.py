@@ -641,9 +641,9 @@ async def setwaifu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Waifu not found.")
         return
     
-    # Check if the waifu is of 'Diwali' rarity and disallow setting it
-    if waifu["rarity"] == "Diwali":
-        await update.message.reply_text("🚫 You cannot set a waifu with 'Diwali' rarity as your wish path.")
+    # Check if the waifu is of 'Bride' rarity and disallow setting it
+    if waifu["rarity"] == "Bride":
+        await update.message.reply_text("🚫 You cannot set a waifu with 'Bride' rarity as your wish path.")
         return
 
     name = waifu["name"]

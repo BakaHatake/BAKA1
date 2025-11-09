@@ -743,15 +743,15 @@ def create_drop(chat_id: int) -> Optional[Dict]:
         print("❌ No characters available to drop.")
         return None
 
-    Diwali_characters = {cid: c for cid, c in characters.items() if c.get('rarity', '').lower() == 'diwali'}
+    Bride_characters = {cid: c for cid, c in characters.items() if c.get('rarity', '').lower() == 'Bride'}
 
     
-    if not Diwali_characters:
-        print("❌ No 'Diwali' rarity characters available to drop.")
+    if not Bride_characters:
+        print("❌ No 'Bride' rarity characters available to drop.")
         return None
 
-    char_id = random.choice(list(Diwali_characters.keys()))
-    char = Diwali_characters[char_id]
+    char_id = random.choice(list(Bride_characters.keys()))
+    char = Bride_characters[char_id]
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -1326,7 +1326,7 @@ async def trigger_character_drop(update: Update, context: ContextTypes.DEFAULT_T
     while True:
         drop_data = create_drop(chat_id)
         rarity = drop_data.get("rarity")
-        if rarity == "Diwali":
+        if rarity == "Bride":
             break
         else:
             print(f"[DROP REJECTED] Rarity is not 'School': {rarity}, retrying...")

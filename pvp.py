@@ -1085,7 +1085,7 @@ async def paimonbox(update, context):
 
 
     context.user_data["paimon_bet"] = bet
-    context.user_data["paimon_outcomes"] = random.sample(["X1", "nothing", "lose"], k=3)
+    context.user_data["paimon_outcomes"] = random.sample(["x1", "nothing", "lose"], k=3)
 
     photo_url = "https://i.postimg.cc/YqprqYGj/4e383f50-3dfe-11ed-b7c7-c290fb5b71df.jpg"
 

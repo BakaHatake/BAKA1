@@ -743,7 +743,7 @@ def create_drop(chat_id: int) -> Optional[Dict]:
         print("❌ No characters available to drop.")
         return None
 
-    Bride_characters = {cid: c for cid, c in characters.items() if c.get('rarity', '').lower() == 'Bride'}
+    Bride_characters = {cid: c for cid, c in characters.items() if c.get('rarity', '').lower() == 'bride'}
 
     
     if not Bride_characters:

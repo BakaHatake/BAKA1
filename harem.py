@@ -39,7 +39,8 @@ from telegram.ext import (
     filters
 )
 
-# Configuration
+from db import update_counters,get_counters,update_drops,update_balance,clear_active_drop,update_harem,get_drops,get_balance,get_harem_rarity
+from db import get_harem
 ADMIN_ID = [5192424390]
 import os
 USE_MOUNT = os.path.exists("/mnt/data")
@@ -182,7 +183,7 @@ DB_PATH = "/mnt/data/quiz.db"
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     print(f"❌ Exception: {context.error}")
     if isinstance(update, Update) and update.message:
-        await update.message.reply_text("⚠️ An unexpected error occurred.")
+        pass
 
 import re
 import sqlite3
@@ -198,15 +199,15 @@ from telegram import (
 )
 from telegram.ext import ContextTypes
 
-# ---------- MarkdownV2 escaping ----------
+
 
 def md2_escape(s: str) -> str:
     if s is None:
         return ""
     s = str(s)
-    # escape backslash first
+
     s = s.replace("\\", "\\\\")
-    # Telegram MarkdownV2 special chars
+
     specials = "_*[]()~`>#+-=|{}.! "
     out = []
     for ch in s:
@@ -216,24 +217,20 @@ def md2_escape(s: str) -> str:
             out.append(ch)
     return "".join(out)
 
-# ---------- Search parsing ----------
 
 def parse_search_term(search_term: str):
     s = (search_term or "").strip().lower()
 
-    # multiplicity xN
+
     m = re.fullmatch(r"x(\d+)", s)
     multiplicity_ge = int(m.group(1)) if m else None
 
-    # numeric id with possible leading zeros
     id_eq = None
     if multiplicity_ge is None and s.isdigit():
         id_eq = int(s)  # '038' -> 38
 
     text = "" if (multiplicity_ge is not None or id_eq is not None) else s
     return {"text": text, "id_eq": id_eq, "multiplicity_ge": multiplicity_ge}
-
-# ---------- In-memory text matching ----------
 
 def matches_text(char, text, RARITY_CONFIG):
     if not text:
@@ -696,55 +693,30 @@ def names_match(user_input: str, actual_name: str) -> bool:
 # Drop system functions
 ALLOWED_CHAT_IDS = [ -1002043895840,-1002120721604]  
 
-def should_trigger_drop(chat_id: int) -> tuple[bool, str]:
-    """Check if drop should be triggered based on message count, only in allowed chats."""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    # Check if counter row exists
-    cursor.execute('SELECT count FROM message_counter WHERE chat_id = ?', (chat_id,))
-    result = cursor.fetchone()
-    if not result:
-        cursor.execute('INSERT INTO message_counter (chat_id, count) VALUES (?, 1)', (chat_id,))
-        conn.commit()
-        conn.close()
-        return False, ""
-
-    count = result[0]
-
-    # Get interval (default to 50 if not set)
-    cursor.execute('SELECT interval FROM drop_interval WHERE chat_id = ?', (chat_id,))
-    interval_result = cursor.fetchone()
-    interval = interval_result[0] if interval_result else 50
-
-    
-
+def should_trigger_drop(chat_id: int):
     if chat_id not in ALLOWED_CHAT_IDS:
-        if count >= interval:
-            # Reset so it doesn't spam every message
-            cursor.execute('UPDATE message_counter SET count = 0 WHERE chat_id = ?', (chat_id,))
-            conn.commit()
-            conn.close()
-            return False
-        else:
-            conn.close()
-            return False, ""
-
-    # Allowed group
-    conn.close()
-    return (count >= interval), ""
+        return
+    
+    current=get_counters(chat_id,"Count")
+    interval=get_counters(chat_id,"Interval")
+    print(f"DEBUG {current}/{interval}")
+    if current>=interval:
+        update_counters(chat_id,"Count",0,reset=True)
+        return True
+    else:
+        return False
 
 
 def create_drop(chat_id: int) -> Optional[Dict]:
-    """Create a new character drop only for rarity 'school'"""
+    print("Triggered Drop")
     characters = load_characters()
     
     if not characters:
         print("❌ No characters available to drop.")
         return None
 
-    Bride_characters = {cid: c for cid, c in characters.items() if c.get('rarity', '').lower() == 'bride'}
-
+    # Bride_characters = {cid: c for cid, c in characters.items() if str(c.get('rarity', '')).lower() == 'bride'}
+    Bride_characters=characters
     
     if not Bride_characters:
         print("❌ No 'Bride' rarity characters available to drop.")
@@ -753,22 +725,13 @@ def create_drop(chat_id: int) -> Optional[Dict]:
     char_id = random.choice(list(Bride_characters.keys()))
     char = Bride_characters[char_id]
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    char_id= char_id
+    char_name= char['name']
+    rarity= char['rarity']
+    image_path= char['image_path']
     
-    expires_at = int(time.time()) + 180 
+    update_drops(chat_id,char_id,char_name,rarity,image_path)
 
-    cursor.execute('''
-        INSERT OR REPLACE INTO active_drops 
-        (chat_id, char_id, char_name, rarity, expires_at) 
-        VALUES (?, ?, ?, ?, ?)
-    ''', (chat_id, char_id, char['name'], char['rarity'], expires_at))
-    
-    cursor.execute('UPDATE message_counter SET count = 0 WHERE chat_id = ?', (chat_id,))
-    
-    conn.commit()
-    conn.close()
-    
     return {
         'char_id': char_id,
         'char_name': char['name'],
@@ -777,42 +740,6 @@ def create_drop(chat_id: int) -> Optional[Dict]:
     }
 
 
-
-def get_active_drop(chat_id: int) -> Optional[Dict]:
-    """Get active drop for chat"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute('SELECT char_id, char_name, rarity, expires_at FROM active_drops WHERE chat_id = ?', (chat_id,))
-    result = cursor.fetchone()
-    
-    if not result:
-        conn.close()
-        return None
-    
-    char_id, char_name, rarity, expires_at = result
-    
-    # Check if expired
-    if time.time() > expires_at:
-        cursor.execute('DELETE FROM active_drops WHERE chat_id = ?', (chat_id,))
-        conn.commit()
-        conn.close()
-        return None
-    
-    conn.close()
-    return {
-        'char_id': char_id,
-        'char_name': char_name,
-        'rarity': rarity
-    }
-
-def clear_active_drop(chat_id: int):
-    """Clear active drop for chat"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('DELETE FROM active_drops WHERE chat_id = ?', (chat_id,))
-    conn.commit()
-    conn.close()
 
 def get_primogem_balance(user_id: int) -> int:
     with sqlite3.connect(DB_PATH) as conn:
@@ -838,12 +765,6 @@ def deduct_primogems(user_id: int, amount: int) -> bool:
     except Exception as e:
         print(f"[❌ deduct_primogems ERROR] {e}")
     return False
-def get_balance(user_id: int, table_name: str) -> int:
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute(f"SELECT balance FROM {table_name} WHERE user_id = ?", (user_id,))
-    result = cursor.fetchone()
-    return result[0] if result else 0
 
 def deduct_currency(user_id: int, table_name: str, amount: int) -> bool:
     try:
@@ -959,7 +880,6 @@ def user_has_waifu(user_id: int, char_id: str) -> bool:
     return exists
 
 def get_user_rarity_filter(user_id: int) -> str:
-    """Get user's current rarity filter"""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('SELECT rarity_filter FROM user_preferences WHERE user_id = ?', (user_id,))
@@ -1186,24 +1106,6 @@ def increment_message_streak(chat_id: int, user_id: int):
         return True, spam_warning
     finally:
         conn.close()
-def increment_message_count(chat_id: int):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    # Check if entry exists
-    cursor.execute('SELECT count FROM message_counter WHERE chat_id = ?', (chat_id,))
-    data = cursor.fetchone()
-
-    if data:
-        # Update existing counter
-        cursor.execute('UPDATE message_counter SET count = count + 1 WHERE chat_id = ?', (chat_id,))
-    else:
-        # Insert new counter row
-        cursor.execute('INSERT INTO message_counter (chat_id, count) VALUES (?, ?)', (chat_id, 1))
-
-    conn.commit()
-    conn.close()
-
 
 
 def block_user(chat_id: int, user_id: int, minutes=10, cursor=None):
@@ -1238,17 +1140,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     username = update.effective_user.first_name
 
-    # Skip private chats and commands
     if chat.type == "private":
         return
     if update.message.text and update.message.text.startswith('/'):
         return
 
-    # Increment message count for drop interval tracking
-    increment_message_count(chat_id)
+    update_counters(chat_id,"Count",1)
 
-    should_drop, reason = should_trigger_drop(chat_id)
+    should_drop = should_trigger_drop(chat_id)
     if should_drop:
+        print("Triggered")
         drop = create_drop(chat_id)
         if drop:
             try:
@@ -1273,8 +1174,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 chat_id,
                 text=f"⚠️ {username}, you are blocked for 10 minutes due to spamming."
             )
-        elif reason and incremented:
-            await context.bot.send_message(chat_id, text=reason)
+
 
 async def unlock_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -1401,9 +1301,9 @@ async def wish_command(update: 'Update', context: 'ContextTypes.DEFAULT_TYPE'):
     user_id = update.effective_user.id
     username = update.effective_user.first_name
 
-    if is_user_blocked(chat_id, user_id):
-        await update.message.reply_text(f"⛔ {username}, you are temporarily blocked from using /wish due to spamming. Try again later.")
-        return
+    # if is_user_blocked(chat_id, user_id):
+    #     await update.message.reply_text(f"⛔ {username}, you are temporarily blocked from using /wish due to spamming. Try again later.")
+    #     return
 
     # DAILY LIMIT CHECK FIRST
     can, remaining = await can_use_wish_mem(user_id)
@@ -1416,34 +1316,34 @@ async def wish_command(update: 'Update', context: 'ContextTypes.DEFAULT_TYPE'):
         return
 
     guessed_name = " ".join(context.args)
-    active_drop = get_active_drop(chat_id)
+    active_drop = get_drops(chat_id)
     if not active_drop:
         await update.message.reply_text("No character available to wish for!")
         return
 
-    if not names_match(guessed_name, active_drop['char_name']):
+    if not names_match(guessed_name, active_drop['Char name']):
         await update.message.reply_text("That's not who appeared! Try again.")
         return
 
-    rarity_key = int(active_drop['rarity']) if str(active_drop['rarity']).isdigit() else str(active_drop['rarity'])
+    rarity_key = int(active_drop['Rarity']) if str(active_drop['Rarity']).isdigit() else str(active_drop['Rarity'])
     rarity_info = RARITY_CONFIG.get(rarity_key, {"cost": 50, "chance": 0.5, "display": "⭐ Unknown", "symbol": "⭐"})
     cost, chance = rarity_info["cost"], rarity_info["chance"]
     rarity_display, rarity_symbol = rarity_info["display"], rarity_info["symbol"]
 
-    current_lunars = get_balance(user_id, "lunar_crystals")
+    current_lunars = get_balance(user_id,"Lunar Crystals")
     if current_lunars < cost:
         await update.message.reply_text(f"Not enough 🌙 Lunar Crystals! You need {cost} but have {current_lunars}.")
         return
 
-    if not deduct_currency(user_id, "lunar_crystals", cost):
-        await update.message.reply_text("❌ Failed to deduct primogems.")
+    if not update_balance(user_id,"Lunar Crystals",-cost):
+        await update.message.reply_text("❌ Failed to deduct Lunars.")
         return
 
     user_name = username
-    char_name = active_drop['char_name']
-    char_id = active_drop['char_id']
+    char_name = active_drop['Char name']
+    char_id = active_drop['Char id']
 
-    success = (random.random() <= chance)
+    success = (random.random() <= 100)
     clear_active_drop(chat_id)
 
     # Count this attempt
@@ -1451,7 +1351,7 @@ async def wish_command(update: 'Update', context: 'ContextTypes.DEFAULT_TYPE'):
     remaining_after = max(0, DAILY_WISH_LIMIT - used)
 
     if success:
-        add_character_to_inventory(user_id, char_id)
+        update_harem(user_id,char_id,1,rarity=None)
         await update.message.reply_text(
             f"✅ *{user_name}*, you got a new waifu!\n\n"
             f"🌸 *NAME:* {char_name}\n"
@@ -1481,6 +1381,31 @@ from telegram import (
     Update, InlineKeyboardMarkup, InlineKeyboardButton,
     InputMediaPhoto, InlineQueryResultPhoto
 )
+async def get_waifus(waifus,rarity):
+    if not waifus:
+        return[]
+    char1=load_characters()
+    harem=[]
+
+    for char_id,stack_count in waifus.items():
+        if char_id not in char1:
+            continue
+
+        char=char1[char_id]
+        if rarity and str(char['rarity'])!=rarity:
+            continue
+
+        image_path=char.get('image_path',None)
+        harem.append(
+            {
+                'char_id':char_id,
+                'name':char['name'],
+                'rarity':char['rarity'],
+                'stack_count':stack_count,
+                'image_path':image_path
+            }
+        )
+    return harem
 
 async def harem_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("harem cmmd triggered")
@@ -1492,8 +1417,9 @@ async def harem_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     ensure_name_exists(user_id, first_name)
 
-    rarity_filter = get_user_rarity_filter(user_id)
-    harem = get_user_harem(user_id, 'date', rarity_filter)
+    rarity_filter = get_harem_rarity(user_id)
+    waifus = get_harem(user_id)
+    harem=await get_waifus(waifus,rarity=rarity_filter)
     print('got user harem')
 
     if not harem:
@@ -1506,8 +1432,9 @@ async def harem_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await send_harem_page(update, context, user_id, 1, 'date')
 
 async def send_harem_page(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int, page: int, sort_by: str):
-    rarity_filter = get_user_rarity_filter(user_id)
-    harem = get_user_harem(user_id, sort_by, rarity_filter)
+    rarity_filter = get_harem_rarity(user_id)
+    waifus = get_harem(user_id)
+    harem=await get_waifus(waifus,rarity=rarity_filter)
 
     if not harem:
         filter_msg = f" (filtered by {rarity_filter})" if rarity_filter else ""
@@ -1601,17 +1528,21 @@ async def harem_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = query.from_user.id
     data_parts = data.split('_')
 
-    if len(data_parts) >= 5 and data_parts[:2] == ['harem', 'page']:
+    if data.startswith("harem_page_"):
         page = int(data_parts[2])
         sort_by = data_parts[3]
         owner_id = int(data_parts[4])
+
         if user_id != owner_id:
-            await query.answer("\u274c You can't control someone else's harem.", show_alert=True)
+            await query.answer("❌ You can't control someone else's harem.", show_alert=True)
             return
+
         await query.answer()
 
-        rarity_filter = get_user_rarity_filter(owner_id)
-        harem = get_user_harem(owner_id, sort_by, rarity_filter)
+        rarity_filter = get_harem_rarity(owner_id)
+        waifus = get_harem(owner_id)
+        harem = await get_waifus(waifus, rarity=rarity_filter)
+
 
         if not harem:
             await query.edit_message_caption("\u274c Harem empty.")
@@ -1752,17 +1683,14 @@ async def harem_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             media=InputMediaPhoto(media=char['image_path'], caption=caption, parse_mode="Markdown")
         )
 
-# New rarity command
 async def rarity_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Set rarity filter for harem display"""
+
     user_id = update.effective_user.id
     current_filter = get_user_rarity_filter(user_id)
-    
-    # Build rarity selection keyboard
+
     keyboard = []
     rarity_buttons = []
-    
-    # Add rarity options from RARITY_CONFIG
+
     for rarity, config in RARITY_CONFIG.items():
         display = config.get("display", str(rarity))
         rarity_buttons.append(
@@ -1771,18 +1699,16 @@ async def rarity_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         )
     
-    # Split into rows of 3
     for i in range(0, len(rarity_buttons), 3):
         keyboard.append(rarity_buttons[i:i+3])
     
-    # Add "Show All" and "Close" buttons
     keyboard.append([
         InlineKeyboardButton("🌟 Show All", callback_data=f"rarity_all_{user_id}"),
         InlineKeyboardButton("❌ Close", callback_data=f"rarity_close_{user_id}")
     ])
     
-    filter_text = f"Current filter: **{current_filter}**" if current_filter else "No filter active"
-    text = f"🎯 **Rarity Filter Settings**\n\n{filter_text}\n\nSelect a rarity to filter your harem:"
+    filter_text = f"Current filter: {current_filter}" if current_filter else "No filter active"
+    text = f"🎯 Rarity Filter Settings\n\n{filter_text}\n\nSelect a rarity to filter your harem:"
     
     await update.message.reply_text(
         text=text,
@@ -1791,15 +1717,13 @@ async def rarity_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-# New rarity callback handler
 async def rarity_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle rarity filter selection"""
+
     query = update.callback_query
     data = query.data
     user_id = query.from_user.id
     data_parts = data.split('_')
 
-    # Handle rarity selection like: rarity_set_4_123456789
     if len(data_parts) >= 4 and data_parts[0] == 'rarity' and data_parts[1] == 'set':
         rarity = data_parts[2]
         owner_id = int(data_parts[3])
@@ -1808,8 +1732,8 @@ async def rarity_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.answer("❌ You can't control someone else's settings.", show_alert=True)
             return
 
-        # Set the rarity filter
-        set_user_rarity_filter(user_id, rarity)
+        update_harem(user_id, char_id=None, count=0, rarity=rarity, replace=True)
+
         rarity_display = RARITY_CONFIG.get(rarity, {}).get("display", str(rarity))
         
         await query.answer(f"✅ Filter set to {rarity_display}")
@@ -1821,15 +1745,15 @@ async def rarity_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # Handle "Show All" like: rarity_all_123456789
     if data.startswith("rarity_all_"):
         owner_id = int(data.split("_")[2])
         if user_id != owner_id:
             await query.answer("❌ You can't control someone else's settings.", show_alert=True)
             return
 
-        # Remove rarity filter
-        set_user_rarity_filter(user_id, None)
+
+        update_harem(user_id, char_id=None, count=0, rarity=None, replace=True)
+
         
         await query.answer("✅ Filter removed")
         await query.edit_message_text(
@@ -1840,7 +1764,6 @@ async def rarity_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # Handle close button like: rarity_close_123456789
     if data.startswith("rarity_close_"):
         owner_id = int(data.split("_")[2])
         if user_id != owner_id:
@@ -1851,8 +1774,6 @@ async def rarity_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.delete_message()
         return
 
-
-# /fav command
 import re  # ensure this is imported at the top if not already
 
 async def fav_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -2519,16 +2440,7 @@ async def set_drop_interval(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     interval = max(1, int(context.args[0]))
 
-    # Update DB
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO drop_interval (chat_id, interval)
-        VALUES (?, ?)
-        ON CONFLICT(chat_id) DO UPDATE SET interval = excluded.interval
-    ''', (chat_id, interval))
-    conn.commit()
-    conn.close()
+    update_counters(chat_id,"Interval",interval)
 
     await update.message.reply_text(f"✅ Drop interval set to every {interval} messages.")
 
@@ -2713,29 +2625,15 @@ async def restore_images(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def hmsg_count(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    # Get harem message count
-    cursor.execute('SELECT count FROM message_counter WHERE chat_id = ?', (chat_id,))
-    result = cursor.fetchone()
-    count = result[0] if result else 0
-
-    # Get harem interval
-    cursor.execute('SELECT interval FROM drop_interval WHERE chat_id = ?', (chat_id,))
-    result = cursor.fetchone()
-    interval = result[0] if result else 50
-
-    conn.close()
-
+    interval=get_counters(chat_id,"Interval")
+    count=get_counters(chat_id,"Count")
     remaining = interval - count
-
     msg = "💖 **Harem Drop Counter**\n"
     msg += f"💬 Messages: {count}/{interval}\n"
     msg += f"⏳ Remaining: {remaining} messages until next drop"
-
     await update.message.reply_text(msg, parse_mode="Markdown")
+
+
 async def add_waifu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 

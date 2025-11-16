@@ -23,6 +23,8 @@ from harem import (
     RARITY_CONFIG,
 )
 
+from db import get_balance
+
 DEFAULT_BANNER = "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752917631/74ca7946-ebeb-4873-b24e-f00fd1219dce_fqsepm.png"
 WIN_BANNER = "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752918095/01d1867d-d611-4dda-8abc-7ea78c49656f_n6rk6a.png"
 LOSE_BANNER = "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752918099/generated-image_1_l25yk8.png"
@@ -95,12 +97,7 @@ def reset_waifu_set_log_table():
     conn.commit()
     conn.close()
 
-def get_balance(user_id: int, table_name: str) -> int:
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute(f"SELECT balance FROM {table_name} WHERE user_id = ?", (user_id,))
-    result = cursor.fetchone()
-    return result[0] if result else 0
+
 
 def deduct_currency(user_id: int, table_name: str, amount: int) -> bool:
     try:
@@ -857,11 +854,12 @@ async def convert_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def inv_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    
     user_id = update.effective_user.id
 
-    primogems = get_primogem_balance(user_id)
-    mora = get_balance(user_id, "mora")
-    lunar = get_balance(user_id, "lunar_crystals")
+    primogems = get_balance(user_id,"Primogems")
+    mora = get_balance(user_id,"Mora")
+    lunar = get_balance(user_id,"Lunar Crystals")
 
     message = (
         f"💼 Your Inventory:\n\n"
@@ -869,7 +867,6 @@ async def inv_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"💰 Mora: {mora}\n"
         f"🌙 Lunar Crystals: {lunar}"
     )
-
     await update.message.reply_text(message)
 
 ADMIN_GROUP_CHAT_ID = -1002043895840

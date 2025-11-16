@@ -15,7 +15,7 @@ from shop import (
     deduct_primogems,
     deduct_currency,
 )
-
+from db import get_daily,update_claim,update_inv,user_exists,get_balance,update_balance
 DATABASE = "/mnt/data/quiz.db"
 
 ADMIN_IDS = [5192424390]  
@@ -125,11 +125,6 @@ def update_primogems(user_id, amount):
             cursor.execute("UPDATE users SET primogems = primogems + ? WHERE user_id = ?", (amount, user_id))
             conn.commit()
 
-def ensure_user_exists(user_id):
-    with sqlite3.connect(DATABASE) as conn:
-        cursor = conn.cursor()
-        cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
-        conn.commit()
 
 # === Database Init ===
 def init_transfers_table():
@@ -165,28 +160,27 @@ def reset_transfers_table():
         """)
         conn.commit()
 CURRENCY_MAP = {
-    'primogems': 'users',   # users table, primogems column
-    'mora': 'mora',         # mora table, balance column
-    'lunar': 'lunar_crystals',       # lunar table, balance column
+    "primogems": "Primogems",
+    "mora": "Mora",
+    "lunar": "Lunar Crystals",
 }
 
 CURRENCY_ICONS = {
-    'primogems': '✨',
-    'mora': '💰',
-    'lunar': '🌙',
+    "primogems": "✨",
+    "mora": "💰",
+    "lunar": "🌙",
 }
 
 CURRENCY_DISPLAY = {
-    'primogems': 'primogems',
-    'mora': 'mora',
-    'lunar': 'lunar',
+    "primogems": "Primogems",
+    "mora": "Mora",
+    "lunar": "Lunar Crystals",
 }
 
-DEFAULT_CURRENCY = 'primogems'
-
+DEFAULT_CURRENCY = "primogems"
 
 async def send_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Must reply to a user's message
+
     if not update.message.reply_to_message:
         await update.message.reply_text(
             "⚠️ Reply to a user's message with `/send <amount> [currency]`.\n"
@@ -201,93 +195,47 @@ async def send_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     recipient_name = recipient_user.full_name
 
     if sender_id == recipient_id:
-        await update.message.reply_text(
-            "🚫 You cannot send currency to yourself."
-        )
+        await update.message.reply_text("🚫 You cannot send currency to yourself.")
         return
 
-    # Parse amount and optional currency argument
     try:
         amount = int(context.args[0])
         if amount <= 0:
             raise ValueError
         currency = context.args[1].lower() if len(context.args) > 1 else DEFAULT_CURRENCY
-        if currency not in CURRENCY_MAP:
-            currency = DEFAULT_CURRENCY
-    except (IndexError, ValueError):
+    except:
         await update.message.reply_text(
             "⚠️ Usage: `/send <positive number> [primogems|mora|lunar]`",
             parse_mode="Markdown"
         )
         return
 
-    table_name = CURRENCY_MAP[currency]
+    if currency not in CURRENCY_MAP:
+        currency = DEFAULT_CURRENCY
 
-    # Check recipient exists in corresponding table
-    with sqlite3.connect(DATABASE) as conn:
-        cursor = conn.cursor()
-        if table_name == "users":
-            cursor.execute("SELECT primogems FROM users WHERE user_id = ?", (recipient_id,))
-        else:
-            cursor.execute(f"SELECT balance FROM {table_name} WHERE user_id = ?", (recipient_id,))
-        recipient = cursor.fetchone()
+    db_key = CURRENCY_MAP[currency] 
 
-    if not recipient:
+    if not user_exists(recipient_id):
         await update.message.reply_text("❌ Recipient is not registered.")
         return
 
-    # Handle sending primogems separately (because column name primogems differs)
-    if currency == 'primogems':
-        # Check sender balance
-        with sqlite3.connect(DATABASE) as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT primogems FROM users WHERE user_id = ?", (sender_id,))
-            sender = cursor.fetchone()
-        sender_balance = sender[0] if sender else 0
-        if sender_balance < amount:
-            await update.message.reply_text("💸 You don't have enough primogems.")
-            return
+    sender_balance = get_balance(sender_id, db_key)
 
-        try:
-            conn = sqlite3.connect(DATABASE)
-            c = conn.cursor()
-            # Deduct sender
-            c.execute("UPDATE users SET primogems = primogems - ? WHERE user_id = ?", (amount, sender_id))
-            # Add recipient
-            c.execute("SELECT primogems FROM users WHERE user_id = ?", (recipient_id,))
-            if c.fetchone() is None:
-                c.execute("INSERT INTO users (user_id, primogems) VALUES (?, ?)", (recipient_id, amount))
-            else:
-                c.execute("UPDATE users SET primogems = primogems + ? WHERE user_id = ?", (amount, recipient_id))
-            conn.commit()
-        except Exception as e:
-            conn.rollback()
-            await update.message.reply_text(f"❌ Transaction failed: {e}")
-            conn.close()
-            return
-        conn.close()
-    else:
-        if not deduct_currency(sender_id, table_name, amount):
-            await update.message.reply_text(f"💸 You don't have enough {CURRENCY_DISPLAY[currency]}.")
-            return
+    if sender_balance < amount:
+        await update.message.reply_text("❌ Not enough balance.")
+        return
 
-        add_currency(recipient_id, table_name, amount)
+    update_balance(sender_id, db_key, -amount)  
+    update_balance(recipient_id, db_key, amount) 
 
-    # Log the transaction with IST timestamp
-    ist_time = (datetime.utcnow() + timedelta(hours=5, minutes=30)).strftime("%d %b %Y, %I:%M %p IST")
-    with sqlite3.connect(DATABASE) as conn:
-        c = conn.cursor()
-        c.execute(
-            "INSERT INTO transfers (sender_id, recipient_id, amount, currency, timestamp) VALUES (?, ?, ?, ?, ?)",
-            (sender_id, recipient_id, amount, currency, ist_time)
-        )
-        conn.commit()
+    icon = CURRENCY_ICONS.get(currency, "✨")
 
-    icon = CURRENCY_ICONS.get(currency, '✨')
     await update.message.reply_text(
-        f"{icon} You sent *{amount}* {CURRENCY_DISPLAY[currency]} to [{recipient_name}](tg://user?id={recipient_id})!",
+        f"{icon} You sent *{amount}* {CURRENCY_DISPLAY[currency]} to "
+        f"[{recipient_name}](tg://user?id={recipient_id})!",
         parse_mode="Markdown"
     )
+
     
 async def view_transactions(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMIN_IDS:
@@ -574,14 +522,10 @@ async def daily_primos(update, context):
     user_id = update.effective_user.id
     today = datetime.now().strftime('%Y-%m-%d')
 
-    whitelisted_ids = get_whitelisted_ids()
-    if user_id not in whitelisted_ids:
-        await update.message.reply_text("❌ You are not whitelisted and cannot claim daily primogems.")
-        return
+    last_claim=get_daily(user_id)
 
-    last_claim = get_user_last_claim(user_id)
-    if last_claim == today:
-        await update.message.reply_text("❌ You have already claimed your daily primogems today. Come back tomorrow!")
+    if last_claim==today:
+        await update.message.reply_text("❌ Already claimed today.")
         return
 
     roll = random.randint(1, 100)
@@ -589,15 +533,8 @@ async def daily_primos(update, context):
     mora_amount = roll * 100
     lunar_crystals_amount = roll * 1
 
-    # Update primogems in users table
-    update_primogems(user_id, primogems_amount)
-
-    # Update mora and lunar crystals using the generic functions
-    add_currency(user_id, "mora", mora_amount)
-    add_currency(user_id, "lunar_crystals", lunar_crystals_amount)
-
-    update_user_claim(user_id)
-
+    update_inv(user_id,primogems_amount,mora_amount,lunar_crystals_amount)
+    update_claim(user_id)
     await update.message.reply_text(
         f"🎲 You rolled a {roll}!\n"
         f"✨ You received {primogems_amount} Primogems, {mora_amount} Mora, "
@@ -611,10 +548,8 @@ async def add_primos_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMIN_IDS:
         await update.message.reply_text("❌ BAKA!! You don't have permission to use this command.")
         return
-
     args = context.args
 
-    # Helper function to resolve the currency table
     def resolve_currency(input_currency: str) -> str:
         currency_map = {
             "primogems": "primogems",
@@ -625,7 +560,6 @@ async def add_primos_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         }
         return currency_map.get(input_currency.lower())
 
-    # Case 1: as reply → `/add <amount> [currency]`
     if update.message.reply_to_message:
         if len(args) < 1:
             await update.message.reply_text("❌ Usage (as reply): /add <amount> [currency]")
@@ -645,10 +579,13 @@ async def add_primos_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         user_id = update.message.reply_to_message.from_user.id
-        if currency == "primogems":
-            add_to_user(user_id, amount)
-        else:
-            add_currency(user_id, currency, amount)
+
+        update_inv(
+        user_id,
+        primogems=amount if currency=="primogems" else 0,
+        mora=amount if currency=="mora" else 0,
+        lunar_crystals=amount if currency=="lunar_crystals" else 0
+                   )
 
         await update.message.reply_text(
             f"✅ Added {amount} {currency} to <code>{user_id}</code>.",
@@ -672,10 +609,12 @@ async def add_primos_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(f"❌ Invalid currency '{currency_input}'. Use primogems, mora, or crystals.")
             return
 
-        if currency == "primogems":
-            add_to_user(user_id, amount)
-        else:
-            add_currency(user_id, currency, amount)
+        update_inv(
+            user_id,
+            primogems=amount if currency == "primogems" else 0,
+            mora=amount if currency == "mora" else 0,
+            lunar_crystals=amount if currency == "lunar_crystals" else 0
+        )
 
         await update.message.reply_text(
             f"✅ Added {amount} {currency} to <code>{user_id}</code>.",

@@ -19,6 +19,8 @@ from telegram.ext import (
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 import pytz
+
+from db import ensure_bank,get_bank,get_primogems,update_primos,update_bank,ensure_bank
 DB_PATH = "/mnt/data/quiz.db"
 ADMIN_ID = 5192424390
 
@@ -1610,41 +1612,23 @@ async def hinterval(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"✅ Monster spawn interval set to every {SPAWN_INTERVAL} messages.")
 
 async def deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    conn = sqlite3.connect("/mnt/data/quiz.db")
-    cursor = conn.cursor()
-
+    user_id=update.effective_user.id
     try:
         amount = int(context.args[0])
         if amount <= 0:
             raise ValueError
     except:
         await update.message.reply_text("❌ Usage: /deposit <positive number>")
-        conn.close()
         return
 
-    cursor.execute("SELECT primogems, bank FROM users WHERE user_id = ?", (user_id,))
-    row = cursor.fetchone()
+    primos=get_primogems(user_id)
 
-    if row is None:
-        await update.message.reply_text("you don’t have any primogems")
-        conn.close()
-        return
-
-    primogems, bank = row
-
-    if primogems < amount:
+    if primos < amount:
         await update.message.reply_text("❌ You don't have enough primogems in your balance.")
-        conn.close()
         return
 
-    primogems -= amount
-    bank += amount
-
-
-    cursor.execute("UPDATE users SET bank = ?, primogems = ? WHERE user_id = ?", (bank, primogems, user_id))
-    conn.commit()
-    conn.close()
+    update_primos(user_id,-amount)
+    update_bank(user_id,amount)
 
     await update.message.reply_text(f"✅ Deposited {amount} primogems into the bank.\n"
                                     f"May the Zhongli 🪙 watch over your balance.")
@@ -1652,8 +1636,6 @@ async def deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def withdraw(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    conn = sqlite3.connect("/mnt/data/quiz.db")
-    cursor = conn.cursor()
 
     try:
         amount = int(context.args[0])
@@ -1661,51 +1643,29 @@ async def withdraw(update: Update, context: ContextTypes.DEFAULT_TYPE):
             raise ValueError
     except:
         await update.message.reply_text("❌ Usage: /withdraw <positive number>")
-        conn.close()
         return
-
-    cursor.execute("SELECT primogems, bank FROM users WHERE user_id = ?", (user_id,))
-    row = cursor.fetchone()
-
-    if not row:
-        await update.message.reply_text("❌ You don’t have a bank account yet.")
-        conn.close()
-        return
-
-    primogems, bank = row
+    
+    bank=get_bank(user_id)
 
     if amount > bank:
         await update.message.reply_text("❌ You don’t have enough in the bank.")
-        conn.close()
         return
 
-    bank -= amount
-    primogems += amount
-
-    cursor.execute("UPDATE users SET primogems = ?, bank = ? WHERE user_id = ?", (primogems, bank, user_id))
-    conn.commit()
-    conn.close()
+    update_primos(user_id,amount)
+    update_bank(user_id,-amount)
 
     await update.message.reply_text(f"💸 Withdrawn {amount} primogems from the bank.")
 
 async def bank(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    conn = sqlite3.connect("/mnt/data/quiz.db")
-    cursor = conn.cursor()
+    ensure_bank(user_id)
 
-    cursor.execute("SELECT primogems, bank FROM users WHERE user_id = ?", (user_id,))
-    row = cursor.fetchone()
-    conn.close()
-
-    if not row:
-        await update.message.reply_text("🏦 You don't have a bank account yet.")
-        return
-
-    primogems, bank = row
+    wallet=get_primogems(user_id)
+    balance=get_bank(user_id)
     await update.message.reply_text(
-        f"💼 Wallet: {primogems} primogems\n"
-        f"🏦 Bank: {bank} primogems\n"
-        f"📈 Interest feature: +5% will be gained every day 💹"
+        f"💼 Wallet: {wallet} primogems\n"
+        f"🏦 Bank: {balance} primogems\n"
+        f"📈 Interest: +5% added daily 💹"
     )
 
 ADMIN_ID = 5192424390
@@ -2009,6 +1969,28 @@ async def bank_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
         
     except Exception as e:
         await update.message.reply_text(f"❌ Error getting bank stats: `{e}`", parse_mode="Markdown")
+
+async def lunar_steal(update:Update,context:ContextTypes.DEFAULT_TYPE):
+    u1=update.effective_user.id
+    u1name=update.effective_user.first_name
+    u1mention = f"[{u1name}](tg://user?id={u1})"
+
+    if not update.effective_message.reply_to_message:
+        await update.message.reply_text("⚠️ Reply to someone’s message to steal from them.")
+        return
+    
+    u2s=update.effective_message.reply_to_message.from_user
+    u2=u2s.id
+    u2name=u2s.first_name
+    u2mention=f"[{u2name}](tg://user?id={u2})"
+
+    if u1==u2:
+        await update.message.reply_text("❌ You can't steal from yourself.")
+        return
+    
+    chat=update.effective_chat.title
+    
+
 
 
 def register_monster_handlers(application):

@@ -57,7 +57,7 @@ os.makedirs("/mnt/data", exist_ok=True)
 CHARACTER_IMAGE_DIR = os.path.join(BASE_PATH, "characters")
 IMAGE_ZIP_PATH = os.path.join(BASE_PATH, "characters_backup.zip")
 # CHARACTER_JSON_PATH = os.path.join(".", "BAKA1", "characters1.json")
-
+CHARACTER_JSON_PATH = os.path.join(BASE_PATH, "characters.json")
 import json
 
 json_path = "characters.json"

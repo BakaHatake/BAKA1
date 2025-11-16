@@ -23,7 +23,7 @@ from harem import (
     RARITY_CONFIG,
 )
 
-from db import get_balance
+from db import get_balance,update_shop,get_shop,update_balance,refresh_shop,get_harem,record_roll,increment_character
 
 DEFAULT_BANNER = "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752917631/74ca7946-ebeb-4873-b24e-f00fd1219dce_fqsepm.png"
 WIN_BANNER = "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752918095/01d1867d-d611-4dda-8abc-7ea78c49656f_n6rk6a.png"
@@ -227,42 +227,6 @@ def increment_setwaifu_count(user_id: int):
 
 from datetime import datetime
 
-def get_user_shop(user_id: int) -> dict:
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT shop_waifus, last_updated, daily_refreshes, daily_rolls, rolled_ids FROM user_shop WHERE user_id = ?",
-        (user_id,)
-    )
-    row = cursor.fetchone()
-    conn.close()
-
-    if row:
-        waifus_json = row[0]
-        last_updated_str = row[1]
-        refreshes = row[2] or 0
-        rolls = row[3] or 0
-        rolled_ids = json.loads(row[4] if row[4] else '[]')
-        last_updated = datetime.fromisoformat(last_updated_str)
-        today = datetime.now().date()
-        expired = last_updated.date() != today
-        return {
-            'waifus': json.loads(waifus_json),
-            'refreshes': refreshes,
-            'rolls': rolls,
-            'rolled_ids': rolled_ids,
-            'expired': expired
-        }
-
-    return {
-        'waifus': [],
-        'refreshes': 0,
-        'rolls': 0,
-        'rolled_ids': [],
-        'expired': True
-    }
-
-
 
 def save_user_shop(user_id: int, waifu_list: list, reset_counters=True):
     conn = get_db_connection()
@@ -333,26 +297,29 @@ def generate_random_waifus(num=5):
             break
 
     return selected
+from datetime import datetime
+
 
 async def shop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    shop_data = get_user_shop(user_id)
-
-    if shop_data["expired"]:
+    shop_data = get_shop(user_id)
+    
+    today = datetime.now().strftime("%Y-%m-%d")
+    if shop_data is None:
         waifus = generate_random_waifus()
-        save_user_shop(user_id, waifus, reset_counters=True)
-        refreshes = 0
-        rolls = 0
-        rolled_ids = []
+        update_shop(user_id,waifus,today)
     else:
-        waifus = shop_data["waifus"]
-        refreshes = shop_data["refreshes"]
-        rolls = shop_data["rolls"]
-        rolled_ids = shop_data["rolled_ids"]
+        waifus = shop_data["Waifus"]
+        refreshes = shop_data["Refreshes"]
+        rolls = shop_data["Rolls"]
+        rolled_ids = shop_data["Rolled ids"]
 
-    user_harem = get_user_harem(user_id)
-    owned_ids = {w['char_id']: w['stack_count'] for w in user_harem}
-    lunar = get_balance(user_id, "lunar_crystals")
+    user_harem = get_harem(user_id)
+    print("USER_HAREM:", user_harem, type(user_harem))
+
+    owned_ids = {char_id: count for char_id, count in user_harem.items()}
+
+    lunar = get_balance(user_id, "Lunar Crystals")
 
     caption = f"📦 **Your Waifu Shop**\n🌙 Lunar Crystals: `{lunar}`\n🎲 Rolls used: `{rolls}/3` | 🔁 Refreshes: `{refreshes}/2`\n\n"
 
@@ -408,23 +375,22 @@ async def handle_waifu_roll(query, waifu_id: str, context: ContextTypes.DEFAULT_
         await query.answer("⛔ This shop is not for you. Use /shop to access your own!", show_alert=True)
         return
 
-    shop_data = get_user_shop(shop_owner_id)
+    shop_data = get_shop(shop_owner_id)
 
-    if shop_data["expired"]:
+    if shop_data is None:
         await query.answer("❌ Shop expired. Use /shop again.", show_alert=True)
         return
 
-    if shop_data["rolls"] >= 3:
+    if shop_data["Rolls"] >= 3:
         await query.answer("🎲 Max 3 rolls per day reached!", show_alert=True)
         return
 
-    if waifu_id in shop_data["rolled_ids"]:
+    if waifu_id in shop_data["Rolled ids"]:
         await query.answer("❌ You already rolled this waifu!", show_alert=True)
         return
 
-    waifu_list = shop_data["waifus"]
+    waifu_list = shop_data["Waifus"]
     waifu = next((w for w in waifu_list if w["char_id"] == waifu_id), None)
-
     if not waifu:
         await query.answer("❌ Waifu not found in your shop!", show_alert=True)
         return
@@ -432,16 +398,16 @@ async def handle_waifu_roll(query, waifu_id: str, context: ContextTypes.DEFAULT_
     cost = RARITY_CONFIG[waifu["rarity"]]["cost"]*10 
     chance = 0.90
 
-    if get_balance(user_id, "lunar_crystals") < cost:
+    if get_balance(user_id, "Lunar Crystals") < cost:
         await query.answer("🌙 Not enough lunar crystals!", show_alert=True)
         return
 
     success = random.random() < chance
-    deduct_currency(user_id, "lunar_crystals", cost)
-    record_waifu_rolled(user_id, waifu_id)
+    update_balance(user_id, "Lunar Crystals", -cost)
+    record_roll(user_id, waifu_id)
 
     if success:
-        add_character_to_inventory(user_id, waifu_id)
+        increment_character(user_id, waifu_id)
         await query.edit_message_media(
             media=InputMediaPhoto(
                 media=WIN_BANNER,
@@ -470,31 +436,30 @@ async def handle_shop_refresh(query, context, actual_user_id: int):
         await query.answer("⛔ This shop is not for you. Use /shop to open your own!", show_alert=True)
         return
 
-    shop_data = get_user_shop(actual_user_id)
+    shop_data = get_shop(actual_user_id)
 
-    if shop_data["refreshes"] >= 2:
+    if shop_data["Refreshes"] >= 2:
         await query.answer("🔁 Max 2 refreshes per day!", show_alert=True)
         return
 
-    if get_primogem_balance(actual_user_id) < 500:
+    if get_balance(actual_user_id,"Primogems") < 500:
         await query.answer("💎 Not enough primogems to refresh!", show_alert=True)
         return
 
-    deduct_primogems(actual_user_id, 500)
+    update_balance(actual_user_id,"Primogems",-500)
     new_waifus = generate_random_waifus()
-    save_user_shop(actual_user_id, new_waifus, reset_counters=False)
-    increment_shop_counter(actual_user_id, "refresh")
-    shop_data = get_user_shop(actual_user_id)
+    refresh_shop(actual_user_id, new_waifus)
+    shop_data = get_shop(actual_user_id)
 
-    user_harem = get_user_harem(actual_user_id)
-    owned_ids = {w['char_id']: w['stack_count'] for w in user_harem}
-    rolled_ids = shop_data.get("rolled_ids", [])
-    lunar = get_balance(user_id, "lunar_crystals")
-    waifus = shop_data["waifus"]
+    user_harem = get_harem(actual_user_id)
+    owned_ids = {char_id: count for char_id, count in user_harem.items()}
+    rolled_ids = shop_data.get("Rolled ids", [])
+    lunar = get_balance(user_id, "Lunar Crystals")
+    waifus = shop_data["Waifus"]
 
     caption = f"📦 <b>Your Waifu Shop (Refreshed)</b>\n"
     caption += f"🌙 <b>lunar crystals:</b> <code>{lunar}</code>\n"
-    caption += f"🎲 Rolls used: <code>{shop_data['rolls']}/3</code> | 🔁 Refreshes: <code>{shop_data['refreshes']}/2</code>\n\n"
+    caption += f"🎲 Rolls used: <code>{shop_data['Rolls']}/3</code> | 🔁 Refreshes: <code>{shop_data['Refreshes']}/2</code>\n\n"
 
     for w in waifus:
         emoji = RARITY_CONFIG[w['rarity']]['symbol']
@@ -570,20 +535,10 @@ async def reset_rolls_command(update: Update, context: ContextTypes.DEFAULT_TYPE
         return
 
     target_user_id = update.message.reply_to_message.from_user.id
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('''
-        UPDATE user_shop
-        SET daily_rolls = 0,
-            daily_refreshes = 0,
-            rolled_ids = '[]'
-        WHERE user_id = ?
-    ''', (target_user_id,))
-    conn.commit()
-    conn.close()
+    record_roll(target_user_id,reset=True,waifu_id=None)
 
     await update.message.reply_text(f"✅ Reset rolls & refreshes for user ID `{target_user_id}`", parse_mode='Markdown')
+
 async def setwaifu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
@@ -976,7 +931,7 @@ async def airdrop(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text("🎉 Airdrop completed! Report sent to the admin group.")
 
-
+                                     
 
 def register_shop_handlers(application):
     create_user_shop_table()

@@ -1122,28 +1122,25 @@ async def send_character_image(update: Update, context: ContextTypes.DEFAULT_TYP
     data = load_data()
     characters = data.get("characters", {})
     char_texts = {
-        # Add character descriptions here if available
+
     }
 
-    # Build a map of aliases to canonical names dynamically from characters and texts
     alias_map = {}
     for full_name in set(characters.keys()) | set(char_texts.keys()):
         normalized_full_name = full_name.lower()
         parts = normalized_full_name.split()
         # Add full name itself
         alias_map[normalized_full_name] = full_name
-        # Add possible prefixes (minimum 3 characters)
+
         for part in parts:
             for i in range(3, len(part) + 1):
                 alias = part[:i]
                 if alias not in alias_map:
                     alias_map[alias] = full_name
 
-    # Use alias_map to find canonical character name
     canonical_name = alias_map.get(command)
 
     if canonical_name is None:
-        # Try to find matches where alias startswith command to handle partial input
         candidates = [name for alias, name in alias_map.items() if alias.startswith(command)]
         candidates = list(set(candidates))  # remove duplicates
 

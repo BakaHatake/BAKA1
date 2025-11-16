@@ -40,20 +40,27 @@ from telegram.ext import (
 )
 
 from db import update_counters,get_counters,update_drops,update_balance,clear_active_drop,update_harem,get_drops,get_balance,get_harem_rarity
-from db import get_harem
+from db import get_harem,transfer_character
 ADMIN_ID = [5192424390]
 import os
 USE_MOUNT = os.path.exists("/mnt/data")
 BASE_PATH = "/mnt/data" if USE_MOUNT else "."
 DB_PATH = os.path.join(BASE_PATH, "quiz.db")
 os.makedirs("/mnt/data", exist_ok=True)
-CHARACTER_JSON_PATH = os.path.join(BASE_PATH, "characters.json")
+from db import get_harem,transfer_character
+ADMIN_ID = [5192424390]
+import os
+USE_MOUNT = os.path.exists("/mnt/data")
+BASE_PATH = "/mnt/data" if USE_MOUNT else "."
+DB_PATH = os.path.join(BASE_PATH, "quiz.db")
+os.makedirs("/mnt/data", exist_ok=True)
 CHARACTER_IMAGE_DIR = os.path.join(BASE_PATH, "characters")
 IMAGE_ZIP_PATH = os.path.join(BASE_PATH, "characters_backup.zip")
+# CHARACTER_JSON_PATH = os.path.join(".", "BAKA1", "characters1.json")
 
 import json
 
-json_path = "/mnt/data/characters.json"
+json_path = "characters.json"
 
 if not os.path.exists(json_path):
     with open(json_path, "w") as f:
@@ -180,10 +187,10 @@ cloudinary.config(
     api_secret='RHMZdboQRoneTPZv8SyaSg0ITfg')
 DB_PATH = "/mnt/data/quiz.db"
 
-async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
-    print(f"❌ Exception: {context.error}")
-    if isinstance(update, Update) and update.message:
-        pass
+# async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
+#     print(f"❌ Exception: {context.error}")
+#     if isinstance(update, Update) and update.message:
+#         pass
 
 import re
 import sqlite3
@@ -655,9 +662,9 @@ def get_user_display_name(user_id: int) -> str:
     conn.close()
     return result[0] if result else "Unknown"
 
-# Load character data
 def load_characters() -> Dict:
-    """Load characters from persistent JSON file"""
+
+
     if not os.path.exists(CHARACTER_JSON_PATH):
         return {}
     with open(CHARACTER_JSON_PATH, "r") as f:
@@ -988,56 +995,6 @@ def get_favorite_character(user_id: int) -> str | None:
     conn.close()
     return result[0] if result else None
 
-def transfer_character(sender_id: int, receiver_id: int, char_id: str) -> bool:
-    """Safely transfer a character from sender to receiver."""
-    with sqlite3.connect(DB_PATH, timeout=5) as conn:
-        cursor = conn.cursor()
-
-        # Check if sender owns the character
-        cursor.execute(
-            'SELECT stack_count FROM user_inventory WHERE user_id = ? AND char_id = ?',
-            (sender_id, char_id)
-        )
-        result = cursor.fetchone()
-        if not result:
-            return False  # Sender doesn't have the character
-
-        sender_stack = result[0]
-
-        # Update sender's inventory
-        if sender_stack > 1:
-            cursor.execute(
-                'UPDATE user_inventory SET stack_count = stack_count - 1 WHERE user_id = ? AND char_id = ?',
-                (sender_id, char_id)
-            )
-        else:
-            cursor.execute(
-                'DELETE FROM user_inventory WHERE user_id = ? AND char_id = ?',
-                (sender_id, char_id)
-            )
-
-        # Update receiver's inventory
-        cursor.execute(
-            'SELECT stack_count FROM user_inventory WHERE user_id = ? AND char_id = ?',
-            (receiver_id, char_id)
-        )
-        result = cursor.fetchone()
-
-        if result:
-            # Receiver already owns it → increase stack
-            cursor.execute(
-                'UPDATE user_inventory SET stack_count = stack_count + 1 WHERE user_id = ? AND char_id = ?',
-                (receiver_id, char_id)
-            )
-        else:
-            # New character for receiver
-            cursor.execute(
-                'INSERT INTO user_inventory (user_id, char_id, stack_count) VALUES (?, ?, ?)',
-                (receiver_id, char_id, 1)
-            )
-
-        conn.commit()
-        return True
 
 
 def get_rarity_cost(rarity) -> int:
@@ -1879,7 +1836,7 @@ async def gift_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sender_id = sender.id
 
     if not update.message.reply_to_message:
-        await update.message.reply_text("❗ You must reply to the user you want to gift the character to.")
+        await update.message.reply_text("❗ Reply to a user with `/gift <char_id>` to gift them a character.")
         return
 
     receiver = update.message.reply_to_message.from_user
@@ -1890,34 +1847,35 @@ async def gift_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if not context.args:
-        await update.message.reply_text("Usage: Reply with `/gift <char_id>` to gift a character.", parse_mode="Markdown")
+        await update.message.reply_text("Usage: `/gift <char_id>`", parse_mode="Markdown")
         return
 
     char_id = context.args[0].zfill(3)
-    character = get_character_by_id(char_id)
 
+    character = get_character_by_id(char_id)
     if not character:
         await update.message.reply_text("❌ Character not found.")
         return
 
     success = transfer_character(sender_id, receiver_id, char_id)
 
-    if success:
-        rarity = character['rarity']
-        rarity_display = RARITY_CONFIG.get(rarity, {}).get("display", f"{rarity}★")
-        symbol = RARITY_CONFIG.get(rarity, {}).get("symbol", "🎐")
+    if not success:
+        await update.message.reply_text("⚠️ You don't own that character.")
+        return
 
-        await update.message.reply_text(
-            f"🎁 *Gift Successful!*\n\n"
-            f"👤 *Sender:* {sender.mention_markdown()}\n"
-            f"👥 *Receiver:* {receiver.mention_markdown()}\n"
-            f"🎴 *Character:* {symbol} *{character['name']}* `#{char_id}`\n"
-            f"⭐ *Rarity:* {rarity_display}",
-            parse_mode="Markdown"
-        )
+    rarity = character.get("rarity", "Unknown")
+    rarity_display = RARITY_CONFIG.get(rarity, {}).get("display", rarity)
+    symbol = RARITY_CONFIG.get(rarity, {}).get("symbol", "🎴")
 
-    else:
-        await update.message.reply_text("⚠️ You don't own that character or something went wrong.")
+    await update.message.reply_text(
+        f"🎁 *Gift Successful!*\n\n"
+        f"👤 *Sender:* {sender.mention_markdown()}\n"
+        f"👥 *Receiver:* {receiver.mention_markdown()}\n"
+        f"🎴 *Character:* {symbol} *{character['name']}* `#{char_id}`\n"
+        f"⭐ *Rarity:* {rarity_display}",
+        parse_mode="Markdown"
+    )
+
 
 
 def get_rarity_details(rarity):
@@ -2040,7 +1998,7 @@ from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 from cloudinary.uploader import upload as cloudinary_upload
 
 # Constants
-CHARACTER_JSON_PATH = os.path.join(BASE_PATH, "characters.json")
+
 WAIFUS_JSON = os.path.join(BASE_PATH, "waifus.json")
 CHARACTER_IMAGE_DIR = os.path.join(BASE_PATH, "images")  # if local fallback used
 
@@ -3039,4 +2997,4 @@ def register_harem_handlers(application):
 
 # === GROUP 2: Fallback Message Tracker (e.g., spawn tracker) ===
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message), group=2)
-    application.add_error_handler(error_handler)
+    # application.add_error_handler(error_handler)

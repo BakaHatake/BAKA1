@@ -1,0 +1,3222 @@
+{
+  "001": {
+    "name": "Chiori",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215407/waifus/vdzb5gid1onsjs6tkset.jpg"
+  },
+  "002": {
+    "name": "Eula Lawrence",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215410/waifus/grovnlexdkor2tji28o2.jpg"
+  },
+  "003": {
+    "name": "Hu Tao",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215413/waifus/uk6emhfhybskwgnviyk2.jpg"
+  },
+  "004": {
+    "name": "Keqing",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215416/waifus/ribmqoaisgwdrja0m5nd.jpg"
+  },
+  "005": {
+    "name": "Citlali",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215419/waifus/szgooqwvfwi2y822aulc.jpg"
+  },
+  "006": {
+    "name": "Columbina",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215422/waifus/cuy8vfw9xoholsoobdpn.jpg"
+  },
+  "008": {
+    "name": "Yae Miko",
+    "rarity": "Musician",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215428/waifus/renchjsbyf5bsvbe5tlq.jpg"
+  },
+  "009": {
+    "name": "Shenhe",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215430/waifus/skvf9vxlmxtmbiixbtws.jpg"
+  },
+  "010": {
+    "name": "Sandrone",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215434/waifus/hgvtryqqgfromle5cabp.jpg"
+  },
+  "011": {
+    "name": "Lisa",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215437/waifus/miy1vsnz49oev4kd2pvq.jpg"
+  },
+  "012": {
+    "name": "Sangonomiya Kokomi",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215441/waifus/oxamgjfrj9i4hfp0nobg.jpg"
+  },
+  "013": {
+    "name": "Nahida",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215443/waifus/duzlnnibyjjiodsslov5.jpg"
+  },
+  "014": {
+    "name": "Navia",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215446/waifus/v8n7malngpkro0km6z2m.jpg"
+  },
+  "015": {
+    "name": "Skirk",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215449/waifus/kdgfbzzdvemarfcrb1jt.jpg"
+  },
+  "016": {
+    "name": "Klee",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215452/waifus/sjeknkiymhcosvpqixui.jpg"
+  },
+  "017": {
+    "name": "Raiden Shogun",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215455/waifus/qr8ccba6mxsat6tftf7w.jpg"
+  },
+  "018": {
+    "name": "Yelan",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215458/waifus/xcuhlwdwbyw1ofycldio.jpg"
+  },
+  "019": {
+    "name": "Clorinde",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215460/waifus/jkwvxhkfwtvbk1s6xqqi.jpg"
+  },
+  "020": {
+    "name": "Faruzan",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215463/waifus/e5gdqi9cigntsf5e97rd.jpg"
+  },
+  "021": {
+    "name": "Skirk",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215466/waifus/fewtgtam3b5ipriqamfp.jpg"
+  },
+  "022": {
+    "name": "Kujou Sara",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215469/waifus/rcumxiypjwg1bjgapi2o.jpg"
+  },
+  "023": {
+    "name": "Amber",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215472/waifus/eulpczyafbxesw1rp2hc.jpg"
+  },
+  "024": {
+    "name": "Xianyun",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215475/waifus/hh2jrlc1zwjvbeoq94pf.jpg"
+  },
+  "025": {
+    "name": "Skirk",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215478/waifus/jvigfncdkc6si7qiry8g.jpg"
+  },
+  "026": {
+    "name": "Xianyun",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215481/waifus/zlrwoyh97emxzzmdzfle.jpg"
+  },
+  "027": {
+    "name": "Furina",
+    "rarity": "Musician",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215484/waifus/tnqreiizgperzck9rebg.jpg"
+  },
+  "028": {
+    "name": "Furina",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215488/waifus/wrqe34gkxlogoziczpuv.jpg"
+  },
+  "029": {
+    "name": "Eula Lawrence",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215490/waifus/utmckhd99ct1u4ecinv2.jpg"
+  },
+  "030": {
+    "name": "Furina",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215493/waifus/lvsgxcgrg4jnifg5bshx.jpg"
+  },
+  "031": {
+    "name": "Skirk",
+    "rarity": "Musician",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215496/waifus/djjle8u2wdfyzt4ixnsm.jpg"
+  },
+  "032": {
+    "name": "Hu Tao",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215499/waifus/d1j3sdrftpalwq2m4rwz.jpg"
+  },
+  "033": {
+    "name": "Raiden Shogun",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215501/waifus/rqicc65lyhppjrujjfqy.jpg"
+  },
+  "034": {
+    "name": "Hu Tao",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215504/waifus/hx2yfmoowlevajajsm74.jpg"
+  },
+  "035": {
+    "name": "Yae Miko",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215507/waifus/ixozycg5u0ilvmjsdyp2.jpg"
+  },
+  "036": {
+    "name": "Nahida",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215510/waifus/wg5jmozsexhs70sqebut.jpg"
+  },
+  "037": {
+    "name": "Lisa",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215513/waifus/w1lftpt3v7s9tqi0makt.jpg"
+  },
+  "038": {
+    "name": "Furina",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215516/waifus/vbyyhedomdryscsoiu48.jpg"
+  },
+  "039": {
+    "name": "Eula Lawrence",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215519/waifus/ocngem2t74aq3j9txwxr.jpg"
+  },
+  "040": {
+    "name": "Citlali",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215522/waifus/mlhehpr5ce3rugtsnolw.jpg"
+  },
+  "041": {
+    "name": "Yelan",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215525/waifus/ufldopookegbvlpsp1dt.jpg"
+  },
+  "042": {
+    "name": "Kamisato Ayaka",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215527/waifus/u6sgdl0gypowxe1jsps2.jpg"
+  },
+  "043": {
+    "name": "Hu Tao",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215530/waifus/vrj8glsocwavdcjtk1od.jpg"
+  },
+  "044": {
+    "name": "Yelan",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215533/waifus/az8iu1ew4bxm8gpzxvlg.jpg"
+  },
+  "045": {
+    "name": "Hu tao",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1758508975/waifus/nofej24ez2lrwox5g0su.jpg"
+  },
+  "046": {
+    "name": "Jean",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215539/waifus/qw6s9ani12f7cd68j6dg.jpg"
+  },
+  "047": {
+    "name": "Raiden Shogun",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215542/waifus/uc8yojm6mxffrzltn92p.jpg"
+  },
+  "048": {
+    "name": "Raiden Shogun",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1760246344/waifus/hfskwgu1qd8cvf8ggest.jpg"
+  },
+  "049": {
+    "name": "Yae Miko",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215547/waifus/fpuot0aemu7rbfeiwa97.jpg"
+  },
+  "050": {
+    "name": "Hu Tao",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215550/waifus/uizvfzek1ch6mazr86h1.jpg"
+  },
+  "051": {
+    "name": "Rosaria",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215553/waifus/yclpsjxa9vhegqhwlf1m.jpg"
+  },
+  "052": {
+    "name": "Fischl",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215556/waifus/z2icxfjhg4787yvthldr.jpg"
+  },
+  "053": {
+    "name": "Arlecchino",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752892344/waifus/sutaifr4ydpbwdkafbyv.jpg"
+  },
+  "054": {
+    "name": "Lumine",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215562/waifus/v7rm2u7ib4syiljago0o.jpg"
+  },
+  "055": {
+    "name": "Sandrone",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215565/waifus/x5zy7oj2mljv6dszzefd.jpg"
+  },
+  "056": {
+    "name": "Mavuika",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215568/waifus/nuwuxycufq0l0yp6jnwe.jpg"
+  },
+  "058": {
+    "name": "Skirk",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215573/waifus/hgugirwcwguajg5d0nyt.jpg"
+  },
+  "059": {
+    "name": "yae miko",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755236069/waifus/phltjkt1nbbhakxxkbkm.jpg"
+  },
+  "060": {
+    "name": "Furina",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215579/waifus/zzwsfrr8rz2lxj6s9u4a.jpg"
+  },
+  "061": {
+    "name": "Columbina",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215581/waifus/xu6nk70gijawh8pfndcd.jpg"
+  },
+  "062": {
+    "name": "Xianyun",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215584/waifus/gh6hvnmflifb24iw2zpe.jpg"
+  },
+  "063": {
+    "name": "Nilou",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755944421/waifus/yje5qi3k9mfphmgma2r3.jpg"
+  },
+  "064": {
+    "name": "Arlecchino",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215590/waifus/gypebwwyywjiaqfekn4o.jpg"
+  },
+  "065": {
+    "name": "Amber",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215592/waifus/facc4mxsxklr1qyes4v8.jpg"
+  },
+  "066": {
+    "name": "Navia",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215595/waifus/sjdfaovfhovkkmgdttoz.jpg"
+  },
+  "067": {
+    "name": "Sangonomiya Kokomi",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215598/waifus/nt190fnukxhlbaak7pl9.jpg"
+  },
+  "068": {
+    "name": "Sangonomiya Kokomi",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215601/waifus/xlhx6bej0siwlyf3mklo.jpg"
+  },
+  "069": {
+    "name": "Xianyun",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215604/waifus/zudpua2dnoreij3jdep9.jpg"
+  },
+  "070": {
+    "name": "Xilonen",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215607/waifus/t9isofqlowbua6el9b6a.jpg"
+  },
+  "072": {
+    "name": "Keqing",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215613/waifus/t5usfv5ubydnokeedncq.jpg"
+  },
+  "073": {
+    "name": "Lumine",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215616/waifus/jiawtb6v9pfi1vg7lhsu.jpg"
+  },
+  "074": {
+    "name": "Hu Tao",
+    "rarity": "Musician",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215620/waifus/viswitdclicqzvabuqed.jpg"
+  },
+  "075": {
+    "name": "Ganyu",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215623/waifus/hwlqi6fjhjjsh680aq4i.jpg"
+  },
+  "076": {
+    "name": "Hu Tao",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752547645/waifus/qoo4evj3fjyqajb4qyw7.jpg"
+  },
+  "077": {
+    "name": "clorinde",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755236299/waifus/dsiq1pynvki5plmbwyud.jpg"
+  },
+  "078": {
+    "name": "Yelan",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215631/waifus/unf4mgrpjv1hsefowgqn.jpg"
+  },
+  "079": {
+    "name": "Mavuika",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215633/waifus/d2ck9ppkkmnpixoi24sq.jpg"
+  },
+  "080": {
+    "name": "Kamisato Ayaka",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215636/waifus/sjdk57ndlzmmb1lmnobc.jpg"
+  },
+  "081": {
+    "name": "Yae Miko",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1759378994/waifus/wguwfvdulo3ogzlktd99.jpg"
+  },
+  "082": {
+    "name": "Amber",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215642/waifus/ie3reimt8qfxjs0hqv8c.jpg"
+  },
+  "083": {
+    "name": "Shenhe",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757236851/waifus/ddvske4jclw3rtyce0t9.jpg"
+  },
+  "084": {
+    "name": "Columbina",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215648/waifus/pmabt5pefg9upbpi39nn.jpg"
+  },
+  "085": {
+    "name": "Faruzan",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215650/waifus/lkz2sgwm02vlac0pagfl.jpg"
+  },
+  "086": {
+    "name": "Mona",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215653/waifus/yvbg0kjcw8cl8zawodln.jpg"
+  },
+  "087": {
+    "name": "Shenhe",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215657/waifus/uat7iqpx6itb7fmaauni.jpg"
+  },
+  "088": {
+    "name": "Chiori",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215659/waifus/jmllqwuze2wmiic2ujti.jpg"
+  },
+  "089": {
+    "name": "Nahida",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215662/waifus/df1dvqqkzmmjq7pagkwv.jpg"
+  },
+  "090": {
+    "name": "Keqing",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215665/waifus/bi9liudi1ab78b1il9y3.jpg"
+  },
+  "091": {
+    "name": "Arlecchino",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757236228/waifus/i70vzyqiwlodfrwhnpgq.jpg"
+  },
+  "092": {
+    "name": "Arlecchino",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215671/waifus/uce1kvkcnt9m3l3nofpe.jpg"
+  },
+  "093": {
+    "name": "Ningguang",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215674/waifus/scbox6xiuongpn69hudd.jpg"
+  },
+  "094": {
+    "name": "Sandrone",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215677/waifus/mefgpryh8ssppcgq4acz.jpg"
+  },
+  "095": {
+    "name": "Kamisato Ayaka",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215680/waifus/fyxvywsixuj5e90yzrox.jpg"
+  },
+  "096": {
+    "name": "Noelle",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215683/waifus/zdkkul6tnlonwn23lchx.jpg"
+  },
+  "097": {
+    "name": "Keqing",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215686/waifus/lebublatdfyolt1j1s8x.jpg"
+  },
+  "098": {
+    "name": "Chiori",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215688/waifus/gdwrg7hso1tku0kohed1.jpg"
+  },
+  "099": {
+    "name": "Sandrone",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215691/waifus/ltntgszpo9502whitmue.jpg"
+  },
+  "100": {
+    "name": "Barbara",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215694/waifus/recikpksfibvebdnoftt.jpg"
+  },
+  "101": {
+    "name": "Mavuika",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215697/waifus/b1kucwqjgdytirnrtvuj.jpg"
+  },
+  "102": {
+    "name": "Yae Miko",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215700/waifus/zcjxcgkuwdymbgy7iqkf.jpg"
+  },
+  "103": {
+    "name": "Furina",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215703/waifus/kpjo27mgj1p8rxy7wttn.jpg"
+  },
+  "104": {
+    "name": "Ganyu",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215706/waifus/wftwx6mwlx1wc7c3mlof.jpg"
+  },
+  "105": {
+    "name": "Lumine",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753195671/waifus/aecfu0khwez5bua6hli8.jpg"
+  },
+  "106": {
+    "name": "Ganyu",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215712/waifus/xhpr0zgrbrlbph48hxd3.jpg"
+  },
+  "107": {
+    "name": "Navia",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215715/waifus/oy8ih6b7m0rtaweu253i.jpg"
+  },
+  "108": {
+    "name": "Mavuika",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215718/waifus/bexyihmruxcsjzfsgled.jpg"
+  },
+  "109": {
+    "name": "Shenhe",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215721/waifus/p6sqfucecezbne1iwoqy.jpg"
+  },
+  "110": {
+    "name": "Faruzan",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215724/waifus/p6npoifngixwszlcehjk.jpg"
+  },
+  "111": {
+    "name": "Columbina",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215727/waifus/yfv5enlcf04jqbja7hyt.jpg"
+  },
+  "112": {
+    "name": "Raiden Shogun",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215730/waifus/z1bndqmnaxzsrkjvzfai.jpg"
+  },
+  "113": {
+    "name": "Klee",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215733/waifus/mrthgdnhwluhuspyjd64.jpg"
+  },
+  "114": {
+    "name": "Furina",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215736/waifus/pafhxnrxiq2op22wylpj.jpg"
+  },
+  "115": {
+    "name": "Eula Lawrence",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215739/waifus/y9qoctz250f1jrckdmkh.jpg"
+  },
+  "116": {
+    "name": "Sangonomiya Kokomi",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215741/waifus/i1kd0ihqhe5lpueiobfp.jpg"
+  },
+  "117": {
+    "name": "Lumine",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215744/waifus/mezp9pevoonmodizgf1i.jpg"
+  },
+  "118": {
+    "name": "Kuki Shinobu",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215747/waifus/wne1bln2h7ugetpilc5i.jpg"
+  },
+  "119": {
+    "name": "Mavuika",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215750/waifus/uulkq8evwvdoide7oftk.jpg"
+  },
+  "120": {
+    "name": "Keqing",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752215752/waifus/jhqcis9wufv1eqwheofd.jpg"
+  },
+  "121": {
+    "name": "Raiden Shogun",
+    "rarity": "Musician",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752221866/waifus/f6sh48y4o186se8r6rhs.jpg"
+  },
+  "123": {
+    "name": "Arlecchino",
+    "rarity": "Musician",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752224045/waifus/mzk7pfysstovxresyrbs.jpg"
+  },
+  "124": {
+    "name": "Shehne",
+    "rarity": "Musician",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752235701/waifus/jz6zkjwpfohlrykjign6.jpg"
+  },
+  "125": {
+    "name": "Clorinde",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752248803/waifus/tzaihxltvumwgmrmlu3k.jpg"
+  },
+  "126": {
+    "name": "Ganyu",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752289679/waifus/dvqkafrggag93silvheu.jpg"
+  },
+  "127": {
+    "name": "Kuki Shinobu",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752289705/waifus/wuad5zd8dhbwxcls6ctb.jpg"
+  },
+  "128": {
+    "name": "Mavuika",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752307783/waifus/po4y57vnlul44nzx5pvi.jpg"
+  },
+  "129": {
+    "name": "Kamisato Ayaka",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752307934/waifus/ks9dzsxdtaxnc2trbgq8.jpg"
+  },
+  "130": {
+    "name": "Columbina",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752307957/waifus/wjege8imqq0jj4ttbzos.jpg"
+  },
+  "131": {
+    "name": "Columbina",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752307976/waifus/nbkze4usv28hd7sk9eop.jpg"
+  },
+  "132": {
+    "name": "Columbina",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752307998/waifus/qwhmdsmjywakyrknanzt.jpg"
+  },
+  "133": {
+    "name": "Columbina",
+    "rarity": "Musician",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752464929/waifus/br52qct3zynk0enjxtql.jpg"
+  },
+  "134": {
+    "name": "Nahida",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752515833/waifus/mwdokovoslq9ym28xnwk.jpg"
+  },
+  "135": {
+    "name": "Jean",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752547861/waifus/ke47ail4zbulclpilx5b.jpg"
+  },
+  "136": {
+    "name": "Kujou sara",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752547993/waifus/mwpobjdd7zedlpwu49ix.jpg"
+  },
+  "137": {
+    "name": "Mavuika",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752548073/waifus/awczkx6qgf2kcg83msyg.jpg"
+  },
+  "138": {
+    "name": "Furina",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752548120/waifus/wabdrymj7gtkuhlu7gc0.jpg"
+  },
+  "139": {
+    "name": "Shenhe",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752548142/waifus/m1mqfxw3kdg7k4eq4g4f.jpg"
+  },
+  "140": {
+    "name": "Fischl",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752548181/waifus/hn6mentnm4rru1oty04e.jpg"
+  },
+  "141": {
+    "name": "Yoimiya",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752548274/waifus/athlsegqnvgleqyfyxlp.jpg"
+  },
+  "142": {
+    "name": "Chiori",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752548339/waifus/wkiaqerocf5wcx1dikcj.jpg"
+  },
+  "143": {
+    "name": "Chiori",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752548361/waifus/snzesf2xxyj3m8joznqv.jpg"
+  },
+  "144": {
+    "name": "Citlali",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752548562/waifus/xb1dnu03p23qg287tect.jpg"
+  },
+  "145": {
+    "name": "Citlali",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752548599/waifus/ncnvns3urx4azufiakdi.jpg"
+  },
+  "146": {
+    "name": "Yanfei",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752548620/waifus/wckxgqk26ptr8ijpgj93.jpg"
+  },
+  "147": {
+    "name": "Collei",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752548643/waifus/uomjrtzfiujigbkzwly4.jpg"
+  },
+  "148": {
+    "name": "Charlotte",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752548700/waifus/h4yf8ebex4ohaauwqccy.jpg"
+  },
+  "149": {
+    "name": "Sucrose",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752548754/waifus/gyumhb5v7iuzml7nc45j.jpg"
+  },
+  "150": {
+    "name": "Yae miko",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752548780/waifus/rv5hfoxodqxnsyr6krgw.jpg"
+  },
+  "151": {
+    "name": "Raiden Shogun",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752548796/waifus/v6grung3epmgmr3knoem.jpg"
+  },
+  "152": {
+    "name": "Skirk",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752548820/waifus/teoqaulcvlzhuoqgymzn.jpg"
+  },
+  "153": {
+    "name": "Varesa",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752548837/waifus/ugpr5fzuscfgvszbdug4.jpg"
+  },
+  "154": {
+    "name": "Skirk",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752548871/waifus/a86yd036csyof10puobz.jpg"
+  },
+  "155": {
+    "name": "Skirk",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752548888/waifus/w0p4y3gdsirprpuiegev.jpg"
+  },
+  "156": {
+    "name": "Kamisato Ayaka",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752548908/waifus/xch1y3tbdfamicnmstir.jpg"
+  },
+  "157": {
+    "name": "Escoffier",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752548965/waifus/xktwkejh7cf9oxzvo7ap.jpg"
+  },
+  "158": {
+    "name": "Faruzan",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752548987/waifus/z0i40yia90rzg7nlmgo7.jpg"
+  },
+  "159": {
+    "name": "Columbina",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752549020/waifus/pcmmxivxzfshzxyw1acn.jpg"
+  },
+  "160": {
+    "name": "Sandrone",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752549042/waifus/nkmpswithqqwmnzyhsu1.jpg"
+  },
+  "161": {
+    "name": "Sandrone",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752549056/waifus/mbsk1ukluvkfe6rzgwkw.jpg"
+  },
+  "162": {
+    "name": "Sandrone",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752549072/waifus/xu2f5dcapbwsv2msuj82.jpg"
+  },
+  "163": {
+    "name": "Mavuika",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752549112/waifus/qlbb7vdggjqe3l6k5kbr.jpg"
+  },
+  "164": {
+    "name": "Furina",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752549127/waifus/jaey3o2vyaee7jnzgqkz.jpg"
+  },
+  "165": {
+    "name": "Xianyun",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755618337/waifus/yt2evdjzv6iykgbbdxqt.jpg"
+  },
+  "166": {
+    "name": "Xianyun",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752549160/waifus/hayirhfn8z5bgrrnm7lp.jpg"
+  },
+  "167": {
+    "name": "Xianyun",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752549176/waifus/p8mvpgvqcf4oziqde4jf.jpg"
+  },
+  "168": {
+    "name": "Xianyun",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752549188/waifus/i1rovieayqonupwu91pz.jpg"
+  },
+  "169": {
+    "name": "Hu Tao",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752549206/waifus/ebxxekx6mocq3bugrp82.jpg"
+  },
+  "170": {
+    "name": "Columbina",
+    "rarity": "Nurse",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752736933/waifus/kqpedqawafhrlen6p2jh.jpg"
+  },
+  "171": {
+    "name": "Raiden Shogun",
+    "rarity": "Nurse",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752737641/waifus/mbasoyvbrck1f1v5bags.jpg"
+  },
+  "172": {
+    "name": "Yae Miko",
+    "rarity": "Nurse",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752737730/waifus/lrpykcqzaambu2gnpqjw.jpg"
+  },
+  "173": {
+    "name": "furina",
+    "rarity": "Nurse",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752738033/waifus/in6y0t5lppjuhq2msxrr.jpg"
+  },
+  "174": {
+    "name": "Barbara",
+    "rarity": "Nurse",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752738897/waifus/a11ulmjj1iqjpx5drj6e.jpg"
+  },
+  "175": {
+    "name": "Eula",
+    "rarity": "Nurse",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752738918/waifus/ryp4qu7u7qvkdid4copc.jpg"
+  },
+  "176": {
+    "name": "Citlali",
+    "rarity": "Nurse",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752738943/waifus/xycdy73qy06af3eswpg6.jpg"
+  },
+  "177": {
+    "name": "Kamisato ayaka",
+    "rarity": "Nurse",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752739202/waifus/px4fqdiou41pbgml9zw4.jpg"
+  },
+  "178": {
+    "name": "Mavuika",
+    "rarity": "Nurse",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752739229/waifus/kmvtqiwxekqlzcbtlmtn.jpg"
+  },
+  "179": {
+    "name": "Chiori",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752850216/waifus/zezxkjm2suknbubkudca.jpg"
+  },
+  "180": {
+    "name": "Xilonen",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752850255/waifus/fcwmyujvrwxeq7q9z7bm.jpg"
+  },
+  "181": {
+    "name": "Lan Yan",
+    "rarity": "Nurse",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752852306/waifus/lf569ydujolc0wwqlqrg.jpg"
+  },
+  "182": {
+    "name": "Chiori",
+    "rarity": "Nurse",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752892101/waifus/rbxkuc6vjrnqnpqupnrs.jpg"
+  },
+  "183": {
+    "name": "Skirk",
+    "rarity": "Nurse",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752892122/waifus/ymyytnmvsxttg8g0jz2i.jpg"
+  },
+  "184": {
+    "name": "Skirk",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752892139/waifus/gw1s7vjpp1m1gqpdcbhs.jpg"
+  },
+  "185": {
+    "name": "Nilou",
+    "rarity": "Nurse",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752892166/waifus/zrejdqjfxumu3lfrkhnk.jpg"
+  },
+  "186": {
+    "name": "Amber",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752892189/waifus/ciokpeoatrbbpeienqbi.jpg"
+  },
+  "187": {
+    "name": "Yun jin",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752892214/waifus/g0tsntjfrn29wlz0arya.jpg"
+  },
+  "188": {
+    "name": "Kujou Sara",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752892244/waifus/vheq9zejsfjchaameiis.jpg"
+  },
+  "189": {
+    "name": "Kujou Sara",
+    "rarity": "Nurse",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752892277/waifus/cstasp48rymhnpef1z3d.jpg"
+  },
+  "190": {
+    "name": "Arlecchino",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752892299/waifus/g7rv4diqelhoysru14qz.jpg"
+  },
+  "191": {
+    "name": "Arlecchino",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752892321/waifus/z13lyz5z3oaqbmqcydkv.jpg"
+  },
+  "192": {
+    "name": "Xilonen",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752892363/waifus/q5wrfn4mcfqjbrcztrod.jpg"
+  },
+  "193": {
+    "name": "Yae miko",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752892381/waifus/qpvwaiawyw2jzbz7havx.jpg"
+  },
+  "194": {
+    "name": "Shenhe",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752892396/waifus/ze7djpelja0ro8hedkb6.jpg"
+  },
+  "195": {
+    "name": "Kamisato Ayaka",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752892421/waifus/lhew66tspvwwlczu7bba.jpg"
+  },
+  "196": {
+    "name": "Raiden Shogun",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757822844/waifus/ul90uniuaznz5hwpvi9q.jpg"
+  },
+  "197": {
+    "name": "Nilou",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752892461/waifus/z73rny6yhfnl8znxeopj.jpg"
+  },
+  "198": {
+    "name": "Arlecchino",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752892520/waifus/f7ab2idt1cot05ru3slr.jpg"
+  },
+  "199": {
+    "name": "Xinyan",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752892539/waifus/x15fnjv58wnsfzduwf9s.jpg"
+  },
+  "200": {
+    "name": "Hu tao",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752892605/waifus/sqyzcgokyordjqtqwuyz.jpg"
+  },
+  "201": {
+    "name": "Layla",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752892627/waifus/eupzlc0xgfgcvtucqjzc.jpg"
+  },
+  "202": {
+    "name": "Furina",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752892674/waifus/ltxcam3s1elylboazr6y.jpg"
+  },
+  "203": {
+    "name": "Sangonomiya Kokomi",
+    "rarity": "Nurse",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752892705/waifus/y8t4jsaswn85spir66py.jpg"
+  },
+  "204": {
+    "name": "Columbina",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752981377/waifus/uynwac0op9zpjaepmvcg.jpg"
+  },
+  "205": {
+    "name": "Mavuika",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752981683/waifus/nakedkhagxvxm5mzsw7j.jpg"
+  },
+  "206": {
+    "name": "Raiden shogun",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753019565/waifus/xrmmte3bvb2zoevrynaq.jpg"
+  },
+  "207": {
+    "name": "Clorinde",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753021778/waifus/kkclafc4kpjxk9woukqb.jpg"
+  },
+  "208": {
+    "name": "Xilonen",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753024792/waifus/oool8z3gkfyutniivgii.jpg"
+  },
+  "209": {
+    "name": "Citlali",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753024843/waifus/zo7om1fietzvbp0mu7u4.jpg"
+  },
+  "210": {
+    "name": "Chasca",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753067556/waifus/sbtbwxeygwayktdhdcgn.jpg"
+  },
+  "211": {
+    "name": "Arlecchino",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753067676/waifus/crrpzonyy7c45bae1skv.jpg"
+  },
+  "212": {
+    "name": "Mualani",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753068713/waifus/hpphwy1deexz8xgfcwuq.jpg"
+  },
+  "213": {
+    "name": "Chiori",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753068788/waifus/u6rgdopeu3ek09znijby.jpg"
+  },
+  "214": {
+    "name": "Navia",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753087852/waifus/jsivaseweddvutuqk06e.jpg"
+  },
+  "215": {
+    "name": "Escoffier",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753087920/waifus/ofdp6a1u13bxlvmln7iz.jpg"
+  },
+  "216": {
+    "name": "Nilou",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753087985/waifus/owfvzmhcka1ltykpwd83.jpg"
+  },
+  "217": {
+    "name": "Dehya",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753088425/waifus/kvjsxmibialafh2iaec2.jpg"
+  },
+  "218": {
+    "name": "Yae Miko",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753119857/waifus/ocrugi1lmv51yyqelh8c.jpg"
+  },
+  "219": {
+    "name": "Ningguang",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753120299/waifus/igstggpefttvby5re8hy.jpg"
+  },
+  "220": {
+    "name": "Lisa",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753121122/waifus/vehaxh22ni28y3bz31co.jpg"
+  },
+  "221": {
+    "name": "Charlotte",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753161848/waifus/iomketotd0ahnwvld7lg.jpg"
+  },
+  "222": {
+    "name": "Yanfei",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753163633/waifus/stkacmmxvfhxlk3v7syn.jpg"
+  },
+  "223": {
+    "name": "Kamisato Ayaka",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753194735/waifus/pu5nuv9pezqpv2hq8gt1.jpg"
+  },
+  "224": {
+    "name": "Jean",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753194786/waifus/op4q8nadbxhgki5gzl1q.jpg"
+  },
+  "225": {
+    "name": "Sangonomiya Kokomi",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753194891/waifus/vqsg18zhtvuzulxgv473.jpg"
+  },
+  "226": {
+    "name": "Ganyu",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753195018/waifus/jguorwmbuhl9k74dbntg.jpg"
+  },
+  "227": {
+    "name": "Yoimiya",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1754322627/waifus/vyb2slsvvighva2eymzm.jpg"
+  },
+  "228": {
+    "name": "Keqing",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753195245/waifus/bsafhgamyhlbol0biauy.jpg"
+  },
+  "229": {
+    "name": "Eula Lawrence",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753195345/waifus/g3mfygb19ohotka5qehf.jpg"
+  },
+  "230": {
+    "name": "Mona",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753195561/waifus/w4gsjcvqyndktd4cmzzw.jpg"
+  },
+  "231": {
+    "name": "Nahida",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753195923/waifus/qvisbavfz0dtzzm9hudb.jpg"
+  },
+  "232": {
+    "name": "Klee",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753196435/waifus/aknqgcq6mrytstbhuuwe.jpg"
+  },
+  "233": {
+    "name": "Shenhe",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753196977/waifus/zs7uoa7c6ycq5kezon1p.jpg"
+  },
+  "234": {
+    "name": "Xilonen",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753199063/waifus/brnerdfzsoy7n7anrnta.jpg"
+  },
+  "235": {
+    "name": "Mualani",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753200122/waifus/clgboqi8mikbpocvfmax.jpg"
+  },
+  "236": {
+    "name": "amber",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753202677/waifus/t3pandgyaqll05xdvniz.jpg"
+  },
+  "237": {
+    "name": "Chasca",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753202724/waifus/ghlhlqdjq8yxle0yuj8h.jpg"
+  },
+  "238": {
+    "name": "Barbara",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753274366/waifus/x8pxxp9pknkjzpvgo0id.jpg"
+  },
+  "239": {
+    "name": "Beiduo",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753274393/waifus/lvflxmazuoakru1sc35k.jpg"
+  },
+  "240": {
+    "name": "Candace",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753274444/waifus/bqiuix38ritz2ddxbsnv.jpg"
+  },
+  "241": {
+    "name": "Charlotte",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753274480/waifus/xvu4o1pi68dzzr2geyfk.jpg"
+  },
+  "242": {
+    "name": "Collei",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753274541/waifus/bwhvwhfcswqssuxhwjl8.jpg"
+  },
+  "243": {
+    "name": "Faruzan",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753274576/waifus/s6fbplw5h05ho8hvmaql.jpg"
+  },
+  "244": {
+    "name": "Fischl",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753274594/waifus/lfrppyg58p8dpeh4ulal.jpg"
+  },
+  "245": {
+    "name": "Varesa",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753274622/waifus/tndo9z1tasuy8k05pqxf.jpg"
+  },
+  "246": {
+    "name": "Kirara",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753274648/waifus/s6thqrgkjyampmvegtv9.jpg"
+  },
+  "247": {
+    "name": "Kujou Sara",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753274669/waifus/qqz9v1p75onixegjt4ba.jpg"
+  },
+  "248": {
+    "name": "Kuki Shinobu",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753274697/waifus/wapb5k1csu9rjwvpwgcr.jpg"
+  },
+  "249": {
+    "name": "Lan yan",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753274718/waifus/sfobmwfezz5wuzxxf8ki.jpg"
+  },
+  "250": {
+    "name": "Layla",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753274753/waifus/fkou4xrxibezdqvkxn35.jpg"
+  },
+  "251": {
+    "name": "Lisa",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753274780/waifus/lzutb3uoqp95mhmtpllk.jpg"
+  },
+  "252": {
+    "name": "Lynette",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753274807/waifus/mvmfxeqosvuwv4fahbnr.jpg"
+  },
+  "253": {
+    "name": "Ningguang",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753274875/waifus/qncpvqchlx8w54mowxf5.jpg"
+  },
+  "254": {
+    "name": "Noelle",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753274966/waifus/zrmn6o9fl6ii33j0am0h.jpg"
+  },
+  "255": {
+    "name": "Rosaria",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753275034/waifus/hpoe0t7w9j0zdxv8rqrq.jpg"
+  },
+  "256": {
+    "name": "Sucrose",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753275198/waifus/pfnk3uhy4qvqsaecekvd.jpg"
+  },
+  "257": {
+    "name": "Xiangling",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753275352/waifus/wic7j1d785lali6xlfxz.jpg"
+  },
+  "258": {
+    "name": "Yanfei",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753275391/waifus/slm1nptvbuyxwqvfsdfi.jpg"
+  },
+  "259": {
+    "name": "Yun jin",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753275436/waifus/ckgrf2wk27foiwexdnvp.jpg"
+  },
+  "260": {
+    "name": "Emilie",
+    "rarity": "Saree",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753275478/waifus/mndsbjzogaqqokmup4w0.jpg"
+  },
+  "261": {
+    "name": "Diona",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753367437/waifus/xyuuybkysl7whzfkpycm.jpg"
+  },
+  "262": {
+    "name": "Arlecchino",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753370268/waifus/sihgcwvnza28u8ls6yia.jpg"
+  },
+  "263": {
+    "name": "Kamisato Ayaka",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753370453/waifus/iehrtjcbrrnhximnba0e.jpg"
+  },
+  "264": {
+    "name": "Barbara",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753370485/waifus/pyqqybggbxr55gtbrndr.jpg"
+  },
+  "265": {
+    "name": "Beiduo",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753370529/waifus/iyusxnqqyjrkzntxte4w.jpg"
+  },
+  "266": {
+    "name": "Candace",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753370579/waifus/oauu57crbg8qqao0kbqf.jpg"
+  },
+  "267": {
+    "name": "Charlotte",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753370607/waifus/skfxctmzsdcshb615dxl.jpg"
+  },
+  "268": {
+    "name": "Chasca",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753370698/waifus/fpz6mkfyluszb2tslflf.jpg"
+  },
+  "269": {
+    "name": "Collei",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753370754/waifus/ywuv8zcrsq7soadr35qs.jpg"
+  },
+  "270": {
+    "name": "Dehya",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753370860/waifus/vjekejzb6dhrna1zoggz.jpg"
+  },
+  "271": {
+    "name": "Eula Lawrence",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753370918/waifus/bcra5x0csru7rweqz9at.jpg"
+  },
+  "272": {
+    "name": "Fischl",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753370966/waifus/ysjo575qbnge3u17r8kj.jpg"
+  },
+  "273": {
+    "name": "Jean",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753371039/waifus/ms8smlyaf1uy7asa3yij.jpg"
+  },
+  "274": {
+    "name": "Keqing",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753371084/waifus/tpp8ebktolbblnxmrj76.jpg"
+  },
+  "275": {
+    "name": "Kuki Shinobu",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753371115/waifus/c9a7b38gvg0q9lsfdipy.jpg"
+  },
+  "276": {
+    "name": "Kirara",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753371148/waifus/zw2prl4e9om1vrj1nvkl.jpg"
+  },
+  "277": {
+    "name": "Layla",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753371193/waifus/qpwiguydh9jil8syosji.jpg"
+  },
+  "278": {
+    "name": "Lynette",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753371232/waifus/wufzoyxxmnd4sdw7bzcl.jpg"
+  },
+  "279": {
+    "name": "Mona",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753455896/waifus/hnunuixnguegr4tbqquu.jpg"
+  },
+  "280": {
+    "name": "Mualani",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753455948/waifus/hrbllsxvkmcb92zwevxp.jpg"
+  },
+  "281": {
+    "name": "Nilou",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753455986/waifus/xn7kyb9bifn9fcobrdev.jpg"
+  },
+  "283": {
+    "name": "Ningguang",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753456106/waifus/wn1u3ki73vpof8qcx2sz.jpg"
+  },
+  "284": {
+    "name": "Rosaria",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753456146/waifus/fcow5cyndea6xajs801z.jpg"
+  },
+  "285": {
+    "name": "Sucrose",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753456188/waifus/emq2wy70kdhrxqekkj6h.jpg"
+  },
+  "286": {
+    "name": "Varesa",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753456224/waifus/b7o4x8lde8gju3ee2flh.jpg"
+  },
+  "287": {
+    "name": "Xiangling",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753456314/waifus/zrnlo7ehcdjlrnir4lha.jpg"
+  },
+  "288": {
+    "name": "Xianyun",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753456370/waifus/onhasopluxizyvri4v8e.jpg"
+  },
+  "289": {
+    "name": "Yoimiya",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753456424/waifus/g6cyjrd0tv9vcuvth2jx.jpg"
+  },
+  "290": {
+    "name": "Clorinde",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753460059/waifus/myusnkrkfzsthomrzmji.jpg"
+  },
+  "291": {
+    "name": "Kujou Sara",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753460103/waifus/bjmdxsfreif7r5avwx9e.jpg"
+  },
+  "292": {
+    "name": "Skirk",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753460129/waifus/ftikm4wzz9fqbqpk7hbc.jpg"
+  },
+  "293": {
+    "name": "Ganyu",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753460159/waifus/iwy84wof4khxrtt0zo60.jpg"
+  },
+  "294": {
+    "name": "Shenhe",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753460407/waifus/qbp0fie82pixbuykhgmv.jpg"
+  },
+  "295": {
+    "name": "Yanfei",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753599693/waifus/wkgnufbflxxzi33grrue.jpg"
+  },
+  "296": {
+    "name": "Yun jin",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753599712/waifus/anrv0rf6lnltoor87t0y.jpg"
+  },
+  "297": {
+    "name": "Xinyan",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753599761/waifus/bjsolzpbptey4dk9yfxt.jpg"
+  },
+  "298": {
+    "name": "Mavuika",
+    "rarity": "Musician",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753758914/waifus/xfrfytfbji8n5ny1pxdf.jpg"
+  },
+  "299": {
+    "name": "Yoimiya",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753758937/waifus/omlcwepthdeebcvbowx0.jpg"
+  },
+  "300": {
+    "name": "Citlali",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753758983/waifus/xrsmjay9xjdnfwmyh0zh.jpg"
+  },
+  "301": {
+    "name": "Citlali",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753759005/waifus/agqc1dt1tys3fhmw1w44.jpg"
+  },
+  "302": {
+    "name": "Citlali",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753759024/waifus/dyahkm4icypwihwwpsds.jpg"
+  },
+  "303": {
+    "name": "Citlali",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753759045/waifus/vxeyzmmbs3ogiej2trab.jpg"
+  },
+  "304": {
+    "name": "Citlali",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753759064/waifus/d2quqtgrhu1iemr05yxu.jpg"
+  },
+  "305": {
+    "name": "Yoimiya",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1753759085/waifus/bgiknotxv5jsfwobfwej.jpg"
+  },
+  "306": {
+    "name": "Yoimiya",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1754274553/waifus/gbevesc88btvtlyx55g3.jpg"
+  },
+  "307": {
+    "name": "Yoimiya",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1754274599/waifus/nj2qvi1zssngkt80241p.jpg"
+  },
+  "308": {
+    "name": "Sangonomiya Kokomi",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755272623/waifus/rwtidfd2c43adqtmsfwu.jpg"
+  },
+  "309": {
+    "name": "Arlecchino",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755533375/waifus/ganz2vhi9asxger7pxal.jpg"
+  },
+  "310": {
+    "name": "Chasca",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755533421/waifus/xagezk0b9c7rq9td2ij1.jpg"
+  },
+  "311": {
+    "name": "Clorinde",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755533445/waifus/hrxyy7uyzz05mf3c3gjj.jpg"
+  },
+  "312": {
+    "name": "Jean",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755533478/waifus/ikglihfkhpcthqnvwgiu.jpg"
+  },
+  "313": {
+    "name": "Ganyu",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755533527/waifus/wqg9jsihk6ungroszszr.jpg"
+  },
+  "314": {
+    "name": "Shenhe",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755533560/waifus/mbz1yai9icqq4ba1qns3.jpg"
+  },
+  "315": {
+    "name": "Skirk",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755533585/waifus/v51s8fpeotl3fc1d3499.jpg"
+  },
+  "316": {
+    "name": "Nilou",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755533681/waifus/tsoay7ijovjvbdvqujgk.jpg"
+  },
+  "317": {
+    "name": "Navia",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755533747/waifus/ilglsjzjd4euashnhep4.jpg"
+  },
+  "318": {
+    "name": "Mona",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755533873/waifus/swhc0xpkkqcr7egltvuv.jpg"
+  },
+  "319": {
+    "name": "Mualani",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755533897/waifus/mmso2mtx4rjms2pnkysm.jpg"
+  },
+  "320": {
+    "name": "Sangonomiya Kokomi",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755533935/waifus/birygpwvzpqzw43sos5x.jpg"
+  },
+  "321": {
+    "name": "Keqing",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755533967/waifus/gpx1krquzg7cfkehg2xo.jpg"
+  },
+  "322": {
+    "name": "Amber",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755533986/waifus/kzt4dpbimanj3dqvelwg.jpg"
+  },
+  "323": {
+    "name": "Barbara",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755534014/waifus/wvplguloz5fptffzoxvn.jpg"
+  },
+  "324": {
+    "name": "Beiduo",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755534061/waifus/jqh5un8wkzveydikgocv.jpg"
+  },
+  "325": {
+    "name": "Candace",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755534107/waifus/byvawl1esyonitlaoijj.jpg"
+  },
+  "326": {
+    "name": "Charlotte",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755534129/waifus/wbjfqgymurw0o8fcwab2.jpg"
+  },
+  "327": {
+    "name": "Chiori",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755534176/waifus/jrumr3g6ubhrpleonhxs.jpg"
+  },
+  "328": {
+    "name": "Collei",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755534216/waifus/mglje0w4mpu7embiohvh.jpg"
+  },
+  "329": {
+    "name": "Dehya",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755534251/waifus/uteon8oggavhvvwwjxg2.jpg"
+  },
+  "330": {
+    "name": "Eula Lawrence",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755534285/waifus/t8c9toiqtmekbgkpvpkz.jpg"
+  },
+  "331": {
+    "name": "Faruzan",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755534308/waifus/z4v9uxxnie1bexqro6sd.jpg"
+  },
+  "332": {
+    "name": "Fischl",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755534422/waifus/ixpchjhuceop6jfsp3w0.jpg"
+  },
+  "333": {
+    "name": "Kirara",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755616585/waifus/quoennukkvjiqcjtil8y.jpg"
+  },
+  "334": {
+    "name": "Kujou sara",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755616622/waifus/h5gzw7ul5advuy2hvtgt.jpg"
+  },
+  "335": {
+    "name": "Kuki Shinobu",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755617622/waifus/wkenn9cpqoiqkcvzs81h.jpg"
+  },
+  "336": {
+    "name": "Lan yan",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755617739/waifus/yreyqbpoxowlcajkf1qf.jpg"
+  },
+  "337": {
+    "name": "Layla",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755617776/waifus/ymfzaihf5b2ouhulokkn.jpg"
+  },
+  "338": {
+    "name": "Lisa",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755617795/waifus/jrevr60cheyiylz0ixhj.jpg"
+  },
+  "339": {
+    "name": "Lynette",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755617836/waifus/zalqccoa4c3mxdqsfwg2.jpg"
+  },
+  "340": {
+    "name": "Ningguang",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755617870/waifus/oxj2sstpp23dm1yskflf.jpg"
+  },
+  "341": {
+    "name": "Noelle",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755617908/waifus/we1xut6w5a2ys1yaifhn.jpg"
+  },
+  "342": {
+    "name": "Rosaria",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755617932/waifus/xrcdoq2il5hkkd3x0dfu.jpg"
+  },
+  "343": {
+    "name": "Sucrose",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755618009/waifus/fod8sm6y2wvq5tpfymfs.jpg"
+  },
+  "345": {
+    "name": "Yelan",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755618162/waifus/ik4nhw3ickobqhtvlups.jpg"
+  },
+  "346": {
+    "name": "Yanfei",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755618175/waifus/ipfnemnckzugb31szzxy.jpg"
+  },
+  "347": {
+    "name": "Yun jin",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755618245/waifus/qyri2iimgentvq3185my.jpg"
+  },
+  "348": {
+    "name": "xinyan",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755618280/waifus/ujfbq9n9sqxbxkzfi99q.jpg"
+  },
+  "349": {
+    "name": "Xiangling",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755667296/waifus/ku1i4qtder2uagbyiqbd.jpg"
+  },
+  "350": {
+    "name": "Kamisato Ayaka",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755757281/waifus/h4bhlvmotmwflzhedax2.jpg"
+  },
+  "351": {
+    "name": "Amber",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755757358/waifus/xc5lbzfosde27kjp9ram.jpg"
+  },
+  "352": {
+    "name": "Barbara",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755757471/waifus/sayxqzf3t63ahhd2rhal.jpg"
+  },
+  "353": {
+    "name": "Beiduo",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755757539/waifus/ldr1vxm6vu1nfodssa6q.jpg"
+  },
+  "354": {
+    "name": "Candace",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755757612/waifus/lefskq0f0dthq6ckiyro.jpg"
+  },
+  "355": {
+    "name": "Charlotte",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755757716/waifus/fs000ueices69wamqx7s.jpg"
+  },
+  "356": {
+    "name": "Clorinde",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755757882/waifus/ay9ihdknlbla0hdp6mgy.jpg"
+  },
+  "357": {
+    "name": "Chasca",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755757971/waifus/uubcgk3oea91do5sbzhv.jpg"
+  },
+  "358": {
+    "name": "Collei",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755758123/waifus/ahieiiyw4pzpmvmlpxgw.jpg"
+  },
+  "359": {
+    "name": "Dehya",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755758253/waifus/yfx16qutln3gb5wjdojk.jpg"
+  },
+  "360": {
+    "name": "Eula Lawrence",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755758365/waifus/ltx16fqpuaju402bjsta.jpg"
+  },
+  "361": {
+    "name": "Faruzan",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755758465/waifus/oyxipiwgb4qtktv1wcrr.jpg"
+  },
+  "362": {
+    "name": "Fischl",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755758526/waifus/wap4p5zs80bsani9lfvm.jpg"
+  },
+  "363": {
+    "name": "Furina",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755758680/waifus/ix2bhmnfpxsh3ji4brtx.jpg"
+  },
+  "364": {
+    "name": "Ganyu",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755758797/waifus/eenvj0cacgsj8cbodww0.jpg"
+  },
+  "365": {
+    "name": "Jean",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755758858/waifus/opvfxzh6jrm1lxormuzw.jpg"
+  },
+  "366": {
+    "name": "Keqing",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755758907/waifus/a4pkoy20gznshjov2v3c.jpg"
+  },
+  "367": {
+    "name": "Kirara",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755759061/waifus/cmydtlklqetclyacmcee.jpg"
+  },
+  "368": {
+    "name": "Sangonomiya Kokomi",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755759175/waifus/hbprcumnwcmpzh1jqnzy.jpg"
+  },
+  "369": {
+    "name": "Kuki Shinobu",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755759219/waifus/wxfvrwuxlh956exh3gy7.jpg"
+  },
+  "370": {
+    "name": "Layla",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755759322/waifus/rj7ppxiydruhsidivnts.jpg"
+  },
+  "371": {
+    "name": "Lan yan",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755759450/waifus/ohx8l9ttw9mabaifp9cb.jpg"
+  },
+  "372": {
+    "name": "Lisa",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755759501/waifus/bdahpyklfegjwtszodd6.jpg"
+  },
+  "373": {
+    "name": "Lynette",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755759711/waifus/tghn5wjaa7gdvo07dw9g.jpg"
+  },
+  "374": {
+    "name": "Mavuika",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755759752/waifus/gpopvgtdynwq3m7lls8o.jpg"
+  },
+  "375": {
+    "name": "Mona",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755759795/waifus/sjipsv1m5wynqtubnbds.jpg"
+  },
+  "376": {
+    "name": "Mualani",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755760098/waifus/m19fpgoowtn97zsmoppb.jpg"
+  },
+  "377": {
+    "name": "Navia",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755760220/waifus/fclne9755qcrtwrnrqjc.jpg"
+  },
+  "378": {
+    "name": "Nilou",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755760260/waifus/pil5x5dxwokuequ7j23l.jpg"
+  },
+  "379": {
+    "name": "Ningguang",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755760367/waifus/kdj0i4sfvdqw6b6raflv.jpg"
+  },
+  "380": {
+    "name": "Noelle",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755760447/waifus/xozzjjutklce9u2jkedq.jpg"
+  },
+  "381": {
+    "name": "Rosaria",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756307486/waifus/gwg5udg0gozkv4midhcj.jpg"
+  },
+  "382": {
+    "name": "Shenhe",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755760809/waifus/qf0tj7l6z5ogfctepkav.jpg"
+  },
+  "383": {
+    "name": "Yelan",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755760901/waifus/nvm8nukgbtv44gnxb5js.jpg"
+  },
+  "384": {
+    "name": "Raiden Shogun",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755760948/waifus/uwfijc7kjzrutnatrhaa.jpg"
+  },
+  "385": {
+    "name": "Yae Miko",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755761064/waifus/ukvxk1iekkqe7xmfoc0w.jpg"
+  },
+  "386": {
+    "name": "Xiangling",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755761106/waifus/rmovczjnvqwayhgz4ujj.jpg"
+  },
+  "387": {
+    "name": "Xianyun",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755761176/waifus/jkwo94xgaogr9k0bxltr.jpg"
+  },
+  "388": {
+    "name": "Xinyan",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755761350/waifus/zjdgfjnismw9gzzjs64q.jpg"
+  },
+  "389": {
+    "name": "Yanfei",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755761559/waifus/cw9roy1duhycimqrtt32.jpg"
+  },
+  "390": {
+    "name": "Yun jin",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755761651/waifus/m2hoiida78i1x1wdpsfh.jpg"
+  },
+  "391": {
+    "name": "Sandrone",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755761774/waifus/kjra4gmfs8qnemx9dxic.jpg"
+  },
+  "392": {
+    "name": "Lisa",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756120081/waifus/gq9wao1cz0jp71fyqhxa.jpg"
+  },
+  "393": {
+    "name": "Sucrose",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755942995/waifus/wcr0z0acejnh19g5fpms.jpg"
+  },
+  "394": {
+    "name": "Beiduo",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755943143/waifus/fkl0ke2ac7um0jegaoft.jpg"
+  },
+  "395": {
+    "name": "Candace",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755943222/waifus/zj4y7cfzhusuyg3adexi.jpg"
+  },
+  "396": {
+    "name": "Collei",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755943400/waifus/pnmd5of5tztyil8hfnlo.jpg"
+  },
+  "397": {
+    "name": "Dehya",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755943527/waifus/khgkwvapfasog4jeazou.jpg"
+  },
+  "398": {
+    "name": "Emilie",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755944374/waifus/txsqrnzojeod2eu54xcq.jpg"
+  },
+  "399": {
+    "name": "Fischl",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755944136/waifus/bs9oxi267unagek2ys3x.jpg"
+  },
+  "400": {
+    "name": "Hu Tao",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755944662/waifus/cccul9ehcvvrk5svsbvy.jpg"
+  },
+  "401": {
+    "name": "Kirara",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755944724/waifus/rjrkmse7fdunhczr9asb.jpg"
+  },
+  "402": {
+    "name": "Kuki Shinobu",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755944782/waifus/ds6jy9adb6l4lyvctez9.jpg"
+  },
+  "403": {
+    "name": "Lan yan",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755944859/waifus/sga8q0ojqxeby9v6qrr8.jpg"
+  },
+  "404": {
+    "name": "Layla",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755944904/waifus/el278sahou6dikrxl1mo.jpg"
+  },
+  "405": {
+    "name": "Lynette",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755944989/waifus/l3hmrdptwe2icikfylxl.jpg"
+  },
+  "406": {
+    "name": "Yumemizuki Mizuki",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755945126/waifus/ixufjgkkoqlb9sfddz1o.jpg"
+  },
+  "407": {
+    "name": "Amber",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755960897/waifus/ddm5zne4ygeaymo79hgk.jpg"
+  },
+  "408": {
+    "name": "Barbara",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755960947/waifus/frbpojaqpsedkojk6fnf.jpg"
+  },
+  "409": {
+    "name": "Beiduo",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1755961584/waifus/lae0gsopmx60zgq54uwn.jpg"
+  },
+  "410": {
+    "name": "Candace",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756118469/waifus/bynzpfu0u0dnoe0ljrrz.jpg"
+  },
+  "411": {
+    "name": "Charlotte",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756118553/waifus/giilflzkaq0kkkaiy0hb.jpg"
+  },
+  "412": {
+    "name": "Yelan",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756118748/waifus/mxuwjld7i5nqcrwsml5z.jpg"
+  },
+  "413": {
+    "name": "Rosaria",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756118814/waifus/qtbjhnagpkjyr30zvpva.jpg"
+  },
+  "414": {
+    "name": "Chiori",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756118956/waifus/xx1iscim7l9r4yuf6mkd.jpg"
+  },
+  "415": {
+    "name": "Clorinde",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756119109/waifus/fqweriltngtawah9czp8.jpg"
+  },
+  "416": {
+    "name": "Collei",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756119181/waifus/tral6rlxyxqim9q2n9hn.jpg"
+  },
+  "417": {
+    "name": "Dehya",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756119265/waifus/fzijag3yc4juaanzklf1.jpg"
+  },
+  "418": {
+    "name": "Faruzan",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756119353/waifus/nyumptvhqbdkukvb1y8g.jpg"
+  },
+  "419": {
+    "name": "Fischl",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756119427/waifus/rgwzhm0lsl3qpdmbdt31.jpg"
+  },
+  "420": {
+    "name": "Kirara",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756119476/waifus/dw2gbaotm0qbmrm8foks.jpg"
+  },
+  "421": {
+    "name": "Kujou Sara",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756119568/waifus/bgnrvkuet8rd0ekcetw9.jpg"
+  },
+  "422": {
+    "name": "Kuki Shinobu",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756119629/waifus/nona1nu5f0slvwttfork.jpg"
+  },
+  "423": {
+    "name": "Lan yan",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756119681/waifus/vomzjitl56zxscgstmth.jpg"
+  },
+  "424": {
+    "name": "Layla",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756119738/waifus/sfxw5jyxiifbjwadclt3.jpg"
+  },
+  "425": {
+    "name": "Varesa",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756293168/waifus/m1nhybuy0lwxhxymnckw.jpg"
+  },
+  "426": {
+    "name": "Escoffier",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756293236/waifus/tsvxeq0okn5g4aad47tb.jpg"
+  },
+  "427": {
+    "name": "Emilie",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756293281/waifus/feeudrmwvjszt5oaiebc.jpg"
+  },
+  "428": {
+    "name": "Lumine",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756293341/waifus/vg4jf2m97n0jvpedixp5.jpg"
+  },
+  "429": {
+    "name": "Yumemizuki Mizuki",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756293389/waifus/ueyseokqdckvtjngdvm2.jpg"
+  },
+  "430": {
+    "name": "Sucrose",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756293445/waifus/sqghhbez4dpvyqbbk8qr.jpg"
+  },
+  "431": {
+    "name": "Aloy",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756293485/waifus/odrwq4exrsnyskkl28lz.jpg"
+  },
+  "432": {
+    "name": "Chevreuse",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756293549/waifus/phjqemq4pgukdownclh9.jpg"
+  },
+  "433": {
+    "name": "Xilonen",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756293591/waifus/gdpv2zfc0eikfysjezjk.jpg"
+  },
+  "434": {
+    "name": "Columbina",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756293662/waifus/ggjbp8suuxbmb2d1t5aq.jpg"
+  },
+  "435": {
+    "name": "Ineffa",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756294138/waifus/lcmec2lgqaclbuj7thja.jpg"
+  },
+  "436": {
+    "name": "Lynette",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756302545/waifus/qiyeypyig6q5dby7j5pl.jpg"
+  },
+  "437": {
+    "name": "Mona",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756302647/waifus/d5u8xwkr2biep5uuqjn0.jpg"
+  },
+  "438": {
+    "name": "Navia",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756302696/waifus/ayxw7ltlsqofwpfnakc3.jpg"
+  },
+  "439": {
+    "name": "Mualani",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756302787/waifus/fxcbirodvgnxhnfdzgfo.jpg"
+  },
+  "440": {
+    "name": "Nilou",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756302845/waifus/r8zpxl92oj3cvwlpjhpr.jpg"
+  },
+  "441": {
+    "name": "Ningguang",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756302975/waifus/f7czkt1dkbdiqblkngdi.jpg"
+  },
+  "442": {
+    "name": "Noelle",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756303029/waifus/icigplh8d5svdmpytshz.jpg"
+  },
+  "443": {
+    "name": "Rosaria",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756304385/waifus/gpyfqfbqrlo1qajyl9y1.jpg"
+  },
+  "444": {
+    "name": "Sucrose",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756304583/waifus/xro3dpb3au1i0chxnlkd.jpg"
+  },
+  "445": {
+    "name": "Xiangling",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756304722/waifus/pt3qvcbjmyb0qbgh4y6v.jpg"
+  },
+  "446": {
+    "name": "Xinyan",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756304905/waifus/d5os0eb5iqrlg8eram5z.jpg"
+  },
+  "447": {
+    "name": "Yanfei",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756305037/waifus/bsgezgzp3h7eun0bvgmz.jpg"
+  },
+  "448": {
+    "name": "Yun jin",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756305093/waifus/omeasbvj01zr9jyv8qqs.jpg"
+  },
+  "449": {
+    "name": "Chasca",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756305137/waifus/yefusua4ahtihuqemzwq.jpg"
+  },
+  "450": {
+    "name": "Xilonen",
+    "rarity": "Bride",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756305198/waifus/yzsu5ywyetipaazjmpkw.jpg"
+  },
+  "451": {
+    "name": "Barbara",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756305503/waifus/mk6qeiljfrdjzp1fum1g.jpg"
+  },
+  "452": {
+    "name": "Candace",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756305703/waifus/bahuemxzutc39hxay1fx.jpg"
+  },
+  "453": {
+    "name": "Charlotte",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756305763/waifus/don2juv7kvxh4i1gftaa.jpg"
+  },
+  "454": {
+    "name": "Collei",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756305829/waifus/tpbrv2zcle4wvmmwoodk.jpg"
+  },
+  "455": {
+    "name": "Dehya",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756305914/waifus/szm0twio6p9ywhz7ntav.jpg"
+  },
+  "456": {
+    "name": "Chasca",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756305988/waifus/g7otytp78jwn5biv4kua.jpg"
+  },
+  "457": {
+    "name": "Eula",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756306061/waifus/ur6xeqr1tvzughcoe0ia.jpg"
+  },
+  "458": {
+    "name": "Jean",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756306254/waifus/dfdtaqrgzffnx3acpg0y.jpg"
+  },
+  "459": {
+    "name": "Beiduo",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756306170/waifus/k2kne2uq7vlgwxhzaciq.jpg"
+  },
+  "460": {
+    "name": "Kirara",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756306642/waifus/kptofuibft9v6gd9wqb0.jpg"
+  },
+  "461": {
+    "name": "Kuki Shinobu",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756306696/waifus/dlixe4zmrf3rwqjoz3zz.jpg"
+  },
+  "462": {
+    "name": "Lan yan",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756306736/waifus/btduy2jlcark4fg0c7qm.jpg"
+  },
+  "463": {
+    "name": "Layla",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756306789/waifus/admlt4lyb5f7f54skpea.jpg"
+  },
+  "464": {
+    "name": "Lumine",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756306878/waifus/csa4jm522yopopzbrydn.jpg"
+  },
+  "465": {
+    "name": "Mualani",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756306923/waifus/gghbdfreqcwgssgfp8gh.jpg"
+  },
+  "466": {
+    "name": "Lynette",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756307049/waifus/wthkgq5s0plwvnkuc8xh.jpg"
+  },
+  "467": {
+    "name": "Nilou",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756307093/waifus/eg3z7cwwqs3nb4hw9wn8.jpg"
+  },
+  "468": {
+    "name": "Ningguang",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756307174/waifus/cevkxtybkeizpuzrt0gh.jpg"
+  },
+  "469": {
+    "name": "Noelle",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756307212/waifus/d9bjvxjghv4zr2kqukuz.jpg"
+  },
+  "470": {
+    "name": "Rosaria",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756307406/waifus/lzzmwuq1xywvonnvp7ow.jpg"
+  },
+  "471": {
+    "name": "Sangonomiya Kokomi",
+    "rarity": "Basketball",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756307563/waifus/iktifp6afaebu3u59z6v.jpg"
+  },
+  "472": {
+    "name": "Lauma",
+    "rarity": "Tennis",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756351632/waifus/xmphs6qfmywpkvkkk6bl.jpg"
+  },
+  "473": {
+    "name": "Lauma",
+    "rarity": "Christmas",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756351672/waifus/in6eakva97ydsgtepac3.jpg"
+  },
+  "474": {
+    "name": "Xiangling",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756351754/waifus/hnaq3mya5kk48kdcgu8i.jpg"
+  },
+  "475": {
+    "name": "Varesa",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756351785/waifus/y1vkcailmozlc9vpa41q.jpg"
+  },
+  "476": {
+    "name": "Aloy",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756358130/waifus/ferzvravt9ybpowqnxqj.jpg"
+  },
+  "477": {
+    "name": "Chevreuse",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756358223/waifus/vyarg9yvw7dgytg0j37a.jpg"
+  },
+  "478": {
+    "name": "Emilie",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756358277/waifus/cu0nvynzatakdv2d6yis.jpg"
+  },
+  "479": {
+    "name": "Ineffa",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756358301/waifus/rtsebdyya2ay1qbsddsf.jpg"
+  },
+  "480": {
+    "name": "Lan yan",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756358328/waifus/xkumboabsf8uv18qht92.jpg"
+  },
+  "481": {
+    "name": "Yumemizuki Mizuki",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756358366/waifus/dikg5g4ytwad6rlwt8qg.jpg"
+  },
+  "482": {
+    "name": "Lauma",
+    "rarity": "Maid",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756358415/waifus/evrevrqzp7zrlxeibheb.jpg"
+  },
+  "483": {
+    "name": "Raiden shogun",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756454503/waifus/mxgfxa0f5tpzlzlkitvg.jpg"
+  },
+  "484": {
+    "name": "Aloy",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756535184/waifus/u0qvhhudwrdnekkf8hh9.jpg"
+  },
+  "485": {
+    "name": "Amber",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756535234/waifus/hlkmw8s25gstrbcnnquh.jpg"
+  },
+  "486": {
+    "name": "Barbara",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756535286/waifus/hczm8t5xxcyxstphrsow.jpg"
+  },
+  "487": {
+    "name": "Beiduo",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756535327/waifus/onnmsx6m5yhyo5mnjwva.jpg"
+  },
+  "488": {
+    "name": "Candace",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756535385/waifus/ewn2fcm3gagx6qc8qddt.jpg"
+  },
+  "489": {
+    "name": "Chiori",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756535446/waifus/ojkvr8cya9zymkh09a7e.jpg"
+  },
+  "490": {
+    "name": "Chasca",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756535506/waifus/zxuyiwoeiafuwbn4f6zb.jpg"
+  },
+  "491": {
+    "name": "Chevreuse",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756535575/waifus/czfdvctkvctpoeaz3tmr.jpg"
+  },
+  "492": {
+    "name": "Collei",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756535828/waifus/lr5omepsedtul43yjzbk.jpg"
+  },
+  "493": {
+    "name": "Dehya",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756535880/waifus/uvqtyrkclv6hza8j4pkb.jpg"
+  },
+  "494": {
+    "name": "Emilie",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756536060/waifus/ugak3aq09rs9a0myv3ke.jpg"
+  },
+  "495": {
+    "name": "Escoffier",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756536105/waifus/hslufyl2mks7oyag3fen.jpg"
+  },
+  "496": {
+    "name": "Eula Lawrence",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1759109300/waifus/skzcu3ix8giqopzbmzdm.jpg"
+  },
+  "497": {
+    "name": "Faruzan",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756536248/waifus/fswwcsz8egusgnnhbnoy.jpg"
+  },
+  "498": {
+    "name": "Ganyu",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756536310/waifus/c7iuguysltqlgetk3cid.jpg"
+  },
+  "499": {
+    "name": "Jean",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756536437/waifus/npqghs3blrnqxs4vx1lb.jpg"
+  },
+  "500": {
+    "name": "Kamisato Ayaka",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756536497/waifus/tuer0fj9jhffmpiagglx.jpg"
+  },
+  "501": {
+    "name": "Keqing",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756536543/waifus/ycgqu2falihhg92meotn.jpg"
+  },
+  "502": {
+    "name": "Kujou Sara",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756536612/waifus/iropdh4oxulczffpu5zq.jpg"
+  },
+  "503": {
+    "name": "Kirara",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756536632/waifus/q2wfahbnko4pkojglmk2.jpg"
+  },
+  "504": {
+    "name": "Kuki Shinobu",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756536678/waifus/vleedbrtzy28oq5nwxyk.jpg"
+  },
+  "505": {
+    "name": "Layla",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756536755/waifus/tbtue4oc07f2mfdlv2ym.jpg"
+  },
+  "506": {
+    "name": "Lan yan",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756536789/waifus/xi6b6fop1hx3ylgoxn81.jpg"
+  },
+  "507": {
+    "name": "Lisa",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756536997/waifus/kooigrbka3dnpw9wz1yq.jpg"
+  },
+  "508": {
+    "name": "Lumine",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756537065/waifus/eiqwhhquhvx59nkeopam.jpg"
+  },
+  "509": {
+    "name": "Lynette",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756537122/waifus/ebbktxeo37fwqmivdpwp.jpg"
+  },
+  "510": {
+    "name": "Mona",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756537158/waifus/ety1ds32wrtnlkyiimyr.jpg"
+  },
+  "511": {
+    "name": "Mualani",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756537278/waifus/ln2we8b5u3v0g5ddprur.jpg"
+  },
+  "512": {
+    "name": "Navia",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756537431/waifus/yo42bgmxe5suow367ea8.jpg"
+  },
+  "513": {
+    "name": "Nilou",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756537485/waifus/mvwt76bahkflpnsopetc.jpg"
+  },
+  "514": {
+    "name": "Ningguang",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756636850/waifus/dyxkmrvtdavw9wjuyjmj.jpg"
+  },
+  "515": {
+    "name": "Ningguang",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756647524/waifus/de4tlycsqy0n1lx06fuy.jpg"
+  },
+  "516": {
+    "name": "Noelle",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756647617/waifus/xhdewvc8ljlqystxwivt.jpg"
+  },
+  "517": {
+    "name": "Rosaria",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756647800/waifus/ejrifigkxfoyep1uysq1.jpg"
+  },
+  "518": {
+    "name": "Sangonomiya Kokomi",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756648351/waifus/iuri4dom0omknrx3wmmx.jpg"
+  },
+  "519": {
+    "name": "Sucrose",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756648385/waifus/nsqfsfxf69kxs8mfwpng.jpg"
+  },
+  "520": {
+    "name": "Xiangling",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756648427/waifus/nlfdgwt8qc1a8txqeist.jpg"
+  },
+  "521": {
+    "name": "Varesa",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756648670/waifus/wniaysumruaeop86mskd.jpg"
+  },
+  "522": {
+    "name": "Xinyan",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756648823/waifus/ld4zcmlpngqtabngo2gm.jpg"
+  },
+  "523": {
+    "name": "Yanfei",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756648919/waifus/jl7prdewzjbzgyke8ztr.jpg"
+  },
+  "524": {
+    "name": "Yelan",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756648969/waifus/feijhs6ivrh1lkjwyech.jpg"
+  },
+  "525": {
+    "name": "Yoimiya",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756649019/waifus/cfghx86duqltktfo1r7k.jpg"
+  },
+  "526": {
+    "name": "Yumemizuki Mizuki",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756649069/waifus/yrfiktuodz2eaqrtdvth.jpg"
+  },
+  "527": {
+    "name": "Yun Jin",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756649128/waifus/bj9zifhywbvrbhkhcz2x.jpg"
+  },
+  "528": {
+    "name": "Xilonen",
+    "rarity": "Halloween",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756651459/waifus/fbzswebfcbew0dbtt0c1.jpg"
+  },
+  "529": {
+    "name": "Chasca",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756654911/waifus/a0olzouokqk333wmpdlc.jpg"
+  },
+  "530": {
+    "name": "Aloy",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756655730/waifus/howj25swxq8gz3nvukbs.jpg"
+  },
+  "531": {
+    "name": "Barbara",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756656479/waifus/wt6fpuj9g35ecdafvoua.jpg"
+  },
+  "532": {
+    "name": "Beiduo",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756656567/waifus/i5jvm0j1skueupuzt70d.jpg"
+  },
+  "533": {
+    "name": "Clorinde",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756656601/waifus/jecu9fzbrlayqqjyqhjs.jpg"
+  },
+  "534": {
+    "name": "Dehya",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756656685/waifus/i6exufqqufsujhzwya5y.jpg"
+  },
+  "535": {
+    "name": "Emilie",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756656731/waifus/ldvkp91ll6s8ikhfxydp.jpg"
+  },
+  "536": {
+    "name": "Escoffier",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756656775/waifus/gkh77oc0vs7fyxtbda9b.jpg"
+  },
+  "537": {
+    "name": "Jean",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756656881/waifus/gt84gt0f1ti0g81uxbvq.jpg"
+  },
+  "538": {
+    "name": "Fischl",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756656909/waifus/odnyah3ismprpgkiakdr.jpg"
+  },
+  "539": {
+    "name": "Kirara",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756656966/waifus/rqmxgh6bug1wnjfgt99l.jpg"
+  },
+  "540": {
+    "name": "Kujou Sara",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756657034/waifus/uhypke3cq772ypspaqgl.jpg"
+  },
+  "541": {
+    "name": "Lisa",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756657133/waifus/ra2eyddpopkdt4btrjeu.jpg"
+  },
+  "542": {
+    "name": "Lumine",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756657219/waifus/i5szbwbatjwgbpiwuxxm.jpg"
+  },
+  "543": {
+    "name": "Lynette",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756657265/waifus/w68rdkbxn3ukyhdpi4ti.jpg"
+  },
+  "544": {
+    "name": "Mona",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756657322/waifus/uosp8doak4mggbqozqww.jpg"
+  },
+  "545": {
+    "name": "Mualani",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756657372/waifus/wnk2tiacofkagu4hiq4c.jpg"
+  },
+  "546": {
+    "name": "Navia",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756657411/waifus/qwuzowjeasn7v3nem9a6.jpg"
+  },
+  "547": {
+    "name": "Noelle",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756657479/waifus/lfrnajeyuhqgp0enapvq.jpg"
+  },
+  "548": {
+    "name": "Yae Miko",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756664296/waifus/yfdlntnzmqcc8bdt3qk0.jpg"
+  },
+  "549": {
+    "name": "Rosaria",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756657566/waifus/hom3tfvaqwqlvcl17viv.jpg"
+  },
+  "550": {
+    "name": "Yelan",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756657603/waifus/jt2zufbtemigqlmkrtam.jpg"
+  },
+  "551": {
+    "name": "Candace",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756658357/waifus/xniqnplztg2kamigzdoy.jpg"
+  },
+  "552": {
+    "name": "Lisa",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756730303/waifus/rftofcjhg9nigjzcodqe.jpg"
+  },
+  "553": {
+    "name": "Beiduo",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756744903/waifus/ppiyuwbrluck5kvcedqu.jpg"
+  },
+  "554": {
+    "name": "Charlotte",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756744967/waifus/iqnhwoivcnphhrdom3pf.jpg"
+  },
+  "555": {
+    "name": "Chasca",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756745092/waifus/p9vu9kxr88vvzjrn7kyk.jpg"
+  },
+  "556": {
+    "name": "Chevreuse",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756745118/waifus/mzbfwzkypzzz2ifns8ps.jpg"
+  },
+  "557": {
+    "name": "Collei",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756745150/waifus/rkfhtjaxklfbe15kg6nw.jpg"
+  },
+  "558": {
+    "name": "Dehya",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756745191/waifus/fpixh40ih2bkx3zvl06s.jpg"
+  },
+  "559": {
+    "name": "Escoffier",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756745214/waifus/irmmkcpkge4uucsbrs45.jpg"
+  },
+  "560": {
+    "name": "Fischl",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756745236/waifus/zdfldldwoqbsqvkhs7v0.jpg"
+  },
+  "561": {
+    "name": "Ganyu",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756745260/waifus/yorwam3qnvfxfeb3wequ.jpg"
+  },
+  "562": {
+    "name": "Jean",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756758814/waifus/jyxxcxcsyoxojwkddabj.jpg"
+  },
+  "563": {
+    "name": "Kirara",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756745336/waifus/tsutnetecpncwca5szme.jpg"
+  },
+  "564": {
+    "name": "Kujou Sara",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756745362/waifus/lxrxqgj30fx50ptp410d.jpg"
+  },
+  "565": {
+    "name": "Lynette",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756745409/waifus/ryevo0znqplfcakemqil.jpg"
+  },
+  "566": {
+    "name": "Mona",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756745433/waifus/hb11c1jj4b7sbgwpofg5.jpg"
+  },
+  "567": {
+    "name": "Mualani",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756745456/waifus/ik6prjh62nxpqfzxicec.jpg"
+  },
+  "568": {
+    "name": "Nilou",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756745486/waifus/jcqt8gw03w0zz1ugyl29.jpg"
+  },
+  "569": {
+    "name": "Noelle",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756745519/waifus/g3ih5tmsq7zbzfnxfefe.jpg"
+  },
+  "570": {
+    "name": "Sucrose",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756745550/waifus/hkktk2m3duqjf9gmyouq.jpg"
+  },
+  "571": {
+    "name": "Candace",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756746790/waifus/vxk2e7eofpjq0xkopz9w.jpg"
+  },
+  "572": {
+    "name": "Lauma",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756786246/waifus/owiajwqe3ivatbfljgvd.jpg"
+  },
+  "573": {
+    "name": "Ineffa",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756786663/waifus/fkfjkyifkie8ixewelfi.jpg"
+  },
+  "574": {
+    "name": "Lan Yan",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756786700/waifus/k63w1erdx24b5fgdgpw6.jpg"
+  },
+  "575": {
+    "name": "Emilie",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1756786752/waifus/srhko8n0tw7px6b0z03r.jpg"
+  },
+  "576": {
+    "name": "Varesa",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757125726/waifus/af8shofopeopkcychorf.jpg"
+  },
+  "577": {
+    "name": "Xiangling",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757125790/waifus/c4g584wdxev9yddjuk7l.jpg"
+  },
+  "578": {
+    "name": "Xinyan",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757125852/waifus/jrqmdutn9br6swt0itlh.jpg"
+  },
+  "579": {
+    "name": "Yoimiya",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757125894/waifus/cfoqrtygrxf3mj8crypk.jpg"
+  },
+  "580": {
+    "name": "Yumemizuki Mizuki",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757125926/waifus/gpjq4gk48sjzpc15idit.jpg"
+  },
+  "581": {
+    "name": "Yun jin",
+    "rarity": "Kimono",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757125949/waifus/nyjcq8ppdfyr6alc5kea.jpg"
+  },
+  "582": {
+    "name": "Amber",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757237236/waifus/fhcgqjyyjgj837skyxws.jpg"
+  },
+  "583": {
+    "name": "Faruzan",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757237301/waifus/nb8mhlbns9922hin5jsd.jpg"
+  },
+  "584": {
+    "name": "Ineffa",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757237331/waifus/a286fb12khygucltsax4.jpg"
+  },
+  "585": {
+    "name": "Lan Yan",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757237388/waifus/qhyp2zjj4jdfxvbcp515.jpg"
+  },
+  "586": {
+    "name": "Layla",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757237423/waifus/tehebqgt7dfhv51vyrvf.jpg"
+  },
+  "587": {
+    "name": "Chevreuse",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757237525/waifus/jksdx8dxopexw3yurkkv.jpg"
+  },
+  "588": {
+    "name": "Xiangling",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757237560/waifus/tyuiugszg1dmla2hyjz7.jpg"
+  },
+  "589": {
+    "name": "Yumemizuki Mizuki",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757237600/waifus/ijyiguo80zntrzmrcjnd.jpg"
+  },
+  "590": {
+    "name": "Yun jin",
+    "rarity": "Winter",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757237627/waifus/xyamht5mpwq84bmahwoj.jpg"
+  },
+  "591": {
+    "name": "Aloy",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757679449/waifus/ibxyzi5achpufvx5nmf3.jpg"
+  },
+  "592": {
+    "name": "Amber",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757839159/waifus/xao55s5jkxwjp5ew9urd.jpg"
+  },
+  "593": {
+    "name": "Barbara",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757839208/waifus/fbx8rja1srwds3qcuvzl.jpg"
+  },
+  "594": {
+    "name": "Beiduo",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757839242/waifus/pal93g89hfeglkaodn5a.jpg"
+  },
+  "595": {
+    "name": "Candace",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757839291/waifus/lesbvju6chh21pilsims.jpg"
+  },
+  "596": {
+    "name": "Chasca",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757839313/waifus/aprvorvg3xp919xxy6cg.jpg"
+  },
+  "597": {
+    "name": "Charlotte",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757839343/waifus/sjsgsuoedcgs1tr1x8kf.jpg"
+  },
+  "598": {
+    "name": "Chevreuse",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757839367/waifus/wmqcmwumfm6cnopcvafx.jpg"
+  },
+  "599": {
+    "name": "Chiori",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757839392/waifus/veua2m4wdeurjjv0wzcl.jpg"
+  },
+  "600": {
+    "name": "Citlali",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757839439/waifus/fqgwpdyxhlayq5stru29.jpg"
+  },
+  "601": {
+    "name": "Clorinde",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757839475/waifus/accddxn4prnzy21f3cmy.jpg"
+  },
+  "602": {
+    "name": "Collei",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757839509/waifus/p8btwzrld62wkzwfmshu.jpg"
+  },
+  "603": {
+    "name": "Dehya",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757839531/waifus/qzcembrontaika0m4vje.jpg"
+  },
+  "604": {
+    "name": "Emilie",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757839572/waifus/v624qvbzmiydxayro84d.jpg"
+  },
+  "605": {
+    "name": "Escoffier",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757839603/waifus/pye06jy6n4byvamngri7.jpg"
+  },
+  "606": {
+    "name": "Eula Lawrence",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757839652/waifus/j5jr6imnyx2yh85pzmxy.jpg"
+  },
+  "607": {
+    "name": "Furina",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757839678/waifus/sqxse6wvp4ptemrrmu8q.jpg"
+  },
+  "608": {
+    "name": "Faruzan",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757839704/waifus/kpfurn3mrhxt21jmjegu.jpg"
+  },
+  "609": {
+    "name": "Ganyu",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757839742/waifus/iaxyexuftduw98dsrtga.jpg"
+  },
+  "610": {
+    "name": "Hu Tao",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757839774/waifus/hk0z4fkxyp7a4mngbp7d.jpg"
+  },
+  "611": {
+    "name": "Fischl",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757839807/waifus/znj5zuiugutxpcz93hpx.jpg"
+  },
+  "612": {
+    "name": "Jean",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757839839/waifus/gnkfb8utgcmtxmcynwxe.jpg"
+  },
+  "613": {
+    "name": "Kamisato Ayaka",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757839877/waifus/nhvmztykiavmwwyadhnu.jpg"
+  },
+  "614": {
+    "name": "Keqing",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757839896/waifus/ngu24my6py8c2kbdvi4w.jpg"
+  },
+  "615": {
+    "name": "Kirara",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757839924/waifus/bmtg1lw5hwtzcnawf5lu.jpg"
+  },
+  "616": {
+    "name": "Kujou Sara",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757839959/waifus/uoruxw6mfcusfro0gwrw.jpg"
+  },
+  "617": {
+    "name": "Kuki Shinobu",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840003/waifus/evvndiye415s8rfwctgh.jpg"
+  },
+  "618": {
+    "name": "Lan Yan",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840050/waifus/hunvmdkiybfwb3eehfwu.jpg"
+  },
+  "619": {
+    "name": "Layla",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840081/waifus/fa4loqh11bxs7g7dydl6.jpg"
+  },
+  "620": {
+    "name": "Lisa",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840114/waifus/uw5ldtfbbfyuotec8nwe.jpg"
+  },
+  "621": {
+    "name": "Lumine",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840161/waifus/poca9v8aju9gppk5dhdj.jpg"
+  },
+  "622": {
+    "name": "Lynette",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840282/waifus/acvw9psp7l6kn8y1afxe.jpg"
+  },
+  "623": {
+    "name": "Mavuika",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840305/waifus/bpurzqf9gfr8jxbjbgnk.jpg"
+  },
+  "624": {
+    "name": "Mona",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840367/waifus/tliradrenlmhcrre3ydl.jpg"
+  },
+  "625": {
+    "name": "Mualani",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840405/waifus/bnke3olv52cqeq5ihs3k.jpg"
+  },
+  "626": {
+    "name": "Navia",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840457/waifus/of2augs9hzutlxdeioyl.jpg"
+  },
+  "627": {
+    "name": "Nilou",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840484/waifus/mefeznzww5gyr2ltjhxl.jpg"
+  },
+  "628": {
+    "name": "Ningguang",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840515/waifus/gwypwbxlvh5knoefpgzb.jpg"
+  },
+  "629": {
+    "name": "Noelle",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840541/waifus/hognwki598rrymk6u8gm.jpg"
+  },
+  "630": {
+    "name": "Raiden Shogun",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840571/waifus/kspxmmtoq76wrrpwo8zk.jpg"
+  },
+  "631": {
+    "name": "Rosaria",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840598/waifus/vzkzzcmu5jz3ywtvbsd1.jpg"
+  },
+  "632": {
+    "name": "Sangonomiya Kokomi",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840647/waifus/caw9ypqigw4bwbtahuq8.jpg"
+  },
+  "633": {
+    "name": "Shenhe",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840664/waifus/aigycxccpb6s8ikrrx9p.jpg"
+  },
+  "634": {
+    "name": "Skirk",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840694/waifus/lziu9i8u3kep2qjn7sbl.jpg"
+  },
+  "635": {
+    "name": "Sucrose",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840715/waifus/biytvmnryd9plvbvgkuz.jpg"
+  },
+  "636": {
+    "name": "Varesa",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840757/waifus/v2oiudnfhtlew2dgh9i8.jpg"
+  },
+  "637": {
+    "name": "Xiangling",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840784/waifus/vedptmu3jhxlz7k1wl7o.jpg"
+  },
+  "638": {
+    "name": "Xilonen",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840821/waifus/pze9xe5fwocvlfoe6zup.jpg"
+  },
+  "639": {
+    "name": "Xianyun",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840872/waifus/jwg91lygunazplm3zvcv.jpg"
+  },
+  "640": {
+    "name": "Yae Miko",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840907/waifus/aveagxtneqjapxm4azrp.jpg"
+  },
+  "641": {
+    "name": "Yanfei",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840934/waifus/hfoeb9ccr4bnazzfac9c.jpg"
+  },
+  "642": {
+    "name": "Yelan",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757840989/waifus/ticn9l3unwixppqydhz8.jpg"
+  },
+  "643": {
+    "name": "Yoimiya",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757841026/waifus/ckuhtfuadyglgn9zgmjv.jpg"
+  },
+  "644": {
+    "name": "Yumemizuki Mizuki",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757841067/waifus/b9lsocwhevvxraulueix.jpg"
+  },
+  "645": {
+    "name": "Yun jin",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757841096/waifus/dbkzfkmmr4maljegipwo.jpg"
+  },
+  "646": {
+    "name": "Arlecchino",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757841132/waifus/wafhtb0gmrdcadcxjqlz.jpg"
+  },
+  "647": {
+    "name": "Columbina",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757841214/waifus/bvje3i2pxzxhppn1an9t.jpg"
+  },
+  "648": {
+    "name": "Sandrone",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757841249/waifus/m9o0l201kpuq3tz16rae.jpg"
+  },
+  "649": {
+    "name": "Lauma",
+    "rarity": "Diwali",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1757841277/waifus/mp9zahkeknlamqghe0vp.jpg"
+  },
+  "650": {
+    "name": "Alice",
+    "rarity": "School",
+    "image_path": "https://res.cloudinary.com/dvpz1tzam/image/upload/v1759379121/waifus/n643j27kdlgactuzbuan.jpg"
+  }
+}

@@ -9,6 +9,7 @@ bank=db["bank"]
 harem=db["harem"]
 counters=db["counters"]
 drops=db["drops"]
+shop=db["shop"]
 
 def update_inv(user_id,primogems=0,mora=0,lunar_crystals=0):
     return inv.update_one(
@@ -43,7 +44,7 @@ def update_claim(user_id):
 def ensure_bank(user_id):
     bank.update_one(
         {"user_id": str(user_id)},
-        {"$setOnInsert": {"balance": 0}},
+        {"$setOnInsert": {"Balance": 0}},
         upsert=True
     )
 def get_bank(user_id):
@@ -161,3 +162,100 @@ def get_harem(user_id):
     print(doc)
     return doc
     
+def get_harem_doc(user_id):
+    return harem.find_one({"user_id": str(user_id)})
+
+
+def user_has_character(user_id, char_id):
+    doc = get_harem_doc(user_id)
+    if not doc:
+        return False
+    return doc.get(char_id, 0) > 0
+
+
+def decrement_character(user_id, char_id):
+    harem.update_one(
+        {"user_id": str(user_id)},
+        {"$inc": {char_id: -1}}
+    )
+
+    doc = get_harem_doc(user_id)
+    if doc.get(char_id, 0) <= 0:
+        harem.update_one(
+            {"user_id": str(user_id)},
+            {"$unset": {char_id: ""}}
+        )
+
+
+def increment_character(user_id, char_id):
+
+    harem.update_one(
+        {"user_id": str(user_id)},
+        {"$inc": {char_id: 1}},
+        upsert=True
+    )
+
+
+def transfer_character(sender_id, receiver_id, char_id):
+    if not user_has_character(sender_id, char_id):
+        return False
+    decrement_character(sender_id, char_id)
+    increment_character(receiver_id, char_id)
+
+    return True
+
+def update_shop(user_id, waifus, date):
+    return shop.update_one(
+        {"user_id": str(user_id)},
+        {
+            "$set": {
+                "Waifus": waifus,
+                "Refreshes": 0,
+                "Rolls": 0,
+                "Rolled ids":[],
+                "Last Updated": date
+            }
+        },
+        upsert=True
+    )
+def refresh_shop(user_id,waifus):
+    return shop.update_one(
+        {"user_id":str(user_id)},
+        {
+        "$set":{"Waifus":waifus,},
+        "$inc":{"Refreshes":1},
+        },
+        upsert=True
+    )
+def get_shop(user_id):
+    doc=shop.find_one({"user_id":str(user_id)})
+    if not doc:
+        return None
+    date=doc.get("Last Updated",0)
+    today = datetime.now().strftime("%Y-%m-%d")
+    if date!=today:
+        return None
+    else:
+        return doc
+    
+def record_roll(user_id, waifu_id, reset=False):
+    if reset:
+        return shop.update_one(
+            {"user_id": str(user_id)},
+            {
+                "$set": {
+                    "Rolled ids": [],
+                    "Rolls": 0,
+                    "Refreshes": 0
+                }
+            }
+        )
+    else:
+        return shop.update_one(
+            {"user_id": str(user_id)},
+            {
+                "$push": {"Rolled ids": waifu_id},
+                "$inc": {"Rolls": 1}
+            },
+            upsert=True
+        )

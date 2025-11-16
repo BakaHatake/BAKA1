@@ -307,7 +307,11 @@ async def shop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     today = datetime.now().strftime("%Y-%m-%d")
     if shop_data is None:
         waifus = generate_random_waifus()
+        refreshes = 0
+        rolls = 0
+        rolled_ids = []
         update_shop(user_id,waifus,today)
+
     else:
         waifus = shop_data["Waifus"]
         refreshes = shop_data["Refreshes"]

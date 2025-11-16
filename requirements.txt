@@ -13,3 +13,4 @@ matplotlib>=3.0.0
 python-telegram-bot>=20.0
 enka==2.5.9
 enkacard==3.3.9
+pymongo

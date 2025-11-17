@@ -17,7 +17,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 import cloudinary
 import cloudinary.uploader
-
+from collections import Counter
 from telegram import (
     Update,
     InputFile,
@@ -39,22 +39,18 @@ from telegram.ext import (
     filters
 )
 
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 from db import update_counters,get_counters,update_drops,update_balance,clear_active_drop,update_harem,get_drops,get_balance,get_harem_rarity
-from db import get_harem,transfer_character,set_fav,get_fav,who_collected,update_name
+from db import get_harem,transfer_character,set_fav,get_fav,who_collected,update_name,increment_character,decrement_character,user_has_character
+from db import block_user,is_blocked,increment_streak,unblock_user,get_top_waifu_holders
 ADMIN_ID = [5192424390]
 import os
 USE_MOUNT = os.path.exists("/mnt/data")
 BASE_PATH = "/mnt/data" if USE_MOUNT else "."
 DB_PATH = os.path.join(BASE_PATH, "quiz.db")
 os.makedirs("/mnt/data", exist_ok=True)
-from db import get_harem,transfer_character
-ADMIN_ID = [5192424390]
-import os
-USE_MOUNT = os.path.exists("/mnt/data")
-BASE_PATH = "/mnt/data" if USE_MOUNT else "."
-DB_PATH = os.path.join(BASE_PATH, "quiz.db")
-os.makedirs("/mnt/data", exist_ok=True)
-CHARACTER_IMAGE_DIR = os.path.join(BASE_PATH, "characters")
 IMAGE_ZIP_PATH = os.path.join(BASE_PATH, "characters_backup.zip")
 #CHARACTER_JSON_PATH = os.path.join(".", "BAKA1", "characters1.json")
 CHARACTER_JSON_PATH = os.path.join(BASE_PATH, "characters.json")
@@ -88,96 +84,7 @@ RARITY_CONFIG = {
 
 
 AUTHORIZED_USERS = [5105207985, 5192424390,6057581189,5716946356,6792709908]
-import sqlite3
 
-def init_harem_database():
-    """Initialize SQLite database for harem system with updated anti-spam schema"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-
-    # User inventory table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS user_inventory (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            char_id TEXT NOT NULL,
-            stack_count INTEGER DEFAULT 1,
-            acquired_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            is_favorite BOOLEAN DEFAULT FALSE
-        )
-    ''')
-
-    # Message drop interval setting (new table)
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS drop_interval (
-            chat_id INTEGER PRIMARY KEY,
-            interval INTEGER DEFAULT 50
-        )
-    ''')
-
-    # Active drops table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS active_drops (
-            chat_id INTEGER PRIMARY KEY,
-            char_id TEXT NOT NULL,
-            char_name TEXT NOT NULL,
-            rarity INTEGER NOT NULL,
-            expires_at INTEGER NOT NULL
-        )
-    ''')
-
-    # Message counter for drop cooldown (without spam columns)
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS message_counter (
-            chat_id INTEGER PRIMARY KEY,
-            count INTEGER DEFAULT 0,
-            last_drop TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-
-    # Spam blocks table for tracking temporarily blocked users
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS spam_blocks (
-            chat_id INTEGER,
-            user_id INTEGER,
-            block_until INTEGER,
-            PRIMARY KEY (chat_id, user_id)
-        )
-    ''')
-
-    # New table: message_streaks for per-user spam streak tracking
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS message_streaks (
-            chat_id INTEGER,
-            user_id INTEGER,
-            streak_count INTEGER DEFAULT 0,
-            PRIMARY KEY (chat_id, user_id)
-        )
-    ''')
-
-    conn.commit()
-    conn.close()
-
-    print("✅ Database tables created successfully!")
-
-def create_user_preferences_table():
-    """Create table to store user preferences"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS user_preferences (
-            user_id INTEGER PRIMARY KEY,
-            rarity_filter TEXT DEFAULT NULL,
-            sort_preference TEXT DEFAULT 'date'
-        )
-    ''')
-    conn.commit()
-    conn.close()
-    print('rarity created')
-
-
-
-CHAR_FOLDER = "/mnt/data/characters"
 
 
 # Setup Cloudinary
@@ -187,24 +94,10 @@ cloudinary.config(
     api_secret='RHMZdboQRoneTPZv8SyaSg0ITfg')
 DB_PATH = "/mnt/data/quiz.db"
 
-# async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
-#     print(f"❌ Exception: {context.error}")
-#     if isinstance(update, Update) and update.message:
-#         pass
-
-import re
-import sqlite3
-from collections import Counter
-from html import escape as html_escape
-
-from telegram import (
-    Update,
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
-    InlineQueryResultPhoto,
-    InlineQueryResultCachedPhoto,
-)
-from telegram.ext import ContextTypes
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
+    print(f"❌ Exception: {context.error}")
+    if isinstance(update, Update) and update.message:
+        pass
 
 
 
@@ -276,12 +169,9 @@ def filter_harem_in_memory(harem, search_term, RARITY_CONFIG):
 
     return matched
 
-# ---------- DB helpers (authoritative for ID and multiplicity) ----------
-
 def db_fetch_char_exact(owner_id: int, char_id_int: int):
     char_id_norm = str(char_id_int).zfill(3)
 
-    # Fetch user harem from Mongo
     doc = get_harem(owner_id)
     if not doc:
         return []
@@ -594,41 +484,6 @@ async def who_collected_callback(update: Update, context: ContextTypes.DEFAULT_T
         print(f"[❌ Caption Edit Error] {err}")
         await query.answer("⚠️ Could not update caption.", show_alert=True)
 
-
-
-def ensure_names_table():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS names (
-            user_id INTEGER PRIMARY KEY,
-            username TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
-
-
-def ensure_name_exists(user_id: int, username: str = None):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-
-    # Insert if not exists
-    cursor.execute('''
-        INSERT OR IGNORE INTO names (user_id, username)
-        VALUES (?, ?)
-    ''', (user_id, username or "Unknown"))
-
-    # Update name if provided
-    if username:
-        cursor.execute('''
-            UPDATE names SET username = ? WHERE user_id = ?
-        ''', (username, user_id))
-
-    conn.commit()
-    conn.close()
-
-
 def get_user_display_name(user_id: int) -> str:
     return get_balance(user_id,"Name")
 
@@ -639,14 +494,6 @@ def load_characters() -> Dict:
         return {}
     with open(CHARACTER_JSON_PATH, "r") as f:
         return json.load(f)
-
-# Database helper functions
-def get_db_connection():
-    conn = sqlite3.connect(DB_PATH, timeout=20)  # Increase timeout so SQLite waits longer for locks
-    cursor = conn.cursor()
-    cursor.execute("PRAGMA journal_mode=WAL;")  # Enable Write-Ahead Logging for better concurrency
-    return conn
-
 
 def normalize_name(name: str) -> str:
     return ''.join(name.lower().split())
@@ -716,164 +563,10 @@ def create_drop(chat_id: int) -> Optional[Dict]:
         'image_path': char['image_path']
     }
 
-
-
-def get_primogem_balance(user_id: int) -> int:
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT primogems FROM users WHERE user_id = ?", (user_id,))
-        result = cursor.fetchone()
-        return result[0] if result else 0
-
-def deduct_primogems(user_id: int, amount: int) -> bool:
-    """Safely deduct primogems from a user."""
-    try:
-        current = current = get_primogem_balance(user_id)
-
-        if isinstance(current, int) and current >= amount:
-            with sqlite3.connect(DB_PATH) as conn:
-                cursor = conn.cursor()
-                cursor.execute(
-                    "UPDATE users SET primogems = primogems - ? WHERE user_id = ?",
-                    (amount, user_id)
-                )
-                conn.commit()
-                return True
-    except Exception as e:
-        print(f"[❌ deduct_primogems ERROR] {e}")
-    return False
-
-def deduct_currency(user_id: int, table_name: str, amount: int) -> bool:
-    try:
-        current = get_balance(user_id, table_name)
-        if current >= amount:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute(
-                    f"UPDATE {table_name} SET balance = balance - ? WHERE user_id = ?",
-                    (amount, user_id)
-                )
-            conn.commit()
-            return True
-    except Exception as e:
-        print(f"[❌ deduct_currency ERROR] {e}")
-    return False
-def add_currency(user_id: int, table_name: str, amount: int):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    if table_name == "users":
-        cursor.execute("SELECT primogems FROM users WHERE user_id = ?", (user_id,))
-        current = cursor.fetchone()
-        if current is None:
-            cursor.execute(
-                "INSERT INTO users (user_id, primogems) VALUES (?, ?)",
-                (user_id, amount)
-            )
-        else:
-            cursor.execute(
-                "UPDATE users SET primogems = primogems + ? WHERE user_id = ?",
-                (amount, user_id)
-            )
-    else:
-        cursor.execute(f"SELECT balance FROM {table_name} WHERE user_id = ?", (user_id,))
-        current = cursor.fetchone()
-        if current is None:
-            cursor.execute(
-                f"INSERT INTO {table_name} (user_id, balance) VALUES (?, ?)",
-                (user_id, amount)
-            )
-        else:
-            cursor.execute(
-                f"UPDATE {table_name} SET balance = balance + ? WHERE user_id = ?",
-                (amount, user_id)
-            )
-    conn.commit()
-def ensure_user_exists(user_id: int):
-    """Ensure user exists in database (using your existing get_user_data logic)"""
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("INSERT OR IGNORE INTO gacha_state (user_id) VALUES (?)", (user_id,))
-        c.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
-        conn.commit()
 def get_character_by_id(char_id: str) -> dict | None:
     characters = load_characters()
     return characters.get(char_id)
 
-def add_character_to_inventory(user_id: int, char_id: str):
-    """Add character to user's inventory or increment stack"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    # Check if user already has this character
-    cursor.execute('SELECT stack_count FROM user_inventory WHERE user_id = ? AND char_id = ?', (user_id, char_id))
-    result = cursor.fetchone()
-
-    if result:
-        # Increment stack
-        new_count = result[0] + 1
-        cursor.execute(
-            'UPDATE user_inventory SET stack_count = ? WHERE user_id = ? AND char_id = ?',
-            (new_count, user_id, char_id)
-        )
-    else:
-        # Add new character with stack = 1
-        cursor.execute(
-            'INSERT INTO user_inventory (user_id, char_id, stack_count) VALUES (?, ?, 1)',
-            (user_id, char_id)
-        )
-
-    conn.commit()
-    conn.close()
-
-def remove_character(user_id:int,char_id:str):
-    conn=get_db_connection()
-    cursor=conn.cursor()
-    cursor.execute('SELECT stack_count FROM user_inventory WHERE user_id=? AND char_id=?',(user_id,char_id))
-    result=cursor.fetchone()
-    if not result:
-        conn.close()
-        return False 
-    stack_count = result[0]
-    if stack_count > 1:
-        cursor.execute(
-            'UPDATE user_inventory SET stack_count = ? WHERE user_id = ? AND char_id = ?',
-            (stack_count - 1, user_id, char_id)
-        )
-    else:
-        cursor.execute(
-            'DELETE FROM user_inventory WHERE user_id = ? AND char_id = ?',
-            (user_id, char_id)
-        )
-    conn.commit()
-    conn.close()
-    return True
-
-def user_has_waifu(user_id: int, char_id: str) -> bool:
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT 1 FROM user_inventory WHERE user_id = ? AND char_id = ?", (user_id, char_id))
-    exists = cursor.fetchone() is not None
-    conn.close()
-    return exists
-
-def get_user_rarity_filter(user_id: int) -> str:
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('SELECT rarity_filter FROM user_preferences WHERE user_id = ?', (user_id,))
-    result = cursor.fetchone()
-    conn.close()
-    return result[0] if result and result[0] else None
-
-def set_user_rarity_filter(user_id: int, rarity_filter: str):
-    """Set user's rarity filter"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT OR REPLACE INTO user_preferences (user_id, rarity_filter)
-        VALUES (?, ?)
-    ''', (user_id, rarity_filter))
-    conn.commit()
-    conn.close()
 
 
 def get_user_harem(user_id: int, rarity_filter: str = None):
@@ -905,139 +598,12 @@ def get_user_harem(user_id: int, rarity_filter: str = None):
     return harem
 
 
-
-def user_owns_character(user_id: int, char_id: str) -> bool:
-    """Check if user owns a character"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('SELECT 1 FROM user_inventory WHERE user_id = ? AND char_id = ?', (user_id, char_id))
-    result = cursor.fetchone()
-    conn.close()
-    return result is not None
-
-def set_favorite_character(user_id: int, char_id: str) -> bool:
-    """Set character as favorite for harem display"""
-    if not user_owns_character(user_id, char_id):
-        return False
-    
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    # Clear previous favorite
-    cursor.execute('UPDATE user_inventory SET is_favorite = FALSE WHERE user_id = ?', (user_id,))
-    
-    # Set new favorite
-    cursor.execute('UPDATE user_inventory SET is_favorite = TRUE WHERE user_id = ? AND char_id = ?', 
-                  (user_id, char_id))
-    
-    conn.commit()
-    conn.close()
-    return True
-def get_favorite_character(user_id: int) -> str | None:
-    """Return the char_id of the user's current favorite"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT char_id FROM user_inventory WHERE user_id = ? AND is_favorite = TRUE", (user_id,))
-    result = cursor.fetchone()
-
-    conn.close()
-    return result[0] if result else None
-
-
-
 def get_rarity_cost(rarity) -> int:
     return RARITY_CONFIG.get(rarity, {"cost": 50})["cost"]
 
 def get_rarity_display(rarity) -> str:
     return RARITY_CONFIG.get(rarity, {"display": str(rarity)})["display"]
 
-def increment_message_streak(chat_id: int, user_id: int):
-    """
-    Increment streak count for user, reset others'.
-    Block user if streak > 4.
-    Returns: (incremented: bool, spam_warning: bool)
-    """
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        # Always reset others' streaks regardless of block status
-        cursor.execute(
-            "UPDATE message_streaks SET streak_count = 0 WHERE chat_id = ? AND user_id != ?",
-            (chat_id, user_id)
-        )
-
-        # Now check if the user is blocked
-        cursor.execute(
-            "SELECT block_until FROM spam_blocks WHERE chat_id = ? AND user_id = ?",
-            (chat_id, user_id)
-        )
-        row = cursor.fetchone()
-        now = int(time.time())
-        if row and now < row[0]:
-            # User is blocked, do NOT increment their streak
-            conn.commit()
-            return False, False
-
-        # User not blocked: increment their streak
-        cursor.execute(
-            "SELECT streak_count FROM message_streaks WHERE chat_id = ? AND user_id = ?",
-            (chat_id, user_id)
-        )
-        data = cursor.fetchone()
-        if data:
-            streak_count = data[0] + 1
-            cursor.execute(
-                "UPDATE message_streaks SET streak_count = ? WHERE chat_id = ? AND user_id = ?",
-                (streak_count, chat_id, user_id)
-            )
-        else:
-            streak_count = 1
-            cursor.execute(
-                "INSERT INTO message_streaks (chat_id, user_id, streak_count) VALUES (?, ?, ?)",
-                (chat_id, user_id, streak_count)
-            )
-
-        spam_warning = False
-        if streak_count > 9:
-            spam_warning = True
-            block_user(chat_id, user_id, cursor=cursor)
-            cursor.execute(
-                "UPDATE message_streaks SET streak_count = 0 WHERE chat_id = ? AND user_id = ?",
-                (chat_id, user_id)
-            )
-
-        conn.commit()
-        return True, spam_warning
-    finally:
-        conn.close()
-
-
-def block_user(chat_id: int, user_id: int, minutes=10, cursor=None):
-    block_until = int(time.time()) + minutes * 60
-    cursor.execute(
-        '''
-        INSERT OR REPLACE INTO spam_blocks (chat_id, user_id, block_until)
-        VALUES (?, ?, ?)
-        ''',
-        (chat_id, user_id, block_until)
-    )
-
-def is_user_blocked(chat_id: int, user_id: int):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    now = int(time.time())
-    cursor.execute(
-        '''
-        SELECT block_until FROM spam_blocks WHERE chat_id = ? AND user_id = ?
-        ''',
-        (chat_id, user_id)
-    )
-    row = cursor.fetchone()
-    conn.close()
-    if row and now < row[0]:
-        return True
-    return False
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
@@ -1073,7 +639,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 print(f"[DROP IMAGE ERROR] {e}")
         print(f"[DROP] Triggered in {chat_id}")
     else:
-        incremented, spam_warning = increment_message_streak(chat_id, user_id)
+        incremented, spam_warning = increment_streak(user_id)
         if spam_warning:
             await context.bot.send_message(
                 chat_id,
@@ -1084,50 +650,27 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def unlock_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
-    # Admin check
     if user_id not in ADMIN_ID:
         await update.message.reply_text("❌ You need to be an admin to use this command.")
         return
 
     chat = update.effective_chat
-
-    # Require reply to unblock
     if update.message.reply_to_message:
         target_user = update.message.reply_to_message.from_user
     else:
         await update.message.reply_text("⚠️ Please reply to the user's message to unlock them.")
         return
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    if unblock_user(target_user.id):
+        await update.message.reply_text(f"✅ User {target_user.first_name} has been unlocked from the spam block.")
+    else:
+        await update.message.reply_text("Error agaya h bc")
 
-    # Check if user is blocked
-    cursor.execute(
-        "SELECT block_until FROM spam_blocks WHERE chat_id = ? AND user_id = ?",
-        (chat.id, target_user.id)
-    )
-    row = cursor.fetchone()
-
-    if row is None:
-        await update.message.reply_text(f"ℹ️ User {target_user.first_name} is not currently blocked.")
-        conn.close()
-        return
-
-    # Remove block
-    cursor.execute(
-        "DELETE FROM spam_blocks WHERE chat_id = ? AND user_id = ?",
-        (chat.id, target_user.id)
-    )
-    conn.commit()
-    conn.close()
-
-    await update.message.reply_text(f"✅ User {target_user.first_name} has been unlocked from the spam block.")
 import os, re
 
 async def trigger_character_drop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
 
-    # Keep trying to get a "School" rarity drop
     while True:
         drop_data = create_drop(chat_id)
         rarity = drop_data.get("rarity")
@@ -1141,7 +684,6 @@ async def trigger_character_drop(update: Update, context: ContextTypes.DEFAULT_T
         print("[DROP ERROR] No image_path in drop_data")
         return
 
-    # Enforce string-like path
     if not isinstance(image_path, (str, bytes, bytearray)):
         print(f"[DROP ERROR] image_path invalid type: {type(image_path).__name__} -> {image_path}")
         return
@@ -1157,7 +699,6 @@ async def trigger_character_drop(update: Update, context: ContextTypes.DEFAULT_T
             )
         else:
             if not os.path.isabs(image_path):
-                # Make absolute if needed (optional)
                 image_path = os.path.abspath(image_path)
             if not os.path.exists(image_path):
                 print(f"[DROP IMAGE ERROR] Not found: {image_path} | cwd={os.getcwd()}")
@@ -1172,9 +713,6 @@ async def trigger_character_drop(update: Update, context: ContextTypes.DEFAULT_T
     except Exception as e:
         print(f"[DROP IMAGE ERROR] {e}")
 
-
-from datetime import datetime
-from zoneinfo import ZoneInfo
 
 DAILY_WISH_LIMIT = 3
 IST = ZoneInfo("Asia/Kolkata")
@@ -1206,9 +744,9 @@ async def wish_command(update: 'Update', context: 'ContextTypes.DEFAULT_TYPE'):
     user_id = update.effective_user.id
     username = update.effective_user.first_name
 
-    # if is_user_blocked(chat_id, user_id):
-    #     await update.message.reply_text(f"⛔ {username}, you are temporarily blocked from using /wish due to spamming. Try again later.")
-    #     return
+    if is_blocked(user_id):
+        await update.message.reply_text(f"⛔ {username}, you are temporarily blocked from using /wish due to spamming. Try again later.")
+        return
 
     # DAILY LIMIT CHECK FIRST
     can, remaining = await can_use_wish_mem(user_id)
@@ -1275,17 +813,6 @@ async def wish_command(update: 'Update', context: 'ContextTypes.DEFAULT_TYPE'):
         )
         await context.bot.send_message(chat_id=ADMIN_USER_ID, text=f"💨 {user_name} failed to get {char_name} ({rarity_display}⭐)")
 
-   
-        
-import math
-import re
-import aiohttp
-from PIL import Image
-from io import BytesIO
-from telegram import (
-    Update, InlineKeyboardMarkup, InlineKeyboardButton,
-    InputMediaPhoto, InlineQueryResultPhoto
-)
 async def get_waifus(waifus,rarity):
     if not waifus:
         return[]
@@ -1542,7 +1069,7 @@ async def harem_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def rarity_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_id = update.effective_user.id
-    current_filter = get_user_rarity_filter(user_id)
+    current_filter = get_harem_rarity(user_id)
 
     keyboard = []
     rarity_buttons = []
@@ -2491,12 +2018,10 @@ async def hmsg_count(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def add_waifu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
-    
     if user_id not in ADMIN_ID:
         await update.message.reply_text("BAKA! You don't have rights.")
         return
 
-    
     if not update.message.reply_to_message:
         await update.message.reply_text(
             "⚠️ *Reply to someone to add waifu!*\nUsage: `/addwaifu <id>`",
@@ -2504,7 +2029,6 @@ async def add_waifu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    
     if not context.args:
         await update.message.reply_text(
             "⚠️ *No character ID provided!*\nUsage: `/addwaifu <id>`",
@@ -2513,26 +2037,32 @@ async def add_waifu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     try:
-        char_id = (context.args[0])
-        adder_user = update.message.reply_to_message.from_user
-        adder_id = adder_user.id
-        adder_name = adder_user.full_name 
-        add_character_to_inventory(adder_id, char_id)
-        char_info = get_character_by_id(char_id)
+        char_id = context.args[0].zfill(3)
+
+        target_user = update.message.reply_to_message.from_user
+        target_id = target_user.id
+        target_name = target_user.full_name
+
+        # Load characters from JSON
+        characters = load_characters()
+        char_info = characters.get(char_id)
 
         if not char_info:
             await update.message.reply_text(f"❌ Character ID `{char_id}` not found.")
             return
 
-        name = char_info.get("name", "Unknown").title()
-        rarity = char_info.get("rarity", "?")
+        increment_character(target_id, char_id)
+
+        name = char_info.get("name", "Unknown")
+        rarity = char_info.get("rarity")
         symbol = RARITY_CONFIG.get(rarity, {}).get("symbol", "⭐")
-        
+
         await update.message.reply_text(
-            f"✅ Added *{name}* ({char_id}) to user `{adder_name}`'s harem.\n"
+            f"✅ Added *{name}* ({char_id}) to `{target_name}`'s harem.\n"
             f"🔮 Rarity: {symbol} `{rarity}`",
             parse_mode="Markdown"
         )
+
     except Exception as e:
         await update.message.reply_text(f"❌ Failed to add waifu.\nError: `{e}`", parse_mode="Markdown")
 async def remove_waifu(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -2551,61 +2081,65 @@ async def remove_waifu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not context.args:
         await update.message.reply_text(
-            "⚠️ *No character ID provided!*\nUsage: `/rwaifu <id>`",
+            "⚠️ *No character ID provided!*",
             parse_mode="Markdown"
         )
         return
 
     try:
-        char_id =context.args[0]
-        remover_user = update.message.reply_to_message.from_user
-        remover_id = remover_user.id
-        remover_name = remover_user.full_name
+        char_id = context.args[0].zfill(3)
+        target_user = update.message.reply_to_message.from_user
+        target_id = target_user.id
+        target_name = target_user.full_name
 
-        char_info = get_character_by_id(char_id)
+        characters = load_characters()
+        char_info = characters.get(char_id)
+
         if not char_info:
             await update.message.reply_text(f"❌ Character ID `{char_id}` not found.")
             return
 
-        removed = remove_character(remover_id, char_id)
-        if not removed:
+        if not user_has_character(target_id, char_id):
             await update.message.reply_text(
-                f"❌ {remover_name} doesn't have waifu `{char_id}` in their harem."
+                f"❌ {target_name} doesn't have waifu `{char_id}`."
             )
             return
 
-        name = char_info.get("name", "Unknown").title()
-        rarity = char_info.get("rarity", "?")
+        decrement_character(target_id, char_id)
+
+        name = char_info.get("name", "Unknown")
+        rarity = char_info.get("rarity")
         symbol = RARITY_CONFIG.get(rarity, {}).get("symbol", "⭐")
 
         await update.message.reply_text(
-            f"🗑️ Removed *{name}* ({char_id}) from `{remover_name}`'s harem.\n"
+            f"🗑️ Removed *{name}* ({char_id}) from `{target_name}`'s harem.\n"
             f"🔮 Rarity: {symbol} `{rarity}`",
             parse_mode="Markdown"
         )
 
     except Exception as e:
         await update.message.reply_text(
-            f"❌ Failed to remove waifu.\nError: `{e}`",
+            f"❌ Failed.\nError: `{e}`",
             parse_mode="Markdown"
         )
 async def trade(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message.reply_to_message:
         await update.message.reply_text(
-            "⚠️ *Reply to someone to trade waifu!*\nUsage: `/trade <Sending ID> <Receiving ID>`",
+            "⚠️ *Reply to someone to trade waifu!*\nUsage: `/trade <YourWaifuID> <TheirWaifuID>`",
             parse_mode="Markdown"
         )
         return
 
     if len(context.args) != 2:
         await update.message.reply_text(
-            "⚠️ *Provide exactly two character IDs!*\nUsage: `/trade <Sending ID> <Receiving ID>`",
+            "⚠️ *Provide exactly two waifu IDs!*\nUsage: `/trade <YourWaifuID> <TheirWaifuID>`",
             parse_mode="Markdown"
         )
         return
 
-    sending_id = context.args[0]
-    receiving_id = context.args[1]
+    sending_id = context.args[0].zfill(3)
+    receiving_id = context.args[1].zfill(3)
+
     sender = update.effective_user
     sender_id = sender.id
     sender_name = sender.full_name
@@ -2614,43 +2148,41 @@ async def trade(update: Update, context: ContextTypes.DEFAULT_TYPE):
     receiver_id = receiver.id
     receiver_name = receiver.full_name
 
-    
-    char1 = get_character_by_id(sending_id)
-    char2 = get_character_by_id(receiving_id)
+    # Load characters from JSON
+    characters = load_characters()
+    char1 = characters.get(sending_id)
+    char2 = characters.get(receiving_id)
 
     if not char1 or not char2:
         await update.message.reply_text("❌ One or both waifu IDs are invalid.")
         return
 
-    
-    if not user_has_waifu(sender_id, sending_id):
+    if not user_has_character(sender_id, sending_id):
         await update.message.reply_text(f"❌ You don’t own waifu `{sending_id}`.")
         return
 
-    if not user_has_waifu(receiver_id, receiving_id):
+    if not user_has_character(receiver_id, receiving_id):
         await update.message.reply_text(f"❌ {receiver_name} doesn’t own waifu `{receiving_id}`.")
         return
 
-    
-    send_name = char1.get("name", "Unknown").title()
-    send_rarity = char1.get("rarity", "?")
+    send_name = char1["name"].title()
+    send_rarity = char1["rarity"]
     send_symbol = RARITY_CONFIG.get(send_rarity, {}).get("symbol", "⭐")
 
-    recv_name = char2.get("name", "Unknown").title()
-    recv_rarity = char2.get("rarity", "?")
+    recv_name = char2["name"].title()
+    recv_rarity = char2["rarity"]
     recv_symbol = RARITY_CONFIG.get(recv_rarity, {}).get("symbol", "⭐")
 
-   
     context.chat_data["waifu_trade"] = {
         "sender_id": sender_id,
         "sender_name": sender_name,
         "sending_id": sending_id,
+
         "receiver_id": receiver_id,
         "receiver_name": receiver_name,
         "receiving_id": receiving_id
     }
 
-    
     keyboard = InlineKeyboardMarkup([
         [
             InlineKeyboardButton("✅ Accept", callback_data="trade_ACCEPT"),
@@ -2661,13 +2193,14 @@ async def trade(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"📦 *Trade Request:*\n\n"
         f"*{sender_name}* wants to trade their waifu:\n"
-        f"• `{sending_id}` → {send_symbol} *{send_name}* (`{send_rarity}`)\n\n"
+        f"• `{sending_id}` → {send_symbol} *{send_name}*\n\n"
         f"in exchange for *{receiver_name}*'s waifu:\n"
-        f"• `{receiving_id}` → {recv_symbol} *{recv_name}* (`{recv_rarity}`)\n\n"
+        f"• `{receiving_id}` → {recv_symbol} *{recv_name}*\n\n"
         f"{receiver_name}, do you accept this trade?",
         reply_markup=keyboard,
         parse_mode="Markdown"
     )
+
 async def handle_trade_response(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -2679,28 +2212,36 @@ async def handle_trade_response(update: Update, context: ContextTypes.DEFAULT_TY
         return
 
     user_id = query.from_user.id
+
     if user_id != trade["receiver_id"]:
         await query.answer("Only the receiver can respond to this trade.", show_alert=True)
         return
 
     if query.data == "trade_ACCEPT":
-        remove_character(trade["sender_id"], trade["sending_id"])
-        remove_character(trade["receiver_id"], trade["receiving_id"])
 
-        add_character_to_inventory(trade["sender_id"], trade["receiving_id"])
-        add_character_to_inventory(trade["receiver_id"], trade["sending_id"])
+        sender_id = trade["sender_id"]
+        receiver_id = trade["receiver_id"]
+        sending_id = trade["sending_id"]
+        receiving_id = trade["receiving_id"]
 
-        name1 = get_character_by_id(trade["sending_id"]).get("name", "Unknown").title()
-        name2 = get_character_by_id(trade["receiving_id"]).get("name", "Unknown").title()
+        transfer_character(sender_id, receiver_id, sending_id)
+        transfer_character(receiver_id, sender_id, receiving_id)
+
+        characters = load_characters()
+        name1 = characters[sending_id]["name"].title()
+        name2 = characters[receiving_id]["name"].title()
 
         await query.edit_message_text(
             f"✅ *Trade Completed!*\n\n"
-            f"*{trade['sender_name']}* gave away `{trade['sending_id']}` → *{name1}*\n"
-            f"*{trade['receiver_name']}* gave away `{trade['receiving_id']}` → *{name2}*",
+            f"*{trade['sender_name']}* gave `{sending_id}` → *{name1}*\n"
+            f"*{trade['receiver_name']}* gave `{receiving_id}` → *{name2}*",
             parse_mode="Markdown"
         )
+
     else:
         await query.edit_message_text("❌ Trade rejected.")
+
+
 
 MASTER_CHARACTERS = {
     "Aloy", "Amber", "Arlecchino", "Kamisato Ayaka", "Barbara", "Beiduo",
@@ -2798,56 +2339,34 @@ async def check_callback(update, context):
         await query.delete_message()
     else:
         await query.edit_message_text(msg, parse_mode=ParseMode.MARKDOWN)
-import sqlite3
-from telegram.ext import CommandHandler
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 
 LEADERBOARD_BANNER = "https://i.ibb.co/LDjdXBYJ/Img2url-bot.jpg"  # replace with your image
-
-TOP10_SQL = """
-SELECT user_id, SUM(COALESCE(stack_count,1)) AS total_waifus
-FROM user_inventory
-GROUP BY user_id
-ORDER BY total_waifus DESC, user_id ASC
-LIMIT 10;
-"""
-
-async def wtop_cmd(update, context):
-    # Ensure names table exists and record caller’s name for future lookups
-    ensure_names_table()  # cheap and idempotent [5]
-    try:
-        u = update.effective_user
-        display = (u.full_name or u.username or str(u.id)).strip()
-        ensure_name_exists(u.id, display)
-    except Exception:
-        pass
-
-    # Fetch leaderboard
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    cur.execute(TOP10_SQL)
-    rows = cur.fetchall()  
-    conn.close()  
+async def wtop_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    rows = get_top_waifu_holders()
 
     if not rows:
-        await update.message.reply_photo(
-            photo=LEADERBOARD_BANNER,
-            caption="🏆 Top 10 Waifu Collectors\n\nNo collections yet."
-        )  # single message with image [3]
+        await update.message.reply_text("No waifu data available.")
         return
-    lines = ["🏆 Top 10 Waifu Collectors", "────────────────────────"]
-    for rank, (uid, total) in enumerate(rows, 1):
-        name = get_user_display_name(uid)
-        lines.append(f"{rank}. {name} — {total}")
-    caption = "\n".join(lines)
 
-    await update.message.reply_photo(
+    lines = ["🏆 *Top Waifu Collectors* 🏆\n"]
+
+    for i, (user_id, total) in enumerate(rows, start=1):
+        username = get_user_display_name(user_id) or "User"
+        username_md = md2_escape(username)
+        lines.append(f"{i}. [{username_md}](tg://user?id={user_id}) — *{total}* waifus")
+
+    text = "\n".join(lines)
+
+    await context.bot.send_photo(
+        chat_id=chat_id,
         photo=LEADERBOARD_BANNER,
-        caption=caption
-    )  # just one command, one output [3]
+        caption=text,
+        parse_mode="Markdown"
+    )
+
 
 def register_harem_handlers(application):
-    ensure_names_table()
 # === GROUP 0: Core Commands, File Uploads, Backups, Callbacks ===
     application.add_handler(CommandHandler("wish", wish_command), group=0)
     application.add_handler(CommandHandler("harem", harem_command), group=0)
@@ -2863,8 +2382,6 @@ def register_harem_handlers(application):
     application.add_handler(CommandHandler("open", open_char), group=0)
     application.add_handler(CommandHandler("backupch", backup_characters), group=0)
     application.add_handler(CommandHandler("restorechars", restore_characters), group=0)
-    application.add_handler(CommandHandler("backupimages", backup_images), group=0)
-    application.add_handler(CommandHandler("restoreimages", restore_images), group=0)
     application.add_handler(CommandHandler("rarity", rarity_command), group=0)
     application.add_handler(CommandHandler("addwaifu", add_waifu), group=0)
     application.add_handler(CommandHandler("rwaifu", remove_waifu))
@@ -2893,4 +2410,4 @@ def register_harem_handlers(application):
 
 # === GROUP 2: Fallback Message Tracker (e.g., spawn tracker) ===
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message), group=2)
-    # application.add_error_handler(error_handler)
+    application.add_error_handler(error_handler)

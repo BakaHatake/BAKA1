@@ -2,7 +2,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMe
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters, CallbackContext, ConversationHandler
 from quiz import register_quiz_handlers
 from gacha import register_gacha_handlers,ensure_gacha_columns
-from harem import register_harem_handlers,init_harem_database,create_user_preferences_table#create_sample_characters
+from harem import register_harem_handlers
 from mine import register_game_handlers
 import os
 import sqlite3
@@ -1390,8 +1390,6 @@ def setup_application():
     application = Application.builder().token(TOKEN).build()
 
     # Your existing setup
-    init_harem_database()
-    create_user_preferences_table()
     register_quiz_handlers(application)
     register_gacha_handlers(application)
     register_harem_handlers(application)

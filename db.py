@@ -1,15 +1,16 @@
 from pymongo import MongoClient
 from bson import objectid
 from datetime import datetime
+import time
 client=MongoClient("mongodb+srv://bakahatake:anush%40123@bakabot.to9paey.mongodb.net/?appName=BAKABOT")
 db=client["Main"]
-
 inv=db["inv"]
 bank=db["bank"]
 harem=db["harem"]
 counters=db["counters"]
 drops=db["drops"]
 shop=db["shop"]
+spam=db['spam']
 
 def update_inv(user_id,primogems=0,mora=0,lunar_crystals=0):
     return inv.update_one(
@@ -298,3 +299,67 @@ def update_name(user_id,name):
         upsert=True
     )
 
+def is_blocked(user_id)->bool:
+    doc=spam.find_one({"user_id":str(user_id)})
+    now=int(time.time())
+    return bool(doc and doc.get("Block untill",0)>now)
+
+
+def block_user(user_id):
+    block=int(time.time())+10*60
+    spam.update_one(
+        {"user_id":str(user_id)},
+        {"$set":{"Block untill":block,"Streak":0}},
+        upsert=True
+    )
+
+
+def increment_streak(user_id):
+    now=int(time.time())
+    doc=spam.find_one({"user_id":str(user_id)})
+
+    if doc and doc.get("Block untill",0)>now:
+        return False,False
+    
+    streak=doc.get("Streak",0)if doc else 0
+    streak+=1
+
+    spam.update_one(
+        {"user_id":str(user_id)},
+        {"$set":{"Streak":streak}},
+        upsert=True
+    )
+
+    if streak>=10:
+        block_user(user_id)
+        return True,True
+    
+    return True,False
+
+def unblock_user(user_id):
+    spam.update_one(
+        {"user_id": str(user_id)},
+        {"$set": {"Block untill": 0, "Streak": 0}}
+    )
+    return True
+
+def get_top_waifu_holders(limit=10):
+    top = []
+
+    for doc in harem.find({}, {"_id": 0}):
+        user_id = doc.get("user_id")
+        if not user_id:
+            continue
+
+        total = 0
+        for k, v in doc.items():
+            if k in ("user_id", "Rarity"):
+                continue
+            try:
+                total += int(v)
+            except:
+                pass
+
+        top.append((user_id, total))
+    top.sort(key=lambda x: x[1], reverse=True)
+    return top[:limit]

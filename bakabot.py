@@ -13,7 +13,7 @@ from datetime import datetime, timezone, timedelta
 from shop import register_shop_handlers
 import json
 from pvp import apply_daily_interest, register_monster_handlers,reset_defeats_today,auto_unlock_modes
-ADMIN_IDS = [5192424390,5716946356]
+ADMIN_IDS = [5192424390]
 # ======= CONFIG =======
 #TOKEN = "7592457873:AAEFFNDOVQWcRZ6bJQCisjSNkoGauHRXUAE"
 TOKEN = "7952386138:AAHUwRqnHcRvHVholUSy7hPzyAicdZQ8Isg"
@@ -90,7 +90,7 @@ cloudinary.config(
 )
 
 BAKA_JSON_PATH = "baka.json"
-ADMIN_USER_IDS = {5192424390}  # Set your admin IDs
+ADMIN_USER_IDS = {5192424390,5716946356}  # Set your admin IDs
 
 DEFAULT_THEATRE_IMAGE_URL = "https://i.ibb.co/LDjdXBYJ/Img2url-bot.jpg"
 DEFAULT_THEATRE_CAPTION = "🎭 Theatre Entries"

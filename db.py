@@ -14,6 +14,7 @@ shop=db["shop"]
 spam=db['spam']
 mines=db['mines']
 paimonbox=db['paimonbox']
+steals=db['steals']
 
 def update_inv(user_id,primogems=0,mora=0,lunar_crystals=0):
     return inv.update_one(
@@ -401,5 +402,84 @@ def update_paimon_box(user_id,update=False):
     else:
         return doc.get("Counts",None)
 
+def get_steal_doc(user_id):
+    doc = steals.find_one({"user_id": str(user_id)})
+    if not doc:
+        doc = {"Mode": "On", "Locked": False, "Unlock": 0}
+        steals.update_one(
+            {"user_id": str(user_id)},
+            {"$set": doc},
+            upsert=True
+        )
+    return doc
 
+
+def lock_steal_mode(user_id):
+    now = int(time.time())
+    steals.update_one(
+        {"user_id": str(user_id)},
+        {"$set": {
+            "Mode": "Off",
+            "Locked": True,
+            "Unlock": now + 3600
+        }},
+        upsert=True
+    )
+
+
+def unlock_steal_mode(user_id):
+    steals.update_one(
+        {"user_id": str(user_id)},
+        {"$set": {
+            "Mode": "On",
+            "Locked": False,
+            "Unlock": 0
+        }}
+    )
+
+
+def set_steal_mode(user_id, mode):
+    steals.update_one(
+        {"user_id": str(user_id)},
+        {"$set": {"Mode": mode}}
+    )
+def unlock_expired_modes():
+    now = int(time.time())
+
+    expired = list(
+        steals.find({
+            "Locked": True,
+            "Unlock": {"$lte": now}
+        })
+    )
+
+    if not expired:
+        return []
+
+    user_ids = [doc["user_id"] for doc in expired]
+
+    steals.update_many(
+        {"user_id": {"$in": user_ids}},
+        {"$set": {"Mode": "On", "Locked": False, "Unlock": 0}}
+    )
+
+    return user_ids
+
+def get_top_users(key, limit=10):
+    pipeline = [
+        {"$project": {
+            "user_id": 1,
+            "value": f"${key}"
+        }},
+        {"$sort": {"value": -1}},
+        {"$limit": limit}
+    ]
+
+    results = list(inv.aggregate(pipeline))
+
+    for r in results:
+        user = inv.find_one({"user_id": r["user_id"]})
+        r["name"] = user.get("Name", f"User {r['user_id']}")
+
+    return results
 

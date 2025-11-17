@@ -13,6 +13,7 @@ from datetime import datetime, timezone, timedelta
 from shop import register_shop_handlers
 import json
 from pvp import apply_daily_interest, register_monster_handlers,reset_defeats_today,auto_unlock_modes
+from db import get_top_users
 ADMIN_IDS = [5192424390]
 # ======= CONFIG =======
 #TOKEN = "7592457873:AAEFFNDOVQWcRZ6bJQCisjSNkoGauHRXUAE"
@@ -926,62 +927,52 @@ async def database(update: Update, context: CallbackContext):
         except:
             pass
 IMAGE_URL = "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752989365/generated-image_4_djjntd.png"  
+lunar_url="https://res.cloudinary.com/dvpz1tzam/image/upload/v1763399722/76042255-09ae-452a-a04d-17e73c90ff2a_exsuln.png"
+async def primosboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    top = get_top_users("Primogems")
 
-async def primosboard(update: Update, context: CallbackContext):
-    try:
-        conn = sqlite3.connect(DATABASE)
-        cursor = conn.cursor()
+    if not top:
+        await update.message.reply_text("📦 No data found.")
+        return
 
-        cursor.execute("""
-            SELECT user_id, primogems
-            FROM users
-        """)
-        rows = cursor.fetchall()
+    msg = "🏆 <b>Primogems Leaderboard</b> 🪙\n\n"
 
-        if not rows:
-            await update.message.reply_text("📦 No data found in the database.")
-            return
+    for i, user in enumerate(top, 1):
+        uid = user["user_id"]
+        name = html.escape(user["name"])
+        primos = user["value"]
 
-        # Sort users by primogems descending, pick top 10
-        rows.sort(key=lambda x: x[1], reverse=True)
-        top_users = rows[:10]
+        mention = f"<a href='tg://user?id={uid}'>{name}</a>"
+        msg += f"{i}. {mention} — <b>{primos}</b> 💎\n"
 
-        msg = "🏆 <b>Primogems Leaderboard</b> 🪙\n\n"
+    await update.message.reply_photo(
+        photo=IMAGE_URL,
+        caption=msg,
+        parse_mode="HTML"
+    )
 
-        for idx, (uid, primogems) in enumerate(top_users, 1):
-            try:
-                user = await context.bot.get_chat(uid)
-                display_name = user.full_name or f"User {uid}"
-                username = user.username
-            except Exception:
-                display_name = f"User {uid}"
-                username = None
+async def lunarboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    top = get_top_users("Lunar Crystals")
 
-            escaped_name = html.escape(display_name)
-            if username:
-                mention = f"<a href='https://t.me/{username}'>{escaped_name}</a>"
-            else:
-                mention = f"<a href='tg://user?id={uid}'>{escaped_name}</a>"
+    if not top:
+        await update.message.reply_text("📦 No data found.")
+        return
 
-            msg += f"{idx} {mention} — <b>{primogems}</b>💎\n"
+    msg = "🏆 <b>Lunar Crystals Leaderboard</b> 🪙\n\n"
 
-        # Send image with caption (replace IMAGE_URL with your link)
-        await context.bot.send_photo(
-            chat_id=update.effective_chat.id,
-            photo=IMAGE_URL,
-            caption=msg,
-            parse_mode=ParseMode.HTML,
-            
-        )
+    for i, user in enumerate(top, 1):
+        uid = user["user_id"]
+        name = html.escape(user["name"])
+        primos = user["value"]
 
-    except Exception as e:
-        await update.message.reply_text(f"❌ Error: {e}")
-    finally:
-        try:
-            conn.close()
-        except:
-            pass
+        mention = f"<a href='tg://user?id={uid}'>{name}</a>"
+        msg += f"{i}. {mention} — <b>{primos}</b> 🌙\n"
 
+    await update.message.reply_photo(
+        photo=lunar_url,
+        caption=msg,
+        parse_mode="HTML"
+    )
 
 async def daily_interest_job_wrapper(context):
     await apply_daily_interest(context.application)
@@ -1422,6 +1413,7 @@ def setup_application():
     application.add_handler(CallbackQueryHandler(theatre_nav_handler, pattern=r"^theatre_(next|prev|menu)$"))
     application.add_handler(CommandHandler("database", database))
     application.add_handler(CommandHandler("pboard", primosboard))
+    application.add_handler(CommandHandler("lboard", lunarboard))
     application.add_handler(MessageHandler(filters.COMMAND, send_character_image), group=100)
     application.add_handler(CommandHandler("edit", edit_command))
     application.add_handler(CallbackQueryHandler(edit_callback, pattern=r"^\d+\|edit\|"))

@@ -20,7 +20,8 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 import pytz
 
-from db import ensure_bank,get_bank,get_primogems,update_primos,update_bank,ensure_bank,get_balance,update_balance,update_paimon_box
+from db import ensure_bank,get_bank,get_primogems,update_primos,update_bank,ensure_bank,get_balance,update_balance,update_paimon_box,user_exists
+from db import get_steal_doc,unlock_steal_mode,lock_steal_mode,set_steal_mode
 DB_PATH = "/mnt/data/quiz.db"
 ADMIN_ID = 5192424390
 
@@ -1290,46 +1291,46 @@ import sqlite3
 async def toggle_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if len(context.args) != 1 or context.args[0].lower() not in ["on", "off"]:
-        await update.message.reply_text("Usage: /mode on or /mode off")
+        await update.message.reply_text("Usage: /mode on | /mode off")
         return
 
-    requested_mode = context.args[0].lower()
+    req = context.args[0].lower()
     now = int(time.time())
 
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("SELECT steal_mode, mode_lock_until FROM users WHERE user_id = ?", (user_id,))
-        row = c.fetchone()
-        if not row:
-            await update.message.reply_text("You have not registered. Contact admins.")
+    if not user_exists(user_id):
+        await update.message.reply_text("⚠️ You are not registered.")
+        return
+
+    doc = get_steal_doc(user_id)
+    mode = doc["Mode"]
+    locked = doc["Locked"]
+    unlock = doc["Unlock"]
+
+    if req == "on":
+        if mode == "On":
+            await update.message.reply_text("ℹ️ Mode already ON.")
             return
-        current_mode, lock_until = row
 
-        if requested_mode == "on":
-            if current_mode == "on":
-                await update.message.reply_text("ℹ️ Your mode is already ON.")
-                return
-            elif now < lock_until:
-                mins = max(1, (lock_until - now)//60)
-                await update.message.reply_text(
-                    f"⏳ You cannot enable mode ON yet. Please wait {mins} minutes for cooldown."
-                )
-                return
-            else:
-                c.execute("UPDATE users SET steal_mode = 'on', mode_lock_until = 0 WHERE user_id = ?", (user_id,))
-                await update.message.reply_text("✅ Steal mode is now ON (lock expired).")
-                return
+        if locked and now < unlock:
+            mins = (unlock - now) // 60
+            await update.message.reply_text(f"⏳ Cannot enable ON yet. Wait {mins} minutes.")
+            return
 
-        if requested_mode == "off":
-            if current_mode == "off":
-                mins = max(1, (lock_until - now)//60)
-                await update.message.reply_text(
-                    f"⏳ Your mode is already OFF. You can only enable ON after cooldown ({mins} min left)."
-                )
-                return
-            new_lock = now + 3600
-            c.execute("UPDATE users SET steal_mode = 'off', mode_lock_until = ? WHERE user_id = ?", (new_lock, user_id))
-            await update.message.reply_text("⏸️ Steal mode is now: OFF (will turn ON automatically in 1 hour).")
+        unlock_steal_mode(user_id)
+        await update.message.reply_text("✅ Mode turned ON.")
+        return
+
+    if req == "off":
+        if locked:
+            mins = (unlock - now) // 60
+            await update.message.reply_text(f"⏳ Mode is locked OFF for {mins} more minutes.")
+            return
+
+        set_steal_mode(user_id, "Off")
+        await update.message.reply_text("⏸️ Mode turned OFF (manual).")
+        return
+
+
 async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ADMIN_ID = 5192424390  # <-- Set to your Telegram User ID
     if update.effective_user.id != ADMIN_ID:
@@ -1339,7 +1340,7 @@ async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
     import sqlite3
     with sqlite3.connect(DB_PATH) as conn:
         c = conn.cursor()
-        # Option 1: Only users currently OFF
+
         c.execute("SELECT user_id FROM users WHERE steal_mode='off'")
         users = [row[0] for row in c.fetchall()]
         c.execute("UPDATE users SET steal_mode='on', mode_lock_until=0 WHERE steal_mode='off'")
@@ -1351,7 +1352,6 @@ async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("ℹ️ All user modes were already ON.")
 
-    # Optionally: send yourself a DM report
     if count:
         msg = "🛠 <b>TEST OVERRIDE</b>: All affected users set to <b>ON</b> instantly:\n\n"
         for uid in users:
@@ -1380,7 +1380,7 @@ async def steal_cmmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_mention = f"[{user_name}](tg://user?id={user_id})"
 
     if not update.message.reply_to_message:
-        await update.message.reply_text("⚠️ Reply to someone’s message to steal from them.")
+        await update.message.reply_text("⚠️ Reply to someone to steal.")
         return
 
     target = update.message.reply_to_message.from_user
@@ -1388,113 +1388,171 @@ async def steal_cmmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     target_name = target.first_name
     target_mention = f"[{target_name}](tg://user?id={target_id})"
 
-    if target_id == user_id:
+    if user_id == target_id:
         await update.message.reply_text("❌ You can't steal from yourself.")
         return
 
-    chat_title = update.effective_chat.title
-    chat_info = f" in {chat_title}" if chat_title else ""
+    if not user_exists(user_id) or not user_exists(target_id):
+        await update.message.reply_text("⚠️ Both users must have accounts.")
+        return
 
     now = int(time.time())
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
+
+    user_doc = get_steal_doc(user_id)
+    target_doc = get_steal_doc(target_id)
+
+    if user_doc["Mode"] != "On" or target_doc["Mode"] != "On":
+        text = "🔒 Cannot steal:\n"
+        if user_doc["Mode"] != "On":
+            text += f"🧍 {user_name}'s mode is OFF.\n"
+        if target_doc["Mode"] != "On":
+            text += f"👤 {target_name}'s mode is OFF."
+        await update.message.reply_text(text)
+        return
+
+    if now < user_doc["Unlock"] or now < target_doc["Unlock"]:
+        reminder = "⏳ Cooldown:\n"
+        if now < user_doc["Unlock"]:
+            reminder += f"🧍 {user_name}: {(user_doc['Unlock'] - now)//60} min\n"
+        if now < target_doc["Unlock"]:
+            reminder += f"👤 {target_name}: {(target_doc['Unlock'] - now)//60} min"
+        await update.message.reply_text(reminder)
+        return
+
+    lock_steal_mode(user_id)
+    lock_steal_mode(target_id)
+
+    # Determine outcome
+    win = random.choice([True, False])
+    percent = random.randint(30, 50)
+
+    target_primos = get_primogems(target_id)
+    user_primos = get_primogems(user_id)
+
+    stolen = int((target_primos if win else user_primos) * percent / 100)
+
+    if win and stolen > 0:
+        update_balance(user_id, "Primogems", stolen)
+        update_balance(target_id, "Primogems", -stolen)
+        await update.message.reply_text(
+            f"🕵️ {user_mention} stole {stolen} primogems ({percent}%) from {target_mention}!",
+            parse_mode="Markdown"
+        )
+        return
+
+    if win:
+        await update.message.reply_text(
+            f"😐 {user_mention} won but {target_mention} had nothing to steal.",
+            parse_mode="Markdown"
+        )
+        return
+
+    if stolen > 0:
+        update_balance(user_id, "Primogems", -stolen)
+        update_balance(target_id, "Primogems", stolen)
+        await update.message.reply_text(
+            f"😵 {user_mention} failed and lost {stolen} primogems to {target_mention}!",
+            parse_mode="Markdown"
+        )
+        return
+
+    await update.message.reply_text(
+        f"😮 {user_mention} failed but had nothing to lose.",
+        parse_mode="Markdown"
+    )
+async def lunarsteal_cmmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    user_name = update.effective_user.first_name
+    user_mention = f"[{user_name}](tg://user?id={user_id})"
+
+    if not update.message.reply_to_message:
+        await update.message.reply_text("⚠️ Reply to someone to steal.")
+        return
+
+    target = update.message.reply_to_message.from_user
+    target_id = target.id
+    target_name = target.first_name
+    target_mention = f"[{target_name}](tg://user?id={target_id})"
+
+    if user_id == target_id:
+        await update.message.reply_text("❌ You can't steal from yourself.")
+        return
+
+    if not user_exists(user_id) or not user_exists(target_id):
+        await update.message.reply_text("⚠️ Both users must have accounts.")
+        return
+
+    now = int(time.time())
+
+    user_lunars = get_balance(user_id, "Lunar Crystals")
+    target_lunars = get_balance(target_id, "Lunar Crystals")
+
+    if user_lunars < 1000 or target_lunars < 1000:
+        await update.message.reply_text(
+            "🌙 Both users must have **at least 1000 Lunar Crystals** to use /lunarsteal."
+        )
+        return
+
+    user_doc = get_steal_doc(user_id)
+    target_doc = get_steal_doc(target_id)
+
+    if user_doc["Mode"] != "On" or target_doc["Mode"] != "On":
+        text = "🔒 Cannot steal:\n"
+        if user_doc["Mode"] != "On":
+            text += f"🧍 {user_name}'s mode is OFF.\n"
+        if target_doc["Mode"] != "On":
+            text += f"👤 {target_name}'s mode is OFF."
+        await update.message.reply_text(text)
+        return
+
+    if now < user_doc["Unlock"] or now < target_doc["Unlock"]:
+        reminder = "⏳ Cooldown:\n"
+        if now < user_doc["Unlock"]:
+            reminder += f"🧍 {user_name}: {(user_doc['Unlock'] - now)//60} min\n"
+        if now < target_doc["Unlock"]:
+            reminder += f"👤 {target_name}: {(target_doc['Unlock'] - now)//60} min"
+        await update.message.reply_text(reminder)
+        return
+
+    lock_steal_mode(user_id)
+    lock_steal_mode(target_id)
+
+    win = random.choice([True, False])
+    percent = random.randint(30, 50)
+
+    stolen = int((target_lunars if win else user_lunars) * percent / 100)
+
+    if win and stolen > 0:
+        update_balance(user_id, "Lunar Crystals", stolen)
+        update_balance(target_id, "Lunar Crystals", -stolen)
+        await update.message.reply_text(
+            f"🌙🕵️ {user_mention} stole {stolen} Lunar Crystals ({percent}%) from {target_mention}!",
+            parse_mode="Markdown"
+        )
+        return
+
+    if win:
+        await update.message.reply_text(
+            f"😐 {user_mention} won but {target_mention} had nothing to steal.",
+            parse_mode="Markdown"
+        )
+        return
+
+    if stolen > 0:
+        update_balance(user_id, "Lunar Crystals", -stolen)
+        update_balance(target_id, "Lunar Crystals", stolen)
+        await update.message.reply_text(
+            f"🌙😵 {user_mention} failed and lost {stolen} Lunar Crystals to {target_mention}!",
+            parse_mode="Markdown"
+        )
+        return
+
+    await update.message.reply_text(
+        f"😮 {user_mention} failed to steal, but had nothing to lose.",
+        parse_mode="Markdown"
+    )
 
 
-        c.execute("SELECT primogems, steal_mode, steal_cooldown FROM users WHERE user_id = ?", (user_id,))
-        user_row = c.fetchone()
-
-        c.execute("SELECT primogems, steal_mode, steal_cooldown FROM users WHERE user_id = ?", (target_id,))
-        target_row = c.fetchone()
-
-        if not user_row or not target_row:
-            await update.message.reply_text("⚠️ Both users must have accounts.")
-            return
-
-        user_primos, user_mode, user_cd = user_row
-        target_primos, target_mode, target_cd = target_row
-
-        mode_issues = []
-        if user_mode != "on":
-            mode_issues.append(f"🧍‍♂️ {user_name}'s `/mode` is OFF.")
-        if target_mode != "on":
-            mode_issues.append(f"👤 {target_name}'s `/mode` is OFF.")
-        if mode_issues:
-            await update.message.reply_text("🔒 Cannot steal:\n" + "\n".join(mode_issues))
-            return
-
-        if now < user_cd or now < target_cd:
-            user_remaining = user_cd - now
-            target_remaining = target_cd - now
-
-            parts = []
-            if user_remaining > 0:
-                mins = user_remaining // 60
-                parts.append(f"🧍‍♂️ {user_name}: {mins} min")
-            if target_remaining > 0:
-                mins = target_remaining // 60
-                parts.append(f"👤 {target_name}: {mins} min")
-
-            await update.message.reply_text("⏳ Cooldown active:\n" + "\n".join(parts))
-            return
-
-
-        win = random.choice([True, False])
-        stolen_percent = random.randint(30, 50)
-        stolen_amount = int((target_primos if win else user_primos) * stolen_percent / 100)
-
-        if win and stolen_amount > 0:
-
-            c.execute("UPDATE users SET primogems = primogems + ? WHERE user_id = ?", (stolen_amount, user_id))
-            c.execute("UPDATE users SET primogems = primogems - ? WHERE user_id = ?", (stolen_amount, target_id))
-
-            await update.message.reply_text(
-                f"🕵️ {user_mention} successfully stole {stolen_amount} primogems ({stolen_percent}%) from {target_mention}!",
-                parse_mode="Markdown"
-            )
-            try:
-                await context.bot.send_message(
-                    chat_id=target_id,
-                    text=f"⚠️ [{user_name}](tg://user?id={user_id}) stole {stolen_amount} primogems from you{chat_info}!",
-                    parse_mode="Markdown"
-                )
-            except:
-                pass
-
-        elif win:
-            await update.message.reply_text(
-                f"😐 {user_mention} won the steal, but {target_mention} had nothing worth stealing.",
-                parse_mode="Markdown"
-            )
-
-        else:
-            if stolen_amount > 0:
-
-                c.execute("UPDATE users SET primogems = primogems - ? WHERE user_id = ?", (stolen_amount, user_id))
-                c.execute("UPDATE users SET primogems = primogems + ? WHERE user_id = ?", (stolen_amount, target_id))
-
-                await update.message.reply_text(
-                    f"😵 {user_mention} failed and lost {stolen_amount} primogems ({stolen_percent}%) to {target_mention}!",
-                    parse_mode="Markdown"
-                )
-                try:
-                    await context.bot.send_message(
-                        chat_id=target_id,
-                        text=f"🎉 [{user_name}](tg://user?id={user_id}) tried to steal from you and failed! You gained {stolen_amount} primogems{chat_info}!",
-                        parse_mode="Markdown"
-                    )
-                except:
-                    pass
-            else:
-                await update.message.reply_text(
-                    f"😮 {user_mention} failed to steal, but had nothing to lose.",
-                    parse_mode="Markdown"
-                )
-
-        new_cd = now + 600  
-        c.execute("UPDATE users SET steal_cooldown = ? WHERE user_id = ?", (new_cd, user_id))
-        c.execute("UPDATE users SET steal_cooldown = ? WHERE user_id = ?", (new_cd, target_id))
-
-        conn.commit()
 
 async def rlock_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     admin_id = update.effective_user.id
@@ -1794,50 +1852,37 @@ async def apply_daily_interest(application, is_manual=False):
 async def auto_unlock_modes(application):
     ADMIN_ID = 5192424390
 
-    now = int(time.time())
-    turned_on = []
-    updated = []
+    from db import unlock_expired_modes  
 
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        # Find users to unlock
-        c.execute(
-            "SELECT user_id FROM users WHERE steal_mode='off' AND mode_lock_until > 0 AND mode_lock_until <= ?",
-            (now,)
-        )
-        rows = c.fetchall()
-        turned_on = [row[0] for row in rows] if rows else []
+    unlocked = unlock_expired_modes()
 
-        if turned_on:
-            # Perform the update
-            c.execute(
-                "UPDATE users SET steal_mode='on', mode_lock_until=0 WHERE user_id IN ({})".format(
-                    ",".join("?"*len(turned_on))
-                ),
-                turned_on
-            )
-            conn.commit()
-            updated = turned_on
-    if updated:
-        bot = application.bot
-        msg = "🔓 <b>Auto unlock report:</b>\n\n"
-        for uid in updated:
-            try:
-                user = await bot.get_chat(uid)
-                name = user.full_name or f"User {uid}"
-            except:
-                name = f"User {uid}"
-            msg += f"• {name} (<code>{uid}</code>) is now <b>ON</b>\n"
+    if not unlocked:
+        print("[auto_unlock_modes] Nothing to unlock this round.")
+        return
+
+    bot = application.bot
+
+    msg = "🔓 <b>Auto unlock report:</b>\n\n"
+
+    for uid in unlocked:
         try:
-            await bot.send_message(
-                chat_id=ADMIN_ID,
-                text=msg,
-                parse_mode="HTML"
-            )
-        except Exception as e:
-            print("[auto_unlock_modes] Failed to send admin DM:", e)
-    else:
-        print("[auto_unlock_modes] No users to unlock this round.")
+            user = await bot.get_chat(uid)
+            name = user.full_name or f"User {uid}"
+        except:
+            name = f"User {uid}"
+        msg += f"• {name} (<code>{uid}</code>) is now <b>ON</b>\n"
+
+    try:
+        await bot.send_message(
+            chat_id=ADMIN_ID,
+            text=msg,
+            parse_mode="HTML"
+        )
+    except Exception as e:
+        print("[auto_unlock_modes] Failed to send report:", e)
+
+    print("[auto_unlock_modes] Unlocked:", unlocked)
+
 
 async def trigger_interest_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Manual trigger for daily interest (Admin only)"""
@@ -1905,25 +1950,6 @@ async def bank_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     except Exception as e:
         await update.message.reply_text(f"❌ Error getting bank stats: `{e}`", parse_mode="Markdown")
 
-async def lunar_steal(update:Update,context:ContextTypes.DEFAULT_TYPE):
-    u1=update.effective_user.id
-    u1name=update.effective_user.first_name
-    u1mention = f"[{u1name}](tg://user?id={u1})"
-
-    if not update.effective_message.reply_to_message:
-        await update.message.reply_text("⚠️ Reply to someone’s message to steal from them.")
-        return
-    
-    u2s=update.effective_message.reply_to_message.from_user
-    u2=u2s.id
-    u2name=u2s.first_name
-    u2mention=f"[{u2name}](tg://user?id={u2})"
-
-    if u1==u2:
-        await update.message.reply_text("❌ You can't steal from yourself.")
-        return
-    
-    chat=update.effective_chat.title
     
 
 
@@ -1944,6 +1970,7 @@ def register_monster_handlers(application):
     application.add_handler(CommandHandler("dart", dart_game))
     application.add_handler(CommandHandler("mode", toggle_mode))
     application.add_handler(CommandHandler("steal", steal_cmmd))
+    application.add_handler(CommandHandler("lsteal", lunarsteal_cmmd))
     application.add_handler(CommandHandler("rlock", rlock_command))
     # === Monster Battle Callbacks ===
     application.add_handler(CallbackQueryHandler(fight_monster, pattern=r"^fight_"))

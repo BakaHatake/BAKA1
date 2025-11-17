@@ -14,12 +14,7 @@ import json
 import random
 from datetime import datetime, timedelta
 from harem import (
-    get_db_connection,
     load_characters,
-    get_primogem_balance,
-    deduct_primogems,
-    add_character_to_inventory,
-    get_user_harem,
     RARITY_CONFIG,
 )
 
@@ -31,165 +26,6 @@ LOSE_BANNER = "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752918099/gen
 
 
 ADMIN_IDS = [5192424390]
-
-def create_user_shop_table():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS user_shop (
-            user_id INTEGER PRIMARY KEY,
-            shop_waifus TEXT,
-            last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            daily_refreshes INTEGER DEFAULT 0,
-            daily_rolls INTEGER DEFAULT 0,
-            rolled_ids TEXT DEFAULT '[]'
-        )
-    ''')
-    conn.commit()
-    conn.close()
-def create_user_path_table():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS user_path (
-            user_id INTEGER PRIMARY KEY,
-            waifu_id TEXT NOT NULL,
-            pity INTEGER DEFAULT 0
-        )
-    ''')
-    conn.commit()
-    conn.close()
-def create_waifu_tracking_table():
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS waifu_set_log (
-                user_id INTEGER,
-                date TEXT NOT NULL,
-                count INTEGER DEFAULT 0,
-                PRIMARY KEY (user_id, date)
-            )
-        """)
-        conn.commit()
-        print("[✔] Table 'waifu_set_log' created or already exists.")
-def create_currency_tables():
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS mora (
-                user_id INTEGER PRIMARY KEY,
-                balance INTEGER DEFAULT 0
-            )
-        """)
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS lunar_crystals (
-                user_id INTEGER PRIMARY KEY,
-                balance INTEGER DEFAULT 0
-            )
-        """)
-        conn.commit()
-        print("[✔] Table 'lunar_crystals' created or already exists.")
-
-def reset_waifu_set_log_table():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("DROP TABLE IF EXISTS waifu_set_log")
-    conn.commit()
-    conn.close()
-
-
-
-def deduct_currency(user_id: int, table_name: str, amount: int) -> bool:
-    try:
-        current = get_balance(user_id, table_name)
-        if current >= amount:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute(
-                    f"UPDATE {table_name} SET balance = balance - ? WHERE user_id = ?",
-                    (amount, user_id)
-                )
-            conn.commit()
-            return True
-    except Exception as e:
-        print(f"[❌ deduct_currency ERROR] {e}")
-    return False
-def add_currency(user_id: int, table_name: str, amount: int):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    if table_name == "users":
-        cursor.execute("SELECT primogems FROM users WHERE user_id = ?", (user_id,))
-        current = cursor.fetchone()
-        if current is None:
-            cursor.execute(
-                "INSERT INTO users (user_id, primogems) VALUES (?, ?)",
-                (user_id, amount)
-            )
-        else:
-            cursor.execute(
-                "UPDATE users SET primogems = primogems + ? WHERE user_id = ?",
-                (amount, user_id)
-            )
-    else:
-        cursor.execute(f"SELECT balance FROM {table_name} WHERE user_id = ?", (user_id,))
-        current = cursor.fetchone()
-        if current is None:
-            cursor.execute(
-                f"INSERT INTO {table_name} (user_id, balance) VALUES (?, ?)",
-                (user_id, amount)
-            )
-        else:
-            cursor.execute(
-                f"UPDATE {table_name} SET balance = balance + ? WHERE user_id = ?",
-                (amount, user_id)
-            )
-    conn.commit()
-def get_all_users_ids():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT user_id FROM users")
-    rows = cursor.fetchall()
-    conn.close()
-    return [row[0] for row in rows]
-
-def get_user_path(user_id: int) -> dict | None:
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT waifu_id, pity FROM user_path WHERE user_id = ?", (user_id,))
-    row = cursor.fetchone()
-    conn.close()
-    if row:
-        return {"waifu_id": row[0], "pity": row[1]}
-    return None
-def set_user_path(user_id: int, waifu_id: str):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    cursor.execute('''
-        INSERT OR IGNORE INTO user_path (user_id, waifu_id, pity)
-        VALUES (?, ?, 0)
-    ''', (user_id, waifu_id))
-    
-    conn.commit()
-    conn.close()
-
-def clear_user_path(user_id: int):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM user_path WHERE user_id = ?", (user_id,))
-    conn.commit()
-    conn.close()
-def increment_pity(user_id: int):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE user_path SET pity = pity + 1 WHERE user_id = ?", (user_id,))
-    conn.commit()
-    conn.close()
-def get_waifu_details(waifu_id: str) -> dict | None:
-    characters = load_characters()
-    return characters.get(waifu_id)
-
-import random
 
 import random
 
@@ -204,77 +40,7 @@ def roll_for_path_waifu(user_id: int, waifu_id: str) -> bool:
 def get_today():
     return datetime.now().strftime("%Y-%m-%d")
 
-def get_setwaifu_count(user_id: int) -> int:
-    today = get_today()
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT count FROM waifu_set_log WHERE user_id = ? AND date = ?", (user_id, today))
-    row = cursor.fetchone()
-    return row[0] if row else 0
-
-def increment_setwaifu_count(user_id: int):
-    today = get_today()
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO waifu_set_log (user_id, date, count)
-        VALUES (?, ?, 1)
-        ON CONFLICT(user_id, date) DO UPDATE SET count = count + 1
-    ''', (user_id, today))
-    conn.commit()
-    conn.close()
-
-
 from datetime import datetime
-
-
-def save_user_shop(user_id: int, waifu_list: list, reset_counters=True):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    waifus_json = json.dumps(waifu_list)
-    now = datetime.now().isoformat()
-    rolled_ids = json.dumps([])
-
-    if reset_counters:
-        cursor.execute('''
-            INSERT OR REPLACE INTO user_shop
-            (user_id, shop_waifus, last_updated, daily_refreshes, daily_rolls, rolled_ids)
-            VALUES (?, ?, ?, 0, 0, ?)
-        ''', (user_id, waifus_json, now, rolled_ids))
-    else:
-        cursor.execute('''
-            UPDATE user_shop SET shop_waifus = ?, last_updated = ?, rolled_ids = ?
-            WHERE user_id = ?
-        ''', (waifus_json, now, rolled_ids, user_id))
-    conn.commit()
-    conn.close()
-
-
-def record_waifu_rolled(user_id: int, waifu_id: str):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT rolled_ids FROM user_shop WHERE user_id = ?", (user_id,))
-    row = cursor.fetchone()
-    if row:
-        rolled = json.loads(row[0]) if row[0] else []
-        if waifu_id not in rolled:
-            rolled.append(waifu_id)
-            cursor.execute(
-                "UPDATE user_shop SET rolled_ids = ?, daily_rolls = daily_rolls + 1 WHERE user_id = ?",
-                (json.dumps(rolled), user_id))
-            conn.commit()
-    conn.close()
-
-
-def increment_shop_counter(user_id: int, counter_type: str):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    if counter_type == "refresh":
-        cursor.execute("UPDATE user_shop SET daily_refreshes = daily_refreshes + 1 WHERE user_id = ?", (user_id,))
-    elif counter_type == "roll":
-        cursor.execute("UPDATE user_shop SET daily_rolls = daily_rolls + 1 WHERE user_id = ?", (user_id,))
-    conn.commit()
-    conn.close()
 
 def generate_random_waifus(num=5):
     characters = load_characters()
@@ -938,11 +704,7 @@ async def airdrop(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                      
 
 def register_shop_handlers(application):
-    create_user_shop_table()
-    create_user_path_table()
-    reset_waifu_set_log_table()
-    create_waifu_tracking_table()
-    create_currency_tables()
+
     application.add_handler(CommandHandler("shop", shop_command), group=0)
     application.add_handler(CallbackQueryHandler(shop_callback_handler, pattern="^shop"), group=0)
     application.add_handler(CommandHandler("resetrolls", reset_rolls_command), group=0)

@@ -10,17 +10,13 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from datetime import datetime, timedelta
 from telegram.ext import ContextTypes
 import os
-from shop import (
-    add_currency,
-    deduct_primogems,
-    deduct_currency,
-)
+
 from db import get_daily,update_claim,update_inv,user_exists,get_balance,update_balance
 DATABASE = "/mnt/data/quiz.db"
 
 ADMIN_IDS = [5192424390]  
 DB_PATH = "/mnt/data/quiz.db" 
-
+from db import update_balance
 
 def init_whitelist_db():
     conn = sqlite3.connect(DB_PATH)
@@ -1452,9 +1448,7 @@ async def rps_choice_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 import time
 import random
-from shop import (
-    add_currency,
-)
+
 
 user_last_explore = {}
 
@@ -1506,8 +1500,8 @@ async def explore(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Update user currencies
     update_primogems(user_id, primogems_amount)
-    add_currency(user_id, "mora", mora_amount)
-    add_currency(user_id, "lunar_crystals", lunar_crystals_amount)
+    update_balance(user_id, "Mora", mora_amount)
+    update_balance(user_id, "lunar Crystals", lunar_crystals_amount)
 
     user_last_explore[user_id] = now
 

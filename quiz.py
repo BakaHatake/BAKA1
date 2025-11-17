@@ -15,7 +15,7 @@ from telegram.ext import (
 )
 import shutil
 from telegram.ext import CommandHandler, MessageHandler, filters
-from shop import get_balance, deduct_currency, add_currency
+from db import update_balance
 
 BOT_START_TIME = datetime.now(timezone.utc)
 OWNER_ID = 5192424390  
@@ -262,7 +262,7 @@ async def answer_quiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if selected == correct_answer:
         update_score(user.id, username)
         update_primogems(user.id, 200)  # Add 200 primogems
-        add_currency(user.id, "lunar_crystals", 10)  # Add 10 lunar crystals
+        update_balance(user.id, "Lunar Crystals", 10)  # Add 10 lunar crystals
         await query.edit_message_text(
             text=f"✅ {mention}, Correct! You've been awarded 1 point, 200 primogems, and 10 lunar crystals.",
             parse_mode="HTML"

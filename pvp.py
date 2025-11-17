@@ -20,7 +20,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 import pytz
 
-from db import ensure_bank,get_bank,get_primogems,update_primos,update_bank,ensure_bank
+from db import ensure_bank,get_bank,get_primogems,update_primos,update_bank,ensure_bank,get_balance,update_balance,update_paimon_box
 DB_PATH = "/mnt/data/quiz.db"
 ADMIN_ID = 5192424390
 
@@ -1063,22 +1063,14 @@ async def paimonbox(update, context):
         return
 
 
-    conn = sqlite3.connect("/mnt/data/quiz.db")  
-    cursor = conn.cursor()
+    row=get_balance(user_id,"Primogems")
 
-    cursor.execute("SELECT primogems FROM users WHERE user_id = ?", (user_id,))
-    row = cursor.fetchone()
-
-    if not row or row[0] < bet:
+    if not row or row < bet:
         await update.message.reply_text("You don't have enough primogems.")
         conn.close()
         return
-
-
-    today = date.today()
-    cursor.execute("SELECT plays FROM paimonbox WHERE user_id = ? AND date = ?", (user_id, today))
-    row = cursor.fetchone()
-    plays = row[0] if row else 0
+    
+    plays = update_paimon_box(user_id)
 
     if plays >= 3:
         await update.message.reply_text("You've already played Paimon's Bargain 3 times today!")
@@ -1118,35 +1110,21 @@ async def handle_paimonbox_callback(update, context):
     outcome = context.user_data["paimon_outcomes"][choice_index]
     bet = context.user_data["paimon_bet"]
 
-    conn = sqlite3.connect("/mnt/data/quiz.db")  
-    cursor = conn.cursor()
 
 
     if outcome == "x1":
-        cursor.execute("UPDATE users SET primogems = primogems + ? WHERE user_id = ?", (bet * 1, user_id))
+        update_balance(user_id,"Primogems",bet)
         result_msg = f"🎉 You opened Box {chr(65 + choice_index)}...\n\n✨ You found *double primogems*! (+{bet * 1})\n💎 New Balance: "
     elif outcome == "nothing":
         result_msg = f"😐 You opened Box {chr(65 + choice_index)}...\n\nThere's nothing inside. Just... air.\n💎 Balance: "
-    else:  # lose
-        cursor.execute("UPDATE users SET primogems = primogems - ? WHERE user_id = ?", (bet, user_id))
+    else: 
+        update_balance(user_id,"Primogems",-bet)
         result_msg = f"😈 You opened Box {chr(65 + choice_index)}...\n\n*Evil Paimon* jumps out and steals your {bet} primogems!\n💎 New Balance: "
+    update_paimon_box(user_id,update=True)
+    new_balance = get_balance(user_id,"Primogems")
 
-
-    today = date.today()
-    cursor.execute("INSERT OR IGNORE INTO paimonbox (user_id, date, plays) VALUES (?, ?, 0)", (user_id, today))
-    cursor.execute("UPDATE paimonbox SET plays = plays + 1 WHERE user_id = ? AND date = ?", (user_id, today))
-
-
-    cursor.execute("SELECT primogems FROM users WHERE user_id = ?", (user_id,))
-    new_balance = cursor.fetchone()[0]
-
-
-    cursor.execute("SELECT plays FROM paimonbox WHERE user_id = ? AND date = ?", (user_id, today))
-    plays_today = cursor.fetchone()[0]
+    plays_today = update_paimon_box(user_id)
     plays_left = max(0, 3 - plays_today)
-
-    conn.commit()
-    conn.close()
 
     result_msg += f"{new_balance} primogems\n🔁 Plays Left Today: {plays_left}"
 
@@ -1196,7 +1174,7 @@ async def reset_paimon(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def toss_game(update:Update,context:ContextTypes.DEFAULT_TYPE):
     user_id=update.effective_user.id
     if len(context.args)!=2:
-        await update.message.reply_text("Usage :/toss <amount> h/t or heads/tails")
+        await update.message.reply_text("Usage :/flip <amount> h/t or heads/tails")
         return
     try:
         bet=int(context.args[0])
@@ -1211,30 +1189,16 @@ async def toss_game(update:Update,context:ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("guess must be 'heads','h','tails','t'")
         return
-    
 
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("SELECT primogems FROM users WHERE user_id = ?", (user_id,))
-        row = c.fetchone()
+    primos = get_balance(user_id,"Primogems")
 
-        if not row:
-            await update.message.reply_text("You need an account first. Try /start.")
-            return
+    if bet <= 0:
+        await update.message.reply_text("Bet must be more than 0.")
+        return
 
-        primos = row[0]
-
-        if bet <= 0:
-            await update.message.reply_text("Bet must be more than 0.")
-            return
-
-        if bet > primos:
-            await update.message.reply_text(f"You only have {primos} primogems!")
-            return
-
-
-        c.execute("UPDATE users SET primogems = ? WHERE user_id = ?", (primos - bet, user_id))
-        conn.commit()
+    if not primos or bet > primos:
+        await update.message.reply_text(f"You only have {primos} primogems!")
+        return
 
     toss_msg = await update.message.reply_text(
         "<b>Flipping the coin...</b>\n<i>Let fate decide 🪙</i>",
@@ -1252,17 +1216,16 @@ async def toss_game(update:Update,context:ContextTypes.DEFAULT_TYPE):
 
 
     if result == guess:
-        winnings=bet*2
-        with sqlite3.connect(DB_PATH) as conn:
-            c = conn.cursor()
-            c.execute("UPDATE users SET primogems = primogems + ? WHERE user_id = ?", (winnings, user_id))
-            conn.commit()
+        winnings=bet
+        update_balance(user_id,"Primogems",winnings)
         await update.message.reply_text(
         f"🎉 <b>Coin landed on</b> <i>{result}</i>!\n"
         f"🏆 You won <b>{winnings}</b> primogems!",
         parse_mode="HTML"
         )
     else:
+        winnings=bet
+        update_balance(user_id,"Primogems",-winnings)
         await update.message.reply_text(
         f"😢 <b>Coin landed on</b> <i>{result}</i>.\n"
         f"💸 You lost <b>{bet}</b> primogems.",
@@ -1283,41 +1246,20 @@ async def dart_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Bet must be more than 0.")
         return
 
-    # Check primogem balance
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("SELECT primogems FROM users WHERE user_id = ?", (user_id,))
-        row = c.fetchone()
+    primos = get_balance(user_id,"Primogems")
 
-        if not row:
-            await update.message.reply_text("You need an account first. Use /start.")
-            return
-
-        primos = row[0]
-
-        if bet > primos:
-            await update.message.reply_text(f"You only have {primos} primogems!")
-            return
-
-    # Deduct only the bet (not worst-case penalty)
-        c.execute("UPDATE users SET primogems = primogems - ? WHERE user_id = ?", (bet, user_id))
-        conn.commit()
-
-
+    if not primos or bet > primos:
+        await update.message.reply_text(f"You only have {primos} primogems!")
+        return
+    update_balance(user_id,"Primogems",-bet)
     # Send dart emoji
     dart_msg = await update.message.reply_dice(emoji="🎯")
     await asyncio.sleep(2.75)
     result = dart_msg.dice.value
 
-    winnings = 0
-    penalty = 0
-
     if result == 1:
         penalty = int(bet * 0.5)
-        with sqlite3.connect(DB_PATH) as conn:
-            c = conn.cursor()
-            c.execute("UPDATE users SET primogems = primogems - ? WHERE user_id = ?", (penalty, user_id))
-            conn.commit()
+        update_balance(user_id,"Primogems",-penalty)
         text = f"💥 Complete miss! Paimon charges a penalty!\n💸 You lost *{bet + penalty}* primogems!"
 
 
@@ -1325,23 +1267,16 @@ async def dart_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = f"😢 You missed the target.\nYou lost *{bet}* primogems."
 
     elif result == 4:
-        winnings = int(bet * 1.5)
-        text = f"🎯 Hit the board!\nYou won *{winnings}* primogems!"
+        update_balance(user_id,"Primogems",int(bet*1.5))
+        text = f"🎯 Hit the board!\nYou won *{int(bet*1.5)}* primogems!"
 
     elif result == 5:
-        winnings = int(bet * 2)
-        text = f"✅ Almost bullseye!\nYou won *{winnings}* primogems!"
+        update_balance(user_id,"Primogems",int(bet*2))
+        text = f"✅ Almost bullseye!\nYou won *{int(bet*2)}* primogems!"
 
     elif result == 6:
-        winnings = int(bet * 2.5)
-        text = f"🏆 BULLSEYE!!\nYou won *{winnings}* primogems!"
-
-    # Reward player
-    if winnings > 0:
-        with sqlite3.connect(DB_PATH) as conn:
-            c = conn.cursor()
-            c.execute("UPDATE users SET primogems = primogems + ? WHERE user_id = ?", (winnings, user_id))
-            conn.commit()
+        update_balance(user_id,"Primogems",int(bet*2.5))
+        text = f"🏆 BULLSEYE!!\nYou won *{int(bet*2.5)}* primogems!"
 
     await update.message.reply_text(text, parse_mode="Markdown")
 

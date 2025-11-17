@@ -3,6 +3,7 @@ from bson import objectid
 from datetime import datetime
 import time
 client=MongoClient("mongodb+srv://bakahatake:anush%40123@bakabot.to9paey.mongodb.net/?appName=BAKABOT")
+
 db=client["Main"]
 inv=db["inv"]
 bank=db["bank"]
@@ -11,6 +12,8 @@ counters=db["counters"]
 drops=db["drops"]
 shop=db["shop"]
 spam=db['spam']
+mines=db['mines']
+paimonbox=db['paimonbox']
 
 def update_inv(user_id,primogems=0,mora=0,lunar_crystals=0):
     return inv.update_one(
@@ -363,3 +366,40 @@ def get_top_waifu_holders(limit=10):
         top.append((user_id, total))
     top.sort(key=lambda x: x[1], reverse=True)
     return top[:limit]
+
+def update_mines(user_id,state):
+    if state is None:
+        mines.delete_one({"user_id":str(user_id)})
+    else:
+        mines.update_one(
+            {"user_id":str(user_id)},
+            {"$set":
+            {"State":state},},
+            upsert=True
+        )
+
+def get_user_state(user_id):
+    doc = mines.find_one({"user_id": str(user_id)})
+    return doc.get("State") if doc else None
+
+def update_paimon_box(user_id,update=False):
+    doc=paimonbox.find_one({"user_id":str(user_id)})
+    today=datetime.now().strftime("%Y-%m-%d")
+    if not doc or doc.get("Last used") != today:
+        print("triggered1")
+        paimonbox.update_one(
+            {"user_id": str(user_id)},
+            {"$set": {"Counts": 0, "Last used": today}},
+            upsert=True
+        )
+        return 0
+    elif update:
+        print("triggered2")
+        paimonbox.update_one({"user_id":str(user_id)},
+                             {"$inc":{"Counts":1}},
+                             )
+    else:
+        return doc.get("Counts",None)
+
+
+

@@ -12,6 +12,7 @@ from telegram.ext import ContextTypes
 import os
 
 from db import get_daily,update_claim,update_inv,user_exists,get_balance,update_balance
+from db import update_mines,get_user_state,get_primogems
 DATABASE = "/mnt/data/quiz.db"
 
 ADMIN_IDS = [5192424390]  
@@ -270,12 +271,11 @@ async def view_transactions(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             recipient_name = f"User {r}"
 
-        icon = CURRENCY_ICONS.get(currency, '')  # default empty if unknown
+        icon = CURRENCY_ICONS.get(currency, '') 
 
         msg += f"🔁 [{sender_name}](tg://user?id={s}) → [{recipient_name}](tg://user?id={r}): {icon} *{amt}* {currency}\n🕒 `{ts}`\n\n"
 
     await update.message.reply_text(msg, parse_mode="Markdown")
-
 
 # === Grid Helpers ===
 def render_plain_grid(grid):
@@ -308,33 +308,28 @@ def generate_grid_message(diamonds, bet, bombs):
         f"🏆 Potential Winnings: {reward} primogems"
     )
 
-# === Start Mines Game ===
 async def start_mines(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    user = get_user(user_id)
 
-    if not user:
-        await update.message.reply_text("❌ You need to register first.")
-        return
+    primos = get_balance(user_id, "Primogems")
 
-    # Check for existing game
-    if user[2]:
+    if get_user_state(user_id):
         await update.message.reply_text("❌ You already have an active mine game.")
         return
 
-    # Check arguments
+    # Args
     if len(context.args) != 2:
-        await update.message.reply_text("Usage: /mines <bet> <bombs> (e.g. /mines 100 3)")
+        await update.message.reply_text("Usage: /mines <bet> <bombs>")
         return
 
     try:
         bet = int(context.args[0])
-        num_bombs = int(context.args[1])
-    except ValueError:
-        await update.message.reply_text("❌ Bet and bomb count must be numbers.")
+        bombs = int(context.args[1])
+    except:
+        await update.message.reply_text("❌ Bet and bombs must be numbers.")
         return
 
-    if num_bombs < 3 or num_bombs >= 25:
+    if bombs < 3 or bombs > 24:
         await update.message.reply_text("❌ Bombs must be between 3 and 24.")
         return
 
@@ -342,177 +337,126 @@ async def start_mines(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Bet must be greater than zero.")
         return
 
-    if user[1] < bet:
+    if primos < bet:
         await update.message.reply_text("❌ Not enough primogems.")
         return
 
-    # Deduct bet
-    with sqlite3.connect(DATABASE) as conn:
-        cursor = conn.cursor()
-        cursor.execute("UPDATE users SET primogems = primogems - ? WHERE user_id = ?", (bet, user_id))
-        conn.commit()
+    update_balance(user_id, "Primogems", -bet)
 
-    # Setup game
-    tiles = ["💎"] * (25 - num_bombs) + ["💣"] * num_bombs
+    tiles = ["💎"] * (25 - bombs) + ["💣"] * bombs
     random.shuffle(tiles)
 
-    mine_state = {
-        "owner_id": user_id,  # ✅ Owner lock
-        "grid": tiles,        
+    state = {
+        "owner_id": user_id,
+        "grid": tiles,
         "revealed": ["⬜"] * 25,
         "diamonds_found": 0,
         "bet": bet,
-        "bombs": num_bombs     
+        "bombs": bombs
     }
 
-    update_user_state(user_id, json.dumps(mine_state))
+    update_mines(user_id, state)
 
-    grid_msg = generate_grid_message(0, bet, 1.0)
-    msg = f"🧨 Mines Game Started!\n\n{grid_msg}"
-    markup = render_button_grid(mine_state["revealed"], user_id)
+    grid_msg = generate_grid_message(0, bet, bombs)
+    markup = render_button_grid(state["revealed"], user_id)
 
+    await update.message.reply_text(f"🧨 Mines Game Started!\n\n{grid_msg}", reply_markup=markup)
 
-    await update.message.reply_text(msg, reply_markup=markup)
-
-
-
-
-# === Tile Click Handler ===
 async def handle_tile_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = query.from_user.id
     await query.answer()
 
     try:
-        _, index_str, owner_str = query.data.split("_")
-        index = int(index_str)
+        _, idx, owner_str = query.data.split("_")
+        idx = int(idx)
         owner_id = int(owner_str)
-    except ValueError:
-        await query.answer("❌ Invalid tile data.")
-        return
+    except:
+        return await query.answer("❌ Invalid tile data")
 
-    
     if user_id != owner_id:
-        await query.answer("❌ This isn't your mine game!", show_alert=True)
-        return
+        return await query.answer("❌ Not your game!", show_alert=True)
 
-    
-    user = get_user(owner_id)
-    if not user or not user[2]:
-        await query.message.edit_text("❌ No active mine game.")
-        return
+    state = get_user_state(owner_id)
+    if not state:
+        return await query.message.edit_text("❌ No active mine game.")
 
-    try:
-        mine_state = json.loads(user[2])
-    except json.JSONDecodeError:
-        await query.answer("❌ Failed to load your mine game.")
-        return
-
-    if index < 0 or index >= 25 or mine_state["revealed"][index] != "⬜":
+    if state["revealed"][idx] != "⬜":
         return  
 
-    symbol = mine_state["grid"][index]
-    mine_state["revealed"][index] = symbol
+    symbol = state["grid"][idx]
+    state["revealed"][idx] = symbol
 
+    # Bomb
     if symbol == "💣":
-        update_user_state(owner_id, None)
-        full_grid = render_plain_grid(mine_state["grid"])
-        await query.message.edit_text(
-            f"💥 You hit a bomb!\n💎 Diamonds Found: {mine_state['diamonds_found']}\n\n{full_grid}"
+        update_mines(owner_id, None)
+        full_grid = render_plain_grid(state["grid"])
+        return await query.message.edit_text(
+            f"💥 You hit a bomb!\n\n💎 Found: {state['diamonds_found']}\n\n{full_grid}"
         )
-        return
 
-    # Safe tile
-    mine_state["diamonds_found"] += 1
-    new_multiplier = 1.0 + (mine_state["diamonds_found"] * 0.05)
-    update_user_state(owner_id, json.dumps(mine_state))
+    state["diamonds_found"] += 1
+    update_mines(owner_id, state)
 
-    grid_msg = generate_grid_message(
-    mine_state["diamonds_found"],
-    mine_state["bet"],
-    mine_state["bombs"]
-)
+    grid_msg = generate_grid_message(state["diamonds_found"], state["bet"], state["bombs"])
+    markup = render_button_grid(state["revealed"], owner_id)
 
-    markup = render_button_grid(mine_state["revealed"], owner_id)
+    await query.message.edit_text(f"💠 Still safe!\n{grid_msg}", reply_markup=markup)
 
-    await query.message.edit_text(
-        f"💠 Still safe!\n{grid_msg}",
-        reply_markup=markup
-    )
-
-
-
-# === Cash Out Handler ===
 async def handle_cashout(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_id = query.from_user.id
+    await query.answer()
 
     try:
         _, owner_str = query.data.split("_")
         owner_id = int(owner_str)
-    except Exception:
-        await query.answer("❌ Invalid cashout data.", show_alert=True)
-        return
+    except:
+        return await query.answer("❌ Invalid data", show_alert=True)
 
     if user_id != owner_id:
-        await query.answer("❌ This isn't your game!", show_alert=True)
-        return
+        return await query.answer("❌ Not your game!", show_alert=True)
 
-    user = get_user(user_id)
-    if not user or not user[2]:
-        await query.answer("❌ No active game to cash out.", show_alert=True)
-        return
+    state = get_user_state(user_id)
+    if not state:
+        return await query.answer("❌ No active game", show_alert=True)
 
-    try:
-        mine_state = json.loads(user[2])
-    except json.JSONDecodeError:
-        await query.answer("❌ Failed to load your mine game.", show_alert=True)
-        return
+    diamonds = state["diamonds_found"]
+    bet = state["bet"]
+    bombs = state["bombs"]
 
-    bet = mine_state.get("bet", 0)
-    bombs = mine_state.get("bombs", 3)
-    diamonds = mine_state.get("diamonds_found", 0)
-
-    # ❌ Show popup if less than 3 diamonds
     if diamonds < 3:
-        await query.answer("💎 You need to find at least 3 diamonds to cash out!", show_alert=True)
-        return
+        return await query.answer("💎 Need at least 3 diamonds to cash out!", show_alert=True)
 
-    # ✅ Proceed to cashout
-    base_multiplier = 1.1 + (bombs - 3) * 0.05
-    multiplier = base_multiplier ** diamonds
-    reward = int(bet * multiplier)
+    base = 1.1 + (bombs - 3) * 0.05
+    reward = int(bet * (base ** diamonds))
 
-    update_user_state(user_id, None)
+    update_mines(user_id, None)
+    update_balance(user_id, "Primogems", reward)
 
-    with sqlite3.connect(DATABASE) as conn:
-        cursor = conn.cursor()
-        cursor.execute("UPDATE users SET primogems = primogems + ? WHERE user_id = ?", (reward, user_id))
-        conn.commit()
+    full_grid = render_plain_grid(state["grid"])
 
-    full_grid = render_plain_grid(mine_state["grid"])
     await query.message.edit_text(
-        f"💰 You cashed out!\n\n💎 Diamonds Found: {diamonds}\n🎯 Winnings: {reward} primogems\n\n{full_grid}"
+        f"💰 Cashed out!\n\n💎 Found: {diamonds}\n🎯 Reward: {reward} primogems\n\n{full_grid}"
     )
 
-# === Stop Mine Handler ===
 async def stop_mine(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    user = get_user(user_id)
-    if not user or not isinstance(user[2], str):
-        await update.message.reply_text("❌ No active mine game.")
-        return
-    update_user_state(user_id, None)
+
+    if not get_user_state(user_id):
+        return await update.message.reply_text("❌ No active mine game.")
+
+    update_mines(user_id, None)
     await update.message.reply_text("🛑 Mine game stopped.")
 
 # === Show Primogems ===
 async def primogems(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    user = get_user(user_id)
+    user = get_balance(user_id,"Primogems")
     if not user:
         await update.message.reply_text("You have 0 primogems.")
         return
-    await update.message.reply_text(f"You have {user[1]} primogems.")
+    await update.message.reply_text(f"You have {user} primogems.")
 
 async def daily_primos(update, context):
     user_id = update.effective_user.id
@@ -716,7 +660,6 @@ async def claim(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def dice_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
-    # ✅ Validate input
     if len(context.args) != 2:
         await update.message.reply_text("Usage: /dice <amount> even/odd or e/o")
         return
@@ -737,45 +680,29 @@ async def dice_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Guess must be 'even', 'odd', 'e' or 'o'.")
         return
 
-    # ✅ Get primogems
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("SELECT primogems FROM users WHERE user_id = ?", (user_id,))
-        row = c.fetchone()
+    primos=get_balance(user_id,"Primogems")
 
-        if not row:
-            await update.message.reply_text("You need an account first. Try /start.")
-            return
+    if bet <= 0:
+        await update.message.reply_text("Bet must be more than 0.")
+        return
 
-        primos = row[0]
-
-        if bet <= 0:
-            await update.message.reply_text("Bet must be more than 0.")
-            return
-
-        if bet > primos:
-            await update.message.reply_text(f"You only have {primos} primogems!")
-            return
-
-        # Deduct the bet
-        c.execute("UPDATE users SET primogems = ? WHERE user_id = ?", (primos - bet, user_id))
-        conn.commit()
+    if bet > primos:
+        await update.message.reply_text(f"You only have {primos} primogems!")
+        return
 
     # 🎲 Roll the dice
     dice_msg = await update.message.reply_dice(emoji="🎲")
-    await asyncio.sleep(3.5)
+    await asyncio.sleep(1.5)
     result = dice_msg.dice.value
     parity = "even" if result % 2 == 0 else "odd"
 
     # ✅ Win/loss check
     if parity == guess:
-        winnings = bet * 2
-        with sqlite3.connect(DB_PATH) as conn:
-            c = conn.cursor()
-            c.execute("UPDATE users SET primogems = primogems + ? WHERE user_id = ?", (winnings, user_id))
-            conn.commit()
+        winnings = bet 
+        update_balance(user_id,"Primogems",winnings)
         await update.message.reply_text(f"🎉 Dice landed on {result} ({parity}). You won {winnings} primogems!")
     else:
+        update_balance(user_id,"Primogems",-bet)
         await update.message.reply_text(f"😢 Dice landed on {result} ({parity}). You lost {bet} primogems.")
 
 
@@ -1146,13 +1073,6 @@ def get_user_primogems(user_id):
         result = cursor.fetchone()
         return result[0] if result else 0
 
-
-def deduct_primogems(user_id, amount):
-    with sqlite3.connect(DATABASE) as conn:
-        conn.execute("UPDATE users SET primogems = primogems - ? WHERE user_id = ?", (amount, user_id))
-        conn.commit()
-
-
 def add_primogems(user_id, amount):
     with sqlite3.connect(DATABASE) as conn:
         conn.execute("UPDATE users SET primogems = primogems + ? WHERE user_id = ?", (amount, user_id))
@@ -1202,9 +1122,9 @@ async def rps_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     insufficient = []
-    if get_user_primogems(challenger.id) < bet:
+    if get_primogems(challenger.id) < bet:
         insufficient.append(format_name(challenger))
-    if get_user_primogems(opponent.id) < bet:
+    if get_primogems(opponent.id) < bet:
         insufficient.append(format_name(opponent))
 
     if insufficient:
@@ -1248,7 +1168,6 @@ async def rps_accept_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
     await query.answer()
     user_id = query.from_user.id
 
-    # Extract match ID
     try:
         match_id = query.data.split("_", 2)[2]
     except IndexError:
@@ -1269,11 +1188,10 @@ async def rps_accept_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
         await query.answer("Only the challenged user can accept this match.", show_alert=True)
         return
 
-    # Check balance again
     insufficient = []
-    if get_user_primogems(challenger.id) < bet:
+    if get_primogems(challenger.id) < bet:
         insufficient.append(format_name(challenger))
-    if get_user_primogems(opponent.id) < bet:
+    if get_primogems(opponent.id) < bet:
         insufficient.append(format_name(opponent))
 
     if insufficient:
@@ -1282,8 +1200,8 @@ async def rps_accept_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
         return
 
     # Deduct primogems
-    deduct_primogems(challenger.id, bet)
-    deduct_primogems(opponent.id, bet)
+    update_balance(challenger.id,"Primogems", -bet)
+    update_balance(opponent.id,"Primogems", -bet)
 
     # Set up RPS choice buttons
     caption = (
@@ -1305,7 +1223,6 @@ async def rps_accept_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
         reply_markup=InlineKeyboardMarkup(buttons)
     )
 
-    # Save updated match info
     match["msg_id"] = query.message.message_id
     match["chat_id"] = query.message.chat_id
     match["choice1"] = None
@@ -1397,8 +1314,8 @@ async def rps_choice_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
         if res == 0:
             try:
                 bet = int(match["bet"])
-                add_primogems(match["challenger"].id, bet)
-                add_primogems(match["opponent"].id, bet)
+                update_balance(match["challenger"].id,"Primogems", bet)
+                update_balance(match["opponent"].id,"Primogems", bet)
                 result = f"🤝 It's a tie! Both chose the same. Each refunded {bet} primos!"
             except Exception as e:
                 result = "❌ Refund failed due to internal error."
@@ -1425,11 +1342,11 @@ async def rps_choice_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
         elif res == 1:
             winner = match["challenger"]
             result = f"🏆 {format_name(winner)} wins +{int(bet) * 2} primos!"
-            add_primogems(winner.id, int(bet) * 2)
+            update_balance(winner.id,"Primogems", int(bet) * 2)
         else:
             winner = match["opponent"]
             result = f"🏆 {format_name(winner)} wins +{int(bet) * 2} primos!"
-            add_primogems(winner.id, int(bet) * 2)
+            update_balance(winner.id,"Primogems",int(bet) * 2)
 
         final_caption = (
             f"🪨 Rock Paper Scissors 🎮\n\n"
@@ -1499,7 +1416,7 @@ async def explore(update: Update, context: ContextTypes.DEFAULT_TYPE):
     location = random.choice(explore_locations)
 
     # Update user currencies
-    update_primogems(user_id, primogems_amount)
+    update_balance(user_id,"Primogems", primogems_amount)
     update_balance(user_id, "Mora", mora_amount)
     update_balance(user_id, "lunar Crystals", lunar_crystals_amount)
 

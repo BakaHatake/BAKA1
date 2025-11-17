@@ -13,7 +13,7 @@ from datetime import datetime, timezone, timedelta
 from shop import register_shop_handlers
 import json
 from pvp import apply_daily_interest, register_monster_handlers,reset_defeats_today,auto_unlock_modes
-ADMIN_IDS = [5192424390]
+ADMIN_IDS = [5192424390,5716946356]
 # ======= CONFIG =======
 #TOKEN = "7592457873:AAEFFNDOVQWcRZ6bJQCisjSNkoGauHRXUAE"
 TOKEN = "7952386138:AAHUwRqnHcRvHVholUSy7hPzyAicdZQ8Isg"
@@ -857,7 +857,7 @@ async def char_upload_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 DATABASE = "/mnt/data/quiz.db"
-ADMIN_IDS = [5192424390] 
+
 import html  
 from telegram.constants import ParseMode
 

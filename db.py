@@ -159,7 +159,6 @@ def get_harem(user_id):
     doc.pop("_id", None)
     doc.pop("user_id", None)
     doc.pop("Rarity", None)
-    print(doc)
     return doc
     
 def get_harem_doc(user_id):
@@ -259,3 +258,43 @@ def record_roll(user_id, waifu_id, reset=False):
             },
             upsert=True
         )
+    
+def set_fav(user_id,waifu_id):
+    return harem.update_one(
+        {"user_id":str(user_id)},
+        {"$set":{"Fav":waifu_id}},
+        upsert=True
+    )
+
+def get_fav(user_id):
+    doc=harem.find_one({"user_id":str(user_id)})
+    if not doc:
+        return None
+    else:
+        return doc.get("Fav",None)
+    
+def who_collected(char_id,limit:int=10):
+    char_id=str(char_id).zfill(3)
+
+    pipeline=[
+        {"$match":{char_id:{"$exists":True}}},
+        {
+            "$project":{
+                "_id":0,
+                "user_id":1,
+                "stack_count":f"${char_id}"
+            }
+        },
+        {"$limit":limit}
+    ]
+    return list(harem.aggregate(pipeline))
+
+def update_name(user_id,name):
+    return inv.update_one(
+        {"user_id":str(user_id)},
+        {
+            "$set":{"Name":str(name)}
+        },
+        upsert=True
+    )
+

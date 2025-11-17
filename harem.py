@@ -40,7 +40,7 @@ from telegram.ext import (
 )
 
 from db import update_counters,get_counters,update_drops,update_balance,clear_active_drop,update_harem,get_drops,get_balance,get_harem_rarity
-from db import get_harem,transfer_character
+from db import get_harem,transfer_character,set_fav,get_fav,who_collected,update_name
 ADMIN_ID = [5192424390]
 import os
 USE_MOUNT = os.path.exists("/mnt/data")
@@ -56,7 +56,7 @@ DB_PATH = os.path.join(BASE_PATH, "quiz.db")
 os.makedirs("/mnt/data", exist_ok=True)
 CHARACTER_IMAGE_DIR = os.path.join(BASE_PATH, "characters")
 IMAGE_ZIP_PATH = os.path.join(BASE_PATH, "characters_backup.zip")
-# CHARACTER_JSON_PATH = os.path.join(".", "BAKA1", "characters1.json")
+#CHARACTER_JSON_PATH = os.path.join(".", "BAKA1", "characters1.json")
 CHARACTER_JSON_PATH = os.path.join(BASE_PATH, "characters.json")
 import json
 
@@ -234,7 +234,7 @@ def parse_search_term(search_term: str):
 
     id_eq = None
     if multiplicity_ge is None and s.isdigit():
-        id_eq = int(s)  # '038' -> 38
+        id_eq = int(s)
 
     text = "" if (multiplicity_ge is not None or id_eq is not None) else s
     return {"text": text, "id_eq": id_eq, "multiplicity_ge": multiplicity_ge}
@@ -280,76 +280,64 @@ def filter_harem_in_memory(harem, search_term, RARITY_CONFIG):
 
 def db_fetch_char_exact(owner_id: int, char_id_int: int):
     char_id_norm = str(char_id_int).zfill(3)
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT ui.char_id, ui.stack_count, ui.is_favorite, ui.acquired_date
-        FROM user_inventory ui
-        WHERE ui.user_id = ? AND ui.char_id = ?
-    """, (owner_id, char_id_norm))
-    rows = cur.fetchall()
-    conn.close()
 
-    if not rows:
+    # Fetch user harem from Mongo
+    doc = get_harem(owner_id)
+    if not doc:
         return []
 
+    if char_id_norm not in doc:
+        return []
+
+    stack_count = doc[char_id_norm]
+
     characters = load_characters()
-    out = []
-    for cid, stack_count, is_favorite, acquired_date in rows:
-        ch = characters.get(cid)
-        if not ch:
-            continue
-        out.append({
-            "char_id": cid,
-            "name": ch.get("name"),
-            "rarity": ch.get("rarity"),
-            "stack_count": int(stack_count or 1),
-            "is_favorite": bool(is_favorite),
-            "image_path": ch.get("image_path"),
-            "acquired_date": acquired_date,
-        })
-    return out
+    ch = characters.get(char_id_norm)
+    if not ch:
+        return []
+
+    return [{
+        "char_id": char_id_norm,
+        "name": ch.get("name"),
+        "rarity": ch.get("rarity"),
+        "stack_count": int(stack_count or 1),
+        "image_path": ch.get("image_path"),
+    }]
+
 
 def db_fetch_char_by_multiplicity(owner_id: int, n: int):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT ui.char_id, ui.stack_count, ui.is_favorite, ui.acquired_date
-        FROM user_inventory ui
-        WHERE ui.user_id = ? AND ui.stack_count >= ?
-        ORDER BY ui.char_id
-    """, (owner_id, n))
-    rows = cur.fetchall()
-    conn.close()
 
-    if not rows:
+    doc = get_harem(owner_id)
+    if not doc:
         return []
 
     characters = load_characters()
     out = []
-    for cid, stack_count, is_favorite, acquired_date in rows:
+
+    for cid, stack_count in doc.items():
+        if int(stack_count) < n:
+            continue
+
+
         ch = characters.get(cid)
         if not ch:
             continue
+
         out.append({
             "char_id": cid,
             "name": ch.get("name"),
             "rarity": ch.get("rarity"),
-            "stack_count": int(stack_count or 1),
-            "is_favorite": bool(is_favorite),
+            "stack_count": int(stack_count),
             "image_path": ch.get("image_path"),
-            "acquired_date": acquired_date,
         })
-    return out
 
-# ---------- Inline Handlers ----------
+    return out
 
 async def inline_harem_gallery_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     qraw = (update.inline_query.query or "").strip()
     if not qraw.startswith("harem:"):
         return
 
-    # Parse "harem:<owner_id> [search]"
     parts = qraw.split(" ", 1)
     head = parts[0]
     if ":" not in head:
@@ -362,7 +350,6 @@ async def inline_harem_gallery_handler(update: Update, context: ContextTypes.DEF
         return
     search_term = parts[1].strip().lower() if len(parts) > 1 else ""
 
-    # Pagination
     offset_str = update.inline_query.offset or "0"
     try:
         offset = int(offset_str)
@@ -372,7 +359,6 @@ async def inline_harem_gallery_handler(update: Update, context: ContextTypes.DEF
         offset = 0
     page_size = 50
 
-    # Decide data source
     q = parse_search_term(search_term)
     if q["id_eq"] is not None:
         matched = db_fetch_char_exact(owner_id, q["id_eq"])
@@ -382,7 +368,6 @@ async def inline_harem_gallery_handler(update: Update, context: ContextTypes.DEF
         harem = get_user_harem(owner_id) or []
         matched = filter_harem_in_memory(harem, search_term, RARITY_CONFIG)
 
-    # Sort stable
     matched.sort(key=lambda c: (str(c.get("name", "")).lower(), str(c.get("char_id", ""))))
 
     end = min(offset + page_size, len(matched))
@@ -394,7 +379,6 @@ async def inline_harem_gallery_handler(update: Update, context: ContextTypes.DEF
         return
 
     results = []
-    # Escape display name for MarkdownV2
     owner_name_md = md2_escape(get_user_display_name(owner_id) or "User")
 
     for i, char in enumerate(page):
@@ -412,7 +396,6 @@ async def inline_harem_gallery_handler(update: Update, context: ContextTypes.DEF
         symbol_md = md2_escape(symbol)
         count = int(char.get("stack_count", 1) or 1)
 
-        # MarkdownV2 caption
         caption = (
             f"Look\\! Who is here👀 *{owner_name_md}*'s waifu\\!\n\n"
             f"`{char_id_md}` • *{name_md}* x{count}\n"
@@ -574,25 +557,17 @@ async def who_collected_callback(update: Update, context: ContextTypes.DEFAULT_T
         f"🔮 *Rarity:* {symbol_md} `{rarity_md}`"
     )
 
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT user_id, stack_count
-        FROM user_inventory
-        WHERE char_id = ?
-        ORDER BY stack_count DESC
-        LIMIT 10
-    """, (char_id,))
-    rows = cursor.fetchall()
-    conn.close()
+    rows=who_collected(char_id)
 
     if not rows:
         await query.answer("❌ Nobody has collected this waifu yet.", show_alert=True)
         return
 
     lines = ["📦 *Top Collectors:*"]
-    for user_id, stack_count in rows:
-        username = get_user_display_name(user_id) or "User"
+    for row in rows:
+        user_id = row["user_id"]
+        stack_count = row["stack_count"]
+        username = get_user_display_name(user_id) or user_id
         username_md = md2_escape(username)
         lines.append(f"• [${username_md}](tg://user?id={user_id}) x{int(stack_count or 1)}".replace("$", ""))
 
@@ -655,12 +630,7 @@ def ensure_name_exists(user_id: int, username: str = None):
 
 
 def get_user_display_name(user_id: int) -> str:
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT username FROM names WHERE user_id = ?", (user_id,))
-    result = cursor.fetchone()
-    conn.close()
-    return result[0] if result else "Unknown"
+    return get_balance(user_id,"Name")
 
 def load_characters() -> Dict:
 
@@ -906,55 +876,34 @@ def set_user_rarity_filter(user_id: int, rarity_filter: str):
     conn.close()
 
 
-def get_user_harem(user_id: int, sort_by: str = 'date', rarity_filter: str = None) -> List[Dict]:
-    """Get user's character collection with optional rarity filter"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
+def get_user_harem(user_id: int, rarity_filter: str = None):
 
-    # Determine sort order
-    order_by = {
-        'date': 'acquired_date ASC',
-        'rarity': 'rarity DESC, acquired_date ASC',
-        'name': 'char_name ASC'
-    }.get(sort_by, 'acquired_date ASC')
-
-    cursor.execute(f'''
-        SELECT ui.char_id, ui.stack_count, ui.is_favorite, ui.acquired_date
-        FROM user_inventory ui
-        WHERE ui.user_id = ?
-        ORDER BY {order_by}
-    ''', (user_id,))
-
-    results = cursor.fetchall()
-    conn.close()
-
-    if not results:
+    owned = get_harem(user_id)
+    if not owned:
         return []
 
-    characters = load_characters() 
+    characters = load_characters()
     harem = []
 
-    for char_id, stack_count, is_favorite, acquired_date in results:
+    for char_id, stack_count in owned.items():
         if char_id not in characters:
             continue
 
         char = characters[char_id]
 
-        
         if rarity_filter and str(char['rarity']) != rarity_filter:
             continue
 
-        image_path = char.get('image_path', 'characters/default.png')  # fallback
         harem.append({
-            'char_id': char_id,
-            'name': char['name'],
-            'rarity': char['rarity'],
-            'stack_count': stack_count,
-            'is_favorite': bool(is_favorite),
-            'image_path': image_path
+            "char_id": char_id,
+            "name": char["name"],
+            "rarity": char["rarity"],
+            "stack_count": stack_count,
+            "image_path": char.get("image_path", "characters/default.png"),
         })
 
     return harem
+
 
 
 def user_owns_character(user_id: int, char_id: str) -> bool:
@@ -998,12 +947,11 @@ def get_favorite_character(user_id: int) -> str | None:
 
 
 def get_rarity_cost(rarity) -> int:
-    """Get primogem cost for rarity"""
     return RARITY_CONFIG.get(rarity, {"cost": 50})["cost"]
 
 def get_rarity_display(rarity) -> str:
-    """Get display string for rarity"""
     return RARITY_CONFIG.get(rarity, {"display": str(rarity)})["display"]
+
 def increment_message_streak(chat_id: int, user_id: int):
     """
     Increment streak count for user, reset others'.
@@ -1308,7 +1256,7 @@ async def wish_command(update: 'Update', context: 'ContextTypes.DEFAULT_TYPE'):
     remaining_after = max(0, DAILY_WISH_LIMIT - used)
 
     if success:
-        update_harem(user_id,char_id,1,rarity=None)
+        update (user_id,char_id,1,rarity=None)
         await update.message.reply_text(
             f"✅ *{user_name}*, you got a new waifu!\n\n"
             f"🌸 *NAME:* {char_name}\n"
@@ -1370,9 +1318,7 @@ async def harem_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_id = user.id
     first_name = user.first_name or user.username or "User"
-
-    
-    ensure_name_exists(user_id, first_name)
+    update_name(user_id,first_name)
 
     rarity_filter = get_harem_rarity(user_id)
     waifus = get_harem(user_id)
@@ -1398,9 +1344,8 @@ async def send_harem_page(update: Update, context: ContextTypes.DEFAULT_TYPE, us
         await update.message.reply_text(f"\u274c Your harem is empty{filter_msg}!")
         return
 
-    fav_id = get_favorite_character(user_id)
-    for char in harem:
-        char['is_favorite'] = (char['char_id'] == fav_id)
+    fav_id = get_fav(user_id)
+
 
     chars_per_page = 10
     total_pages = math.ceil(len(harem) / chars_per_page)
@@ -1417,15 +1362,13 @@ async def send_harem_page(update: Update, context: ContextTypes.DEFAULT_TYPE, us
         rarity_data = RARITY_CONFIG.get(char['rarity'], {"symbol": "⭐"})
         symbol = rarity_data.get("symbol", "⭐")
         stack = f" ×{char['stack_count']}" if char['stack_count'] > 1 else ""
-        fav = " 💖" if char['is_favorite'] else ""
+        fav = " 💖" if char['char_id']==fav_id else ""
         caption += f"➔ `{char['char_id']}` | {symbol} | {char['name'].title()}{stack}{fav}\n"
 
     caption += "=" * 35
 
-    # Build inline keyboard
     keyboard = []
 
-    # Navigation row (Prev/Next)
     nav_row = []
     if page > 1:
         nav_row.append(
@@ -1438,17 +1381,20 @@ async def send_harem_page(update: Update, context: ContextTypes.DEFAULT_TYPE, us
     if nav_row:
         keyboard.append(nav_row)
 
-    # Action row (Inline gallery + Close)
+  
     action_row = [
         InlineKeyboardButton("🖼 View Gallery", switch_inline_query_current_chat=f"harem:{user_id}"),
         InlineKeyboardButton("❌ Close", callback_data=f"harem_close_{user_id}")
     ]
     keyboard.append(action_row)
 
-    # Select the display image (favorite or fallback to first on page)
-    display_char = next((c for c in harem if c['is_favorite']), harem[0])
-
-    image_path = display_char.get('image_path', 'characters/default.png')
+    
+    display_char = next((char for char in harem if char['char_id'] == fav_id),None)
+    if display_char is None:
+        display_char = random.choice(harem) if harem else None
+    print(char,fav_id)
+    image_path = display_char.get('image_path', 'characters/default.png') if display_char else 'characters/default.png'
+    print(image_path)
     is_url = re.match(r'^https?://', image_path)
 
     try:
@@ -1505,9 +1451,7 @@ async def harem_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_caption("\u274c Harem empty.")
             return
 
-        fav_id = get_favorite_character(owner_id)
-        for char in harem:
-            char['is_favorite'] = (char['char_id'] == fav_id)
+        fav_id = get_fav(user_id)
 
         chars_per_page = 10
         total_pages = math.ceil(len(harem) / chars_per_page)
@@ -1524,7 +1468,7 @@ async def harem_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             rarity_data = RARITY_CONFIG.get(char['rarity'], {"symbol": "⭐"})
             symbol = rarity_data.get("symbol", "⭐")
             stack = f" ×{char['stack_count']}" if char['stack_count'] > 1 else ""
-            fav = " 💖" if char['is_favorite'] else ""
+            fav = " 💖" if char['char_id']==fav_id else ""
             caption += f"➔ `{char['char_id']}` | {symbol} | {char['name'].title()}{stack}{fav}\n"
 
         caption += "=" * 35
@@ -1545,9 +1489,11 @@ async def harem_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         keyboard.append(action_row)
 
-        display_char = next((c for c in harem if c['is_favorite']), harem[0])
+        display_char = next((char for char in harem if char['char_id'] == fav_id), None)
+        if display_char is None:
+            display_char = random.choice(harem) if harem else None
+        image_path = display_char.get('image_path', 'characters/default.png') if display_char else 'characters/default.png'
 
-        image_path = display_char.get('image_path', 'characters/default.png')
         is_url = re.match(r'^https?://', image_path)
 
         try:
@@ -1575,53 +1521,6 @@ async def harem_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.delete_message()
         return
 
-    elif data.startswith("harem_gallery_"):
-        _, _, page, sort_by, owner_id = data.split("_")
-        page, owner_id = int(page), int(owner_id)
-        if user_id != owner_id:
-            await query.answer("\u274c You can't view someone else's gallery.", show_alert=True)
-            return
-        await query.answer("Loading gallery...")
-
-        harem = get_user_harem(owner_id, sort_by, get_user_rarity_filter(owner_id))
-        chars_per_page = 10
-        page_chars = harem[(page - 1) * chars_per_page: page * chars_per_page]
-
-        async def fetch_img(url):
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url) as resp:
-                    return Image.open(BytesIO(await resp.read())).convert("RGBA")
-
-        images = []
-        for char in page_chars[:9]:
-            try:
-                img = await fetch_img(char['image_path'])
-                img = img.resize((256, 256))
-                images.append((img, char))
-            except Exception as e:
-                print(f"[Gallery Error] {char['name']}: {e}")
-
-        if not images:
-            await query.edit_message_caption("\u274c Failed to load gallery.")
-            return
-
-        grid = Image.new("RGBA", (3 * 256, ((len(images) + 2) // 3) * 256), (255, 255, 255, 0))
-        buttons = []
-        for idx, (img, char) in enumerate(images):
-            x = (idx % 3) * 256
-            y = (idx // 3) * 256
-            grid.paste(img, (x, y))
-            buttons.append([InlineKeyboardButton(char['name'].title(), callback_data=f"harem_info_{char['char_id']}")])
-
-        img_bytes = BytesIO()
-        grid.save(img_bytes, format="PNG")
-        img_bytes.seek(0)
-
-        await query.edit_message_media(
-            media=InputMediaPhoto(media=img_bytes, caption="🖼️ Tap a waifu below for details."),
-            reply_markup=InlineKeyboardMarkup(buttons)
-        )
-        return
 
     elif data.startswith("harem_info_"):
         char_id = data.split("_")[2]
@@ -1734,19 +1633,17 @@ async def rarity_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 import re  # ensure this is imported at the top if not already
 
 async def fav_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Set favorite character"""
+
     user_id = update.effective_user.id
 
     if not context.args:
         await update.message.reply_text("Usage: `/fav <character_id>`", parse_mode="Markdown")
         return
 
-    # Normalize ID: allows /fav 3 or /fav 003
     raw_id = context.args[0]
     char_id = raw_id.lstrip("0").zfill(3)
 
-    # Check ownership
-    if not user_owns_character(user_id, char_id):
+    if char_id not in get_harem(user_id):
         await update.message.reply_text("❌ You don't own this character!")
         return
 
@@ -1812,7 +1709,7 @@ async def fav_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await query.reply_text("⚠️ You can't set someone else's favorite.")
                 return
 
-            if set_favorite_character(user_id, char_id):
+            if set_fav(user_id, char_id):
                 characters = load_characters()
                 char = characters.get(char_id)
                 if not char:
@@ -1830,7 +1727,6 @@ async def fav_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif data_parts[1] == 'no':
             await query.delete_message()
 
-# /gift command
 async def gift_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sender = update.effective_user
     sender_id = sender.id

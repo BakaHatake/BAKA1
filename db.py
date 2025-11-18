@@ -316,6 +316,11 @@ def block_user(user_id):
         {"$set":{"Block untill":block,"Streak":0}},
         upsert=True
     )
+def reset_streak(user_id):
+    return spam.update_one(
+        {"user_id": str(user_id)},
+        {"$set": {"Streak": 0}}
+    )
 
 
 def increment_streak(user_id):
@@ -346,6 +351,10 @@ def unblock_user(user_id):
         {"$set": {"Block untill": 0, "Streak": 0}}
     )
     return True
+
+def get_streak(user_id):
+    doc=spam.find_one({"user_id":str(user_id)})
+    return doc
 
 def get_top_waifu_holders(limit=10):
     top = []

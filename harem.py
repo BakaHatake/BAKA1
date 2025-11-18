@@ -44,7 +44,7 @@ from zoneinfo import ZoneInfo
 
 from db import update_counters,get_counters,update_drops,update_balance,clear_active_drop,update_harem,get_drops,get_balance,get_harem_rarity
 from db import get_harem,transfer_character,set_fav,get_fav,who_collected,update_name,increment_character,decrement_character,user_has_character
-from db import block_user,is_blocked,increment_streak,unblock_user,get_top_waifu_holders
+from db import block_user,is_blocked,increment_streak,unblock_user,get_top_waifu_holders,reset_streak,get_streak
 ADMIN_ID = [5192424390]
 import os
 USE_MOUNT = os.path.exists("/mnt/data")
@@ -604,7 +604,6 @@ def get_rarity_cost(rarity) -> int:
 def get_rarity_display(rarity) -> str:
     return RARITY_CONFIG.get(rarity, {"display": str(rarity)})["display"]
 
-
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
     chat_id = chat.id
@@ -613,14 +612,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if chat.type == "private":
         return
+
     if update.message.text and update.message.text.startswith('/'):
         return
 
-    update_counters(chat_id,"Count",1)
+    if is_blocked(user_id):
+        return
+
+    update_counters(chat_id, "Count", 1)
 
     should_drop = should_trigger_drop(chat_id)
     if should_drop:
-        print("Triggered")
         drop = create_drop(chat_id)
         if drop:
             try:
@@ -637,14 +639,31 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     photo.close()
             except Exception as e:
                 print(f"[DROP IMAGE ERROR] {e}")
-        print(f"[DROP] Triggered in {chat_id}")
+        return
+
+    last_user = context.chat_data.get("last_user")
+
+    if last_user == user_id:
+        ok, warn = increment_streak(user_id)
     else:
-        incremented, spam_warning = increment_streak(user_id)
-        if spam_warning:
-            await context.bot.send_message(
-                chat_id,
-                text=f"⚠️ {username}, you are blocked for 10 minutes due to spamming."
-            )
+        reset_streak(last_user) if last_user else None
+        ok, warn = increment_streak(user_id)
+
+    doc=get_streak(user_id  )
+    streak = doc.get("Streak", 0)
+
+    context.chat_data["last_user"] = user_id
+
+    if warn or streak >= 10:
+        await update.message.reply_text(
+            f"⚠️ {username}, you are blocked for 10 minutes due to spamming."
+        )
+        block_user(user_id)
+        reset_streak(user_id)
+        context.chat_data["last_user"] = None
+        return
+
+
 
 
 async def unlock_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -794,7 +813,7 @@ async def wish_command(update: 'Update', context: 'ContextTypes.DEFAULT_TYPE'):
     remaining_after = max(0, DAILY_WISH_LIMIT - used)
 
     if success:
-        update (user_id,char_id,1,rarity=None)
+        update_harem(user_id,char_id,1,rarity=None)
         await update.message.reply_text(
             f"✅ *{user_name}*, you got a new waifu!\n\n"
             f"🌸 *NAME:* {char_name}\n"

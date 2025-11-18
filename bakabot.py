@@ -953,6 +953,7 @@ async def primosboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def lunarboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     top = get_top_users("Lunar Crystals")
+    print(top)
 
     if not top:
         await update.message.reply_text("📦 No data found.")
@@ -963,7 +964,8 @@ async def lunarboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for i, user in enumerate(top, 1):
         uid = user["user_id"]
         name = html.escape(user["name"])
-        primos = user["value"]
+        primos = user.get("value", 0)
+
 
         mention = f"<a href='tg://user?id={uid}'>{name}</a>"
         msg += f"{i}. {mention} — <b>{primos}</b> 🌙\n"

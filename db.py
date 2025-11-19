@@ -15,7 +15,7 @@ spam=db['spam']
 mines=db['mines']
 paimonbox=db['paimonbox']
 steals=db['steals']
-
+clash=db['clash']
 def update_inv(user_id,primogems=0,mora=0,lunar_crystals=0):
     return inv.update_one(
         {"user_id":str(user_id)},
@@ -492,3 +492,14 @@ def get_top_users(key, limit=10):
 
     return results
 
+def update_id(user_id,id):
+    return clash.update_one({"user_id":str(user_id)},
+                     {"$set":{"id":id}},
+                    upsert=True
+                     )
+def get_id(user_id):
+    doc=clash.find_one({"user_id":str(user_id)})
+    if doc is None:
+        return None
+    return doc.get("id",None)
+    

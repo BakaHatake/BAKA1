@@ -4,6 +4,7 @@ from quiz import register_quiz_handlers
 from gacha import register_gacha_handlers,ensure_gacha_columns
 from harem import register_harem_handlers
 from mine import register_game_handlers
+from coc import register_coc_handlers
 import os
 import sqlite3
 from datetime import time,timedelta,timezone
@@ -1389,7 +1390,7 @@ def setup_application():
     register_game_handlers(application)
     register_monster_handlers(application)
     register_shop_handlers(application)
-    
+    register_coc_handlers(application)
 
     ensure_gacha_columns()
 

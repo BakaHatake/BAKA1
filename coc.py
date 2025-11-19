@@ -2,22 +2,18 @@ import requests
 
 api_token="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6IjY3NDg1YjJlLTVkYWItNDM0My04NDM2LTg3MGUyOTM4MWIzZSIsImlhdCI6MTc2MzU1Nzk2Niwic3ViIjoiZGV2ZWxvcGVyLzJmZGVkZDRiLWUxMGUtMWYwZC1jY2JhLTU0MWNmYTQ2MDYyZCIsInNjb3BlcyI6WyJjbGFzaCJdLCJsaW1pdHMiOlt7InRpZXIiOiJkZXZlbG9wZXIvc2lsdmVyIiwidHlwZSI6InRocm90dGxpbmcifSx7ImNpZHJzIjpbIjIyMy4yMzcuMTYyLjE5MyJdLCJ0eXBlIjoiY2xpZW50In1dfQ.EITJ3Qrof0b-wFqOSRotIoGHDpbEqEYtBL-eWuuYrejwU_tBoUR31MNgxB_BS_lwnWNLAjsHQxudI6cEhiQPBA"
 
+def get_info(tag):
 
-def get_info(tag,api_token):
+    url = f"https://still-cloud-6b38.aanush748.workers.dev/v1/players/%23{tag}"
 
-
-    url=f"https://api.clashofclans.com/v1/players/%23{tag}"
-    headers={
-        "Accept":"application/json",
-        "Authorization":f"Bearer {api_token}"
-    }
-
-    response=requests.get(url,headers=headers)
-    if response.status_code==200:
+    response = requests.get(url)
+    
+    if response.status_code == 200:
         return response.json()
     else:
         print("Error:", response.status_code, response.text)
         return None
+
 
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto, ReplyKeyboardRemove, ForceReply
@@ -43,7 +39,7 @@ async def coc(update, context):
         await update.message.reply_text("No tag saved. Use /scoc <tag> first.")
         return
 
-    data = get_info(tag, api_token)
+    data = get_info(tag)
     if not data:
         await update.message.reply_text("Failed to fetch profile. API error.")
         return

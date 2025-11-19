@@ -1,342 +1,133 @@
-
+# --- Updated quiz handlers using MongoDB ---
 import random
-import sqlite3
 from datetime import datetime, timezone, timedelta
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ParseMode, ChatType
 from telegram.helpers import mention_html
 from telegram.ext import (
-    CommandHandler,
-    MessageHandler,
-    CallbackQueryHandler,
-    ContextTypes,
-    ConversationHandler,
-    filters,
+    CommandHandler, MessageHandler, CallbackQueryHandler,
+    ContextTypes, ConversationHandler, filters
 )
-import shutil
-from telegram.ext import CommandHandler, MessageHandler, filters
-from db import update_balance
+import os, shutil, asyncio
 
-BOT_START_TIME = datetime.now(timezone.utc)
-OWNER_ID = 5192424390  
-RESET_LOG_CHAT_ID = -1002871188921 
-APPROVED_CHAT_ID = -1002043895840 
-# === DB INIT ===
-def init_db():
-    conn = sqlite3.connect("/mnt/data/quiz.db")
-    c = conn.cursor()
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS questions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            question TEXT,
-            options TEXT,
-            answer TEXT
-        )
-    """)
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS scores (
-            user_id INTEGER PRIMARY KEY,
-            username TEXT,
-            points INTEGER DEFAULT 0
-        )
-    """)
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            user_id INTEGER PRIMARY KEY,
-            primogems INTEGER DEFAULT 0,
-            mine_state TEXT
-        )
-    """)
-    conn.commit()
-    conn.close()
-def init_clash_table():
-    conn = sqlite3.connect("/mnt/data/quiz.db")
-    c = conn.cursor()
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS clash_leaderboard (
-            user_id INTEGER PRIMARY KEY,
-            username TEXT,
-            clashpoints INTEGER DEFAULT 0
-        )
-    """)
-    conn.commit()
-    conn.close()
-    print("clash created")
-# === CONSTANTS ===
-ADD_Q_TEXT, ADD_Q_OPTIONS, ADD_Q_ANSWER = range(3)
+# your existing db module (assumes you pasted helper funcs above into db.py)
+from db import (
+    get_random_question, insert_question_doc, get_all_questions, delete_question_by_id,
+    update_score_db, get_leaderboard_db, reset_scores_and_reward_top,
+    get_clash_leaderboard_db, update_clash_points_db,
+    get_primogems, update_primos, update_balance,get_question_by_id
+)
+from db import is_authorized, get_authorized_users
+
 AUTHORIZED_USERS = [5192424390]
 
-# === UTILS ===
-def get_random_question():
-    conn = sqlite3.connect("/mnt/data/quiz.db")
-    c = conn.cursor()
-    c.execute("SELECT * FROM questions ORDER BY RANDOM() LIMIT 1")
-    question = c.fetchone()
-    conn.close()
-    return question
+# constants you already had
+BOT_START_TIME = datetime.now(timezone.utc)
+OWNER_ID = 5192424390
+RESET_LOG_CHAT_ID = -1002871188921
+APPROVED_CHAT_ID = -1002120721604
 
-def get_primogems(user_id):
-    conn = sqlite3.connect("/mnt/data/quiz.db")
-    c = conn.cursor()
-    c.execute("SELECT primogems FROM users WHERE user_id = ?", (user_id,))
-    row = c.fetchone()
-    conn.close()
-    return row[0] if row else 0
+# conversation states you used earlier
+ADD_Q_TEXT = 1
+ADD_Q_OPTIONS = 2
+ADD_Q_ANSWER = 3
 
-def deduct_primogems(user_id, amount):
-    conn = sqlite3.connect("/mnt/data/quiz.db")
-    c = conn.cursor()
-    c.execute("INSERT OR IGNORE INTO users (user_id, primogems, mine_state) VALUES (?, 0, NULL)", (user_id,))
-    c.execute("UPDATE users SET primogems = primogems - ? WHERE user_id = ?", (amount, user_id))
-    conn.commit()
-    conn.close()
-
-def update_score(user_id, username, points=1):
-    conn = sqlite3.connect("/mnt/data/quiz.db")
-    c = conn.cursor()
-    c.execute("INSERT OR IGNORE INTO scores (user_id, username, points) VALUES (?, ?, 0)", (user_id, username))
-    c.execute("UPDATE scores SET points = points + ?, username = ? WHERE user_id = ?", (points, username, user_id))
-    conn.commit()
-    conn.close()
-
-def update_primogems(user_id, amount):
-    conn = sqlite3.connect("/mnt/data/quiz.db")
-    c = conn.cursor()
-    c.execute("INSERT OR IGNORE INTO users (user_id, primogems, mine_state) VALUES (?, 0, NULL)", (user_id,))
-    c.execute("UPDATE users SET primogems = primogems + ? WHERE user_id = ?", (amount, user_id))
-    conn.commit()
-    conn.close()
-def get_question(qid):
-    conn=sqlite3.connect("/mnt/data/quiz.db")
-    c=conn.cursor()
-    c.execute("SELECT * FROM questions WHERE id=?", (qid,))
-    qquestion=c.fetchone()
-    conn.close()
-    return qquestion
-def update_clash_points(user_id, username):
-    conn = sqlite3.connect("/mnt/data/quiz.db")
-    c = conn.cursor()
-    c.execute("INSERT OR IGNORE INTO clash_leaderboard (user_id, username, clashpoints) VALUES (?, ?, 0)", (user_id, username))
-    c.execute("UPDATE clash_leaderboard SET clashpoints = clashpoints + 1, username = ? WHERE user_id = ?", (username, user_id))
-    conn.commit()
-    conn.close()
-def get_clash_leaderboard():
-    conn = sqlite3.connect("/mnt/data/quiz.db")
-    c = conn.cursor()
-    c.execute("SELECT user_id, username, clashpoints FROM clash_leaderboard ORDER BY clashpoints DESC LIMIT 10")
-    leaderboard = c.fetchall()
-    conn.close()
-    return leaderboard
-
-def get_leaderboard():
-    conn = sqlite3.connect("/mnt/data/quiz.db")
-    c = conn.cursor()
-    c.execute("SELECT username, points FROM scores ORDER BY points DESC LIMIT 10")
-    leaderboard = c.fetchall()
-    conn.close()
-    return leaderboard
-
-import asyncio
-import shutil
-import os
-QUIZ_DB_PATH = "/mnt/data/quiz.db"
-
-awaiting_db_restore = {}  # user_id: True/False
-
-async def clear_db_flag_later(user_id, delay=120):
-    await asyncio.sleep(delay)
-    awaiting_db_restore.pop(user_id, None)
-
-async def backup_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if user_id not in AUTHORIZED_USERS:
-        await update.message.reply_text("❌ You're not authorized.")
-        return
-
-    try:
-        # Open and send the live DB as-is
-        with open(QUIZ_DB_PATH, "rb") as f:
-            await update.message.reply_document(
-                document=InputFile(f, filename="quiz_backup.db"),
-                caption="📦 Here is your DB backup.\n📥 Now upload your `.db` within 2 minutes to restore."
-            )
-        awaiting_db_restore[user_id] = True
-        asyncio.create_task(clear_db_flag_later(user_id))
-    except FileNotFoundError:
-        await update.message.reply_text("❌ quiz.db not found.")
-
-async def handle_uploaded_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if user_id not in AUTHORIZED_USERS:
-        return
-
-    if not awaiting_db_restore.get(user_id):
-        return  # Not expecting upload
-
-    document = update.message.document
-    if not document or not document.file_name.endswith(".db"):
-        return
-
-    try:
-        tg_file = await document.get_file()
-        await tg_file.download_to_drive("quiz_upload.db")
-        await update.message.reply_text("📥 File saved as `quiz_upload.db`. Use /restoredb to load it.")
-    except Exception as e:
-        await update.message.reply_text(f"❌ Failed to upload DB: {e}")
-
-    awaiting_db_restore.pop(user_id, None)
-
-async def restore_uploaded_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-
-    if user_id not in AUTHORIZED_USERS:
-        await update.message.reply_text("❌ You’re not authorized.")
-        return
-
-    # 1️⃣ Must be a reply to a document
-    if not update.message.reply_to_message:
-        await update.message.reply_text("ℹ️ Reply to the uploaded `.db` file with /restoredb.")
-        return
-
-    doc_msg = update.message.reply_to_message
-
-    # 2️⃣ The reply must be a .db file
-    if not doc_msg.document or not doc_msg.document.file_name.endswith(".db"):
-        await update.message.reply_text("❌ That’s not a .db file.")
-        return
-
-    try:
-        # 3️⃣ Download the uploaded file
-        file = await doc_msg.document.get_file()
-        await file.download_to_drive("quiz_upload.db")
-    except Exception as e:
-        await update.message.reply_text(f"❌ Download failed: {e}")
-        return
-
-    try:
-        # 4️⃣ Copy into real path (overwrite if exists, create if not)
-        os.makedirs(os.path.dirname(QUIZ_DB_PATH) or ".", exist_ok=True)
-        shutil.copyfile("quiz_upload.db", QUIZ_DB_PATH)
-        await update.message.reply_text("✅ quiz.db restored successfully! (new file created if none existed)")
-    except Exception as e:
-        await update.message.reply_text(f"❌ Restore failed: {e}")
-        return
-
-    # ✅ Clear restore flag
-    awaiting_db_restore.pop(user_id, None)
-
-
-
-# === QUIZ ===
+# --- QUIZ START ---
 async def start_quiz(update: Update, context: ContextTypes.DEFAULT_TYPE, ignore_auth=False):
-    if not ignore_auth and update.effective_user.id not in AUTHORIZED_USERS:
-        await context.bot.send_message(chat_id=update.effective_chat.id, text="🚫 You are not authorized to start the quiz.")
+
+    if not ignore_auth:
+        if not is_authorized(update.effective_user.id):
+            await update.message.reply_text("🚫 You are not authorized to start quizzes.")
+            return
+
+    q = get_random_question()
+    if not q:
+        await update.message.reply_text("❌ No questions in database.")
         return
 
-    question = get_random_question()
-    if not question:
-        await context.bot.send_message(chat_id=update.effective_chat.id, text="No questions available.")
-        return
+    q_id, text, options_str, answer = q
+    options = [opt.strip() for opt in options_str.split("|")]
 
-    q_id, text, options_str, answer = question
-    options = options_str.split("|")
-    keyboard = [[InlineKeyboardButton(opt, callback_data=f"quiz:{q_id}:{opt}")] for opt in options]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    keyboard = [
+        [InlineKeyboardButton(opt, callback_data=f"quiz:{q_id}:{opt}")]
+        for opt in options
+    ]
 
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=f"❓ {text}", reply_markup=reply_markup)
+    await update.message.reply_text(
+        f"❓ {text}",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
+
+# --- ANSWER HANDLER ---
 async def answer_quiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    _, q_id, selected = query.data.split(":")
-    conn = sqlite3.connect("/mnt/data/quiz.db")
-    c = conn.cursor()
-    c.execute("SELECT answer FROM questions WHERE id=?", (q_id,))
-    correct_answer = c.fetchone()[0]
-    conn.close()
 
+    _, qid, selected = query.data.split(":")
+
+    qdoc = get_question_by_id(qid)
+    if not qdoc:
+        await query.edit_message_text("❌ Question not found.")
+        return
+
+    correct = qdoc["answer"]
     user = query.from_user
-    mention = mention_html(user.id, user.full_name)
-    username = user.username or f"id_{user.id}"
 
-    if selected == correct_answer:
-        update_score(user.id, username)
-        update_primogems(user.id, 200)  # Add 200 primogems
-        update_balance(user.id, "Lunar Crystals", 10)  # Add 10 lunar crystals
+    if selected == correct:
+        update_score_db(user.id, user.username or f"id_{user.id}", 1)
+        update_primos(user.id, 200)
+        update_balance(user.id, "Lunar Crystals", 10)
+
         await query.edit_message_text(
-            text=f"✅ {mention}, Correct! You've been awarded 1 point, 200 primogems, and 10 lunar crystals.",
+            f"✅ Correct!\n+1 point\n+200 primogems\n+10 lunar crystals",
             parse_mode="HTML"
         )
+
     else:
-        await query.edit_message_text(
-            text=f"❌ {mention}, Wrong! Better luck next time.",
-            parse_mode="HTML"
-        )
+        await query.edit_message_text("❌ Wrong.")
 
-# === LEADERBOARD ===
-import os
 
+# --- LEADERBOARD ---
 async def show_leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    leaderboard = get_leaderboard()
-    if not leaderboard:
+    lb = get_leaderboard_db()
+    if not lb:
         await update.message.reply_text("No scores yet!")
         return
 
     image_path = os.path.join(os.path.dirname(__file__), "images", "Quizimage.jpg")
-
     message = ""
-    for i, (username, points) in enumerate(leaderboard, 1):
-        mention = f"<a href='https://t.me/{username}'>{username}</a>"
+    for i, (username, points, uid) in enumerate(lb, 1):
+        mention = f"<a href='https://t.me/{username}'>{username}</a>" if not username.startswith("id_") else f"<code>{uid}</code>"
         message += f"<b>{i}.</b> {mention} — <i>{points} points</i>\n"
 
     caption = f"<b>🏆 Quiz Leaderboard</b>\n\n{message}"
-
     try:
         with open(image_path, "rb") as photo:
-            await context.bot.send_photo(
-                chat_id=update.effective_chat.id,
-                photo=photo,
-                caption=caption,
-                parse_mode=ParseMode.HTML
-            )
+            await context.bot.send_photo(chat_id=update.effective_chat.id, photo=photo, caption=caption, parse_mode=ParseMode.HTML)
     except FileNotFoundError:
-        await update.message.reply_text("❌ Couldn't find the image file for the leaderboard.")
+        await update.message.reply_text(caption, parse_mode=ParseMode.HTML)
 
-from telegram.constants import ParseMode
-import os
-
-
+# --- CLASH BOARD (uses quiz_clash collection) ---
 async def clashboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    leaderboard = get_clash_leaderboard()
+    leaderboard = get_clash_leaderboard_db()
     if not leaderboard:
         await update.message.reply_text("🏳️ No one has clashed yet!")
         return
 
     image_url = "https://i.postimg.cc/yd5LjQ15/clash.jpg"
-
     message = "<b>🏆 Clash Leaderboard</b>\n\n"
     for i, (user_id, username, points) in enumerate(leaderboard, 1):
         mention = f"<a href='tg://user?id={user_id}'>{username}</a>"
         message += f"<b>{i}.</b> {mention} — <i>{points} clash points</i>\n"
 
-  
     try:
-        await context.bot.send_photo(
-            chat_id=update.effective_chat.id,
-            photo=image_url,
-            caption=message,
-            parse_mode=ParseMode.HTML
-        )
+        await context.bot.send_photo(chat_id=update.effective_chat.id, photo=image_url, caption=message, parse_mode=ParseMode.HTML)
     except Exception as e:
-      
-        await update.message.reply_text(
-            "⚠️ Failed to load leaderboard image, but here's the leaderboard:\n\n" + message,
-            parse_mode=ParseMode.HTML
-        )
-
+        await update.message.reply_text("⚠️ Failed to load leaderboard image, but here's the leaderboard:\n\n" + message, parse_mode=ParseMode.HTML)
         print(f"❌ Failed to send leaderboard image: {e}")
 
-# === ADD QUESTION ===
+# --- ADD QUESTION flow ---
 async def add_question_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in AUTHORIZED_USERS:
         await update.message.reply_text("You're not authorized to add questions.")
@@ -353,8 +144,6 @@ async def add_question_options(update: Update, context: ContextTypes.DEFAULT_TYP
     context.user_data["new_options"] = update.message.text
     await update.message.reply_text("✅ Now send the correct answer (must match one of the options):")
     return ADD_Q_ANSWER
-
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 
 async def add_question_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     question = context.user_data.get("new_question")
@@ -375,87 +164,64 @@ async def add_question_answer(update: Update, context: ContextTypes.DEFAULT_TYPE
         f"✅ *Answer*: {answer}"
     )
 
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("✅ Confirm", callback_data="confirm_add"),
-         InlineKeyboardButton("❌ Cancel", callback_data="cancel_add")]
-    ])
-
+    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("✅ Confirm", callback_data="confirm_add"),
+                                     InlineKeyboardButton("❌ Cancel", callback_data="cancel_add")]])
     await update.message.reply_text(preview, reply_markup=keyboard, parse_mode="Markdown")
-    return ConversationHandler.END
-import sqlite3
+    return
 
 async def confirm_add_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-
     if query.data == "confirm_add":
         question = context.user_data.get("new_question")
         options_str = context.user_data.get("new_options")
         answer = context.user_data.get("new_answer")
-
-        conn = sqlite3.connect("/mnt/data/quiz.db")
-        c = conn.cursor()
-        c.execute("INSERT INTO questions (question, options, answer) VALUES (?, ?, ?)",
-                  (question, options_str, answer))
-        conn.commit()
-        conn.close()
-
+        insert_question_doc(question, options_str, answer)
         await query.edit_message_text("✅ Question saved to database!")
-
-    elif query.data == "cancel_add":
+    else:
         await query.edit_message_text("❌ Question discarded.")
-
-    # Clear memory
     for key in ["new_question", "new_options", "new_answer"]:
         context.user_data.pop(key, None)
-
 
 async def cancel_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("❌ Question creation cancelled.")
     return ConversationHandler.END
 
 async def questions_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != OWNER_ID:
-        await update.message.reply_text("❌ You are not authorized to view the questions.")
+
+    if not is_authorized(update.effective_user.id):
+        await update.message.reply_text("❌ Not authorized.")
+        return
+    #To fix bc pata nhai kya uva h kal dekhte 
+    # docs = list(quiz_questions.find())
+    docs=0
+    if not docs:
+        await update.message.reply_text("No questions stored.")
         return
 
-    conn = sqlite3.connect("/mnt/data/quiz.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, question, options, answer FROM questions")
-    all_questions = cursor.fetchall()
-    conn.close()
+    msg = ""
 
-    if not all_questions:
-        await update.message.reply_text("❌ No questions found in the database.")
-        return
+    for q in docs:
+        opts = q["options"].split("|")
+        formatted = "\n".join([f"• {opt}" for opt in opts])
 
-    message_chunk = ""
-    for q in all_questions:
-        q_id, question, options, answer = q
-
-        if not options:  
-            continue
-
-        options_list = options.split("|")
-        formatted_options = "\n".join([f"{chr(65+i)}. {opt.strip()}" for i, opt in enumerate(options_list)])
-        entry = (
-            f"🆔 *ID:* {q_id}\n"
-            f"❓ *Q:* {question}\n"
-            f"{formatted_options}\n"
-            f"✅ *Answer:* {answer}\n\n"
+        block = (
+            f"🆔 {q['_id']}\n"
+            f"❓ {q['question']}\n"
+            f"{formatted}\n"
+            f"✅ {q['answer']}\n\n"
         )
 
-        if len(message_chunk) + len(entry) > 4000:
-            await update.message.reply_text(message_chunk, parse_mode="Markdown")
-            message_chunk = ""
+        if len(msg) + len(block) > 3800:
+            await update.message.reply_text(msg)
+            msg = ""
 
-        message_chunk += entry
+        msg += block
 
-    if message_chunk:
-        await update.message.reply_text(message_chunk, parse_mode="Markdown")
+    if msg:
+        await update.message.reply_text(msg)
 
-
-# === AUTO QUIZ ===
+# --- AUTO QUIZ (unchanged logic) ---
 AUTO_MIN = 25
 AUTO_MAX = 50
 msg_counter = 0
@@ -475,32 +241,21 @@ async def set_intervals(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def message_tracker(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global msg_counter, current_threshold
-
     if update.effective_chat.type not in [ChatType.GROUP, ChatType.SUPERGROUP]:
         return
-
     if not hasattr(update.message, "date") or update.message.date < (BOT_START_TIME - timedelta(seconds=10)):
         return
-
     msg_counter += 1
-
     if msg_counter >= current_threshold:
         msg_counter = 0
         current_threshold = AUTO_MAX
-
         if update.effective_chat.id == APPROVED_CHAT_ID:
-            # ✅ This is the approved group — start quiz
-            await context.bot.send_message(
-                chat_id=APPROVED_CHAT_ID,
-                text="📢 Quiz time! Get ready 🎉"
-            )
+            await context.bot.send_message(chat_id=APPROVED_CHAT_ID, text="📢 Quiz time! Get ready 🎉")
             await start_quiz(update, context, ignore_auth=True)
         else:
-            # ❌ Not approved group — send warning
-            text = (
-                "❌ This chat is not approved to receive automatic quizzes.\n\n"
-            )
+            text = "❌ This chat is not approved to receive automatic quizzes.\n\n"
             await update.message.reply_text(text, disable_web_page_preview=True)
+from bson import ObjectId
 
 async def lore_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message.reply_to_message:
@@ -526,8 +281,8 @@ async def lore_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "p1": p1.id,
         "p2": p2.id,
         "amount": amount,
-        "p1_name": p1.first_name,  
-        "p2_name": p2.first_name   
+        "p1_name": p1.first_name,
+        "p2_name": p2.first_name
     }
 
     keyboard = [
@@ -536,11 +291,11 @@ async def lore_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton("❌ Reject", callback_data="lore_reject")
         ]
     ]
+
     await update.message.reply_text(
         f"{p2.first_name}, you've been challenged by {p1.first_name} for 💠 {amount} primogems in a lore quiz!",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
-
 async def lore_accept_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     data = query.data.split("_")
@@ -553,33 +308,24 @@ async def lore_accept_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         await query.answer("You're not the challenged player.", show_alert=True)
         return
 
-    # Check both have enough primogems
+    # Check both have primos
     for uid in [p1, p2]:
         if get_primogems(uid) < amount:
             await query.message.edit_text("❌ One of the players doesn't have enough primogems.")
             return
 
-    # Deduct both
-    update_primogems(p1, -amount)
-    update_primogems(p2, -amount)
+    update_primos(p1, -amount)
+    update_primos(p2, -amount)
 
-    # Fetch a random question
-    conn = sqlite3.connect("/mnt/data/quiz.db")
-    c = conn.cursor()
-    c.execute("SELECT question, options, answer FROM questions ORDER BY RANDOM() LIMIT 1")
-    row = c.fetchone()
-    conn.close()
-
-    question, opt_str, answer = row
+    qid, question, opt_str, answer = get_random_question()
     options = [opt.strip() for opt in opt_str.split("|")]
 
-    # Get player names from the bet data
     bet_data = context.chat_data.get("lore_bet", {})
-    
+
     context.chat_data["lore_game"] = {
         "players": [p1, p2],
         "answers": {},
-        "correct": answer.strip().upper(),
+        "correct": answer.strip(),
         "question": question,
         "options": options,
         "bet": amount,
@@ -590,276 +336,292 @@ async def lore_accept_callback(update: Update, context: ContextTypes.DEFAULT_TYP
     }
 
     keyboard = [[InlineKeyboardButton(opt, callback_data=f"loreq_{i}")] for i, opt in enumerate(options)]
+
     await query.message.edit_text(
         f"🧠 Lore Quiz Battle:\n\n❓ {question}",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
-
 async def lore_answer_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     uid = query.from_user.id
+
     data = query.data.split("_")
     selected_idx = int(data[1])
+
     game = context.chat_data.get("lore_game", {})
     players = game.get("players", [])
-    
+
     if uid not in players:
         await query.answer("You're not in this quiz!", show_alert=True)
         return
-    
+
     if uid in game["answers"]:
         await query.answer("You've already answered.")
         return
-    
-    selected_option = game["options"][selected_idx].upper()
-    game["answers"][uid] = selected_option
-    context.chat_data["lore_game"] = game  # Update in case
-    
+
+    selected_opt = game["options"][selected_idx]
+    game["answers"][uid] = selected_opt
+    context.chat_data["lore_game"] = game
+
     await query.answer("✅ Answer locked.")
-    
+
     if len(game["answers"]) < 2:
-        return  # Wait for other player
-    
-    # Both answered, determine result
+        return
+
     p1, p2 = players
     a1 = game["answers"][p1]
     a2 = game["answers"][p2]
     correct = game["correct"]
-    amount = game["bet"]
-    
-    # Get player names from stored data
-    player_names = game.get("player_names", {})
-    
+    bet = game["bet"]
+
+    names = game["player_names"]
+
     if a1 == correct and a2 != correct:
-        update_primogems(p1, int(amount * 2))
-        winner_name = player_names.get(p1, f"Player {p1}")
-        result = f"🏆 {winner_name} wins 💠 {int(amount * 2)}!"
+        update_primos(p1, bet * 2)
+        text = f"🏆 {names[p1]} wins and earns 💠 {bet*2}!"
+
     elif a2 == correct and a1 != correct:
-        update_primogems(p2, int(amount * 2))
-        winner_name = player_names.get(p2, f"Player {p2}")
-        result = f"🏆 {winner_name} wins 💠 {int(amount * 2)}!"
+        update_primos(p2, bet * 2)
+        text = f"🏆 {names[p2]} wins and earns 💠 {bet*2}!"
+
     elif a1 == correct and a2 == correct:
-        update_primogems(p1, amount)
-        update_primogems(p2, amount)
-        result = "🤝 Both answered correctly. Bet refunded!"
+        update_primos(p1, bet)
+        update_primos(p2, bet)
+        text = "🤝 Both answered correctly! Bet refunded."
+
     else:
-        update_primogems(p1, int(amount * 0.5))
-        update_primogems(p2, int(amount * 0.5))
-        result = "❌ Both failed. Half Primogems refunded!"
-    
+        update_primos(p1, bet // 2)
+        update_primos(p2, bet // 2)
+        text = "❌ Both failed! Half refunded."
+
     await query.message.edit_text(
-        f"🧠 Lore Quiz Complete!\n\n"
-        f"{result}"
+        f"🧠 Lore Quiz Complete!\n\n{text}"
     )
-    
-    # Clean up
+
     context.chat_data.pop("lore_game", None)
     context.chat_data.pop("lore_bet", None)
-
-
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes
-
 ELEMENTS = ["Anemo", "Geo", "Electro", "Dendro", "Hydro", "Pyro"]
 ELEMENT_ICONS = {
-    "Anemo": "🌪️", "Geo": "🪨", "Electro": "⚡", 
+    "Anemo": "🌪️", "Geo": "🪨", "Electro": "⚡",
     "Dendro": "🌿", "Hydro": "💧", "Pyro": "🔥"
 }
 
 async def clash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message.reply_to_message:
-        await update.message.reply_text("⚠️ *Reply to someone to challenge them!*\nUsage: `/clash <bet>`", parse_mode="Markdown")
+        await update.message.reply_text("⚠️ Reply to someone.\nUsage: /clash <bet>")
         return
+
     if len(context.args) != 1 or not context.args[0].isdigit():
-        await update.message.reply_text("❌ *Usage:* `/clash <bet>`", parse_mode="Markdown")
+        await update.message.reply_text("❌ Usage: /clash <bet>")
         return
 
     bet = int(context.args[0])
-    user_id = update.effective_user.id
-    opp_id = update.message.reply_to_message.from_user.id
-    balance1 = get_primogems(user_id)
-    balance2 = get_primogems(opp_id)
+    p1 = update.effective_user.id
+    p2 = update.message.reply_to_message.from_user.id
 
-    if balance1 < bet:
-        await update.message.reply_text("💸 You don't have enough primogems.")
+    if get_primogems(p1) < bet:
+        await update.message.reply_text("❌ You don't have enough primogems.")
         return
-    if balance2 < bet:
-        await update.message.reply_text("💸 Opponent doesn't have enough primogems.")
+    if get_primogems(p2) < bet:
+        await update.message.reply_text("❌ Opponent doesn't have enough primogems.")
         return
 
-    context.chat_data[f"clash_bet_{user_id}_{opp_id}"] = bet
+    context.chat_data[f"clash_bet_{p1}_{p2}"] = bet
+
     keyboard = [
         [
-            InlineKeyboardButton("✅ Accept", callback_data=f"cla_Accept_{user_id}_{opp_id}"),
-            InlineKeyboardButton("❌ Decline", callback_data=f"cla_Decline_{user_id}_{opp_id}")
+            InlineKeyboardButton("✅ Accept", callback_data=f"cla_Accept_{p1}_{p2}"),
+            InlineKeyboardButton("❌ Decline", callback_data=f"cla_Decline_{p1}_{p2}")
         ]
     ]
+
     await update.message.reply_text(
-        f"🔥 *{update.effective_user.first_name}* has challenged *{update.message.reply_to_message.from_user.first_name}* to a duel!\n\n"
-        f"💰 *Bet:* {bet} primogems\n\n"
-        f"Do you accept the challenge?",
-        parse_mode="Markdown",
+        f"🔥 Clash Challenge!\n\n"
+        f"{update.effective_user.first_name} challenged {update.message.reply_to_message.from_user.first_name}\n"
+        f"💠 Bet: {bet}\n\nAccept?",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
-
 async def clash_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    user_id = query.from_user.id
     data = query.data.split("_")
-    choice, p1, p2 = data[1], int(data[2]), int(data[3])
 
-    if user_id != p2:
-        await query.answer("❌ This challenge is not for you!", show_alert=True)
+    action, p1, p2 = data[1], int(data[2]), int(data[3])
+    uid = query.from_user.id
+
+    if uid != p2:
+        await query.answer("Not your challenge.", show_alert=True)
         return
 
-    if choice == "Accept":
-        context.chat_data["p1"] = p1
-        context.chat_data["p2"] = p2
-        keyboard = [
-            [
-                InlineKeyboardButton(f"{ELEMENT_ICONS[e]} {e}", callback_data=f"cla_{e}_{p1}_{p2}")
-                for e in ELEMENTS[:3]
-            ],
-            [
-                InlineKeyboardButton(f"{ELEMENT_ICONS[e]} {e}", callback_data=f"cla_{e}_{p1}_{p2}")
-                for e in ELEMENTS[3:]
-            ]
-        ]
-        await query.edit_message_text(
-            "🎮 *Elemental Clash Started!*\n\n"
-            "🌟 Both players, please select your elements below:",
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-    elif choice == "Decline":
-        await query.edit_message_text("❌ The opponent declined the clash.")
+    if action == "Decline":
+        await query.edit_message_text("❌ Opponent declined the clash.")
+        return
 
+    # Show element choices
+    keyboard = [
+        [InlineKeyboardButton(f"{ELEMENT_ICONS[e]} {e}", callback_data=f"choose_{e}_{p1}_{p2}")]
+        for e in ELEMENTS
+    ]
+
+    await query.edit_message_text(
+        "🎮 Elemental Clash Started!\nPick your element:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 async def accept_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    user_id = query.from_user.id
     data = query.data.split("_")
-    selected = data[1]
+
+    element = data[1]
     p1 = int(data[2])
     p2 = int(data[3])
 
-    if user_id not in [p1, p2]:
-        await query.answer("⚠️ You're not part of this battle!", show_alert=True)
+    uid = query.from_user.id
+
+    if uid not in [p1, p2]:
+        await query.answer("Not your battle.", show_alert=True)
         return
 
-    context.chat_data[f"clash_{user_id}"] = selected
-    bet_key = f"clash_bet_{p1}_{p2}"
-    bet = context.chat_data.get(bet_key)
+    context.chat_data[f"clash_pick_{uid}"] = element
+    bet = context.chat_data.get(f"clash_bet_{p1}_{p2}")
 
-    if f"clash_{p1}" in context.chat_data and f"clash_{p2}" in context.chat_data and bet is not None:
-        cp1 = context.chat_data[f"clash_{p1}"]
-        cp2 = context.chat_data[f"clash_{p2}"]
-        outcome = result(cp1, cp2)
+    # wait for both players
+    if f"clash_pick_{p1}" not in context.chat_data or f"clash_pick_{p2}" not in context.chat_data:
+        await query.answer("Element locked. Waiting for other player.")
+        return
 
-        user1 = await context.bot.get_chat(p1)
-        user2 = await context.bot.get_chat(p2)
-        name1 = user1.username or user1.first_name
-        name2 = user2.username or user2.first_name
+    e1 = context.chat_data[f"clash_pick_{p1}"]
+    e2 = context.chat_data[f"clash_pick_{p2}"]
 
-        if outcome == "🏆 You won!":
-            update_primogems(p1, bet)
-            deduct_primogems(p2, bet)
-            update_clash_points(p1, name1)
-            result_text = f"🏆 *{name1}* wins and earns *{bet} primogems*!"
-        elif outcome == "💀 Opponent wins!":
-            update_primogems(p2, bet)
-            deduct_primogems(p1, bet)
-            update_clash_points(p2, name2)
-            result_text = f"🏆 *{name2}* wins and earns *{bet} primogems*!"
-        else:
-            result_text = f"⚖️ It's a draw between *{name1}* and *{name2}*. No primogems lost."
+    winner = clash_result(e1, e2)
 
-        final_msg = (
-            f"🎊 *Elemental Clash Result*\n\n"
-            f"👤 {name1} chose {ELEMENT_ICONS.get(cp1, '')} *{cp1}*\n"
-            f"👤 {name2} chose {ELEMENT_ICONS.get(cp2, '')} *{cp2}*\n\n"
-            f"{result_text}"
-        )
+    user1 = await context.bot.get_chat(p1)
+    user2 = await context.bot.get_chat(p2)
+    name1 = user1.first_name
+    name2 = user2.first_name
 
-        await query.edit_message_text(final_msg, parse_mode="Markdown")
+    if winner == 1:
+        update_primos(p1, bet)
+        update_primos(p2, -bet)
+        update_clash_points_db(p1, name1, 1)
+        result = f"🏆 {name1} wins +{bet}!"
+    elif winner == 2:
+        update_primos(p2, bet)
+        update_primos(p1, -bet)
+        update_clash_points_db(p2, name2, 1)
 
-        # Cleanup
-        context.chat_data.pop(f"clash_{p1}", None)
-        context.chat_data.pop(f"clash_{p2}", None)
-        context.chat_data.pop(f"clash_bet_{p1}_{p2}", None)
+async def accept_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    data = query.data.split("_")
+
+    element = data[1]
+    p1 = int(data[2])
+    p2 = int(data[3])
+
+    uid = query.from_user.id
+
+    if uid not in [p1, p2]:
+        await query.answer("Not your battle.", show_alert=True)
+        return
+
+    context.chat_data[f"clash_pick_{uid}"] = element
+    bet = context.chat_data.get(f"clash_bet_{p1}_{p2}")
+
+    # wait for both players
+    if f"clash_pick_{p1}" not in context.chat_data or f"clash_pick_{p2}" not in context.chat_data:
+        await query.answer("Element locked. Waiting for other player.")
+        return
+
+    e1 = context.chat_data[f"clash_pick_{p1}"]
+    e2 = context.chat_data[f"clash_pick_{p2}"]
+
+    winner = clash_result(e1, e2)
+
+    user1 = await context.bot.get_chat(p1)
+    user2 = await context.bot.get_chat(p2)
+    name1 = user1.first_name
+    name2 = user2.first_name
+
+    if winner == 1:
+        update_primos(p1, bet)
+        update_primos(p2, -bet)
+        update_clash_points_db(p1, name1, 1)
+        result = f"🏆 {name1} wins +{bet}!"
+    elif winner == 2:
+        update_primos(p2, bet)
+        update_primos(p1, -bet)
+        update_clash_points_db(p2, name2, 1)
+        result = f"🏆 {name2} wins +{bet}!"
     else:
-        await query.answer("✅ Element saved. Waiting for the other player...", show_alert=False)
+        result = "⚖️ Draw! No primogems lost."
 
-def result(choice1, choice2):
+    final_msg = (
+        f"🎊 Elemental Clash Result\n\n"
+        f"{name1} chose {ELEMENT_ICONS[e1]} *{e1}*\n"
+        f"{name2} chose {ELEMENT_ICONS[e2]} *{e2}*\n\n"
+        f"{result}"
+    )
+
+    await query.edit_message_text(final_msg, parse_mode="Markdown")
+
+    # clean up
+    context.chat_data.pop(f"clash_pick_{p1}", None)
+    context.chat_data.pop(f"clash_pick_{p2}", None)
+    context.chat_data.pop(f"clash_bet_{p1}_{p2}", None)
+def clash_result(c1, c2):
     rules = {
-        "Anemo": "Pyro", "Electro": "Hydro", "Hydro": "Pyro",
-        "Geo": "Electro", "Dendro": "Geo", "Pyro": "Dendro"
+        "Anemo": "Pyro",
+        "Electro": "Hydro",
+        "Hydro": "Pyro",
+        "Geo": "Electro",
+        "Dendro": "Geo",
+        "Pyro": "Dendro"
     }
-    if choice1 == choice2:
-        return "⚖️ It's a draw!"
-    elif rules.get(choice1) == choice2:
-        return "🏆 You won!"
-    elif rules.get(choice2) == choice1:
-        return "💀 Opponent wins!"
-    else:
-        return "❓ Unknown result."
+    if c1 == c2:
+        return 0  # draw
+    if rules.get(c1) == c2:
+        return 1  # p1 wins
+    if rules.get(c2) == c1:
+        return 2  # p2 wins
+    return 0
 
+
+
+# --- RESET QUIZ command (rewards top users) ---
 REWARDS = [1600, 1000, 500]
 
 async def reset_quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    
     if update.effective_user.id != OWNER_ID:
         await update.message.reply_text("❌ You are not authorized to use this command.")
         return
 
-    conn = sqlite3.connect("/mnt/data/quiz.db")
-    c = conn.cursor()
-    c.execute("SELECT user_id, username, points FROM scores ORDER BY points DESC LIMIT 10")
-    leaderboard = c.fetchall()
-
-    if not leaderboard:
+    # find top 10 before wiping
+    top = get_leaderboard_db(limit=10)
+    if not top:
         await update.message.reply_text("❌ No leaderboard data found.")
-        conn.close()
         return
 
+    # Reward top 3
+    rewarded = reset_scores_and_reward_top(rewards=REWARDS)
     result_msg = "🏆 <b>Leaderboard Reset & Rewards</b>\n\n"
-    log_msg = "🧾 <b>Quiz Reset Log</b>\n\nTop 3 users rewarded:\n"
-
-    
-    for i, (user_id, username, points) in enumerate(leaderboard[:3]):
+    log_msg = "🧾 <b>Quiz Reset Log</b>\n\nTop rewarded:\n"
+    for i, (username, points, uid) in enumerate(top[:3]):
         reward = REWARDS[i]
-        c.execute("UPDATE users SET primogems = primogems + ? WHERE user_id = ?", (reward, user_id))
-
-        mention = f"<a href='https://t.me/{username}'>{username}</a>" if username else f"<code>{user_id}</code>"
+        mention = f"<a href='https://t.me/{username}'>{username}</a>" if not username.startswith("id_") else f"<code>{uid}</code>"
         result_msg += f"{i+1}. {mention} — +<b>{reward}</b> primogems\n"
-        log_msg += f"{i+1}. {username or user_id} ({points} pts) ➜ +{reward} primogems\n"
+        log_msg += f"{i+1}. {username or uid} ({points} pts) ➜ +{reward} primogems\n"
 
-    
-    c.execute("DELETE FROM scores")
-    conn.commit()
-    conn.close()
-
-    result_msg += "\n🎉 A new quiz season has now begun!"
     await update.message.reply_text(result_msg, parse_mode=ParseMode.HTML)
-
-    
     try:
-        await context.bot.send_message(
-            chat_id=RESET_LOG_CHAT_ID,
-            text=log_msg,
-            parse_mode=ParseMode.HTML
-        )
+        await context.bot.send_message(chat_id=RESET_LOG_CHAT_ID, text=log_msg, parse_mode=ParseMode.HTML)
     except Exception as e:
         await update.message.reply_text(f"⚠️ Couldn't send log: {e}")
-# === EXPORT HANDLER LIST ===
+
+# --- REGISTER HANDLERS (same as before, keep your register function but import updated handlers) ---
 def register_quiz_handlers(application):
-    # === Quiz Core Commands ===
-    init_clash_table()
     application.add_handler(CommandHandler("quiz", start_quiz))
     application.add_handler(CallbackQueryHandler(answer_quiz, pattern=r"^quiz:"))
     application.add_handler(CommandHandler("leaderboard", show_leaderboard))
     application.add_handler(CommandHandler("setintervals", set_intervals))
 
-    # === Quiz Add Question Flow ===
     application.add_handler(ConversationHandler(
         entry_points=[CommandHandler("addquestion", add_question_start)],
         states={
@@ -870,23 +632,16 @@ def register_quiz_handlers(application):
         fallbacks=[CommandHandler("cancel", cancel_add)],
     ))
 
-    # === Quiz Message Tracker ===
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_tracker))
-
-    # === Backup & Restore for quiz.db ===
-    application.add_handler(CommandHandler("backupdb", backup_db))
-    application.add_handler(CommandHandler("restoredb", restore_uploaded_db))
-    application.add_handler(MessageHandler(filters.Document.ALL, handle_uploaded_file))
     application.add_handler(CallbackQueryHandler(confirm_add_callback, pattern="^confirm_add|cancel_add$"))
     application.add_handler(CommandHandler("questions", questions_command))
-    application.add_handler(CommandHandler("lore", lore_start))  
-    application.add_handler(CallbackQueryHandler(lore_accept_callback, pattern=r"^lore_accept_"))  
-    application.add_handler(CallbackQueryHandler(lambda u,c: u.callback_query.message.edit_text("❌ Challenge rejected."), pattern="^lore_reject$")) 
-    application.add_handler(CallbackQueryHandler(lore_answer_callback, pattern=r"^loreq_\d+"))  
+    application.add_handler(CommandHandler("lore", lore_start))
+    application.add_handler(CallbackQueryHandler(lore_accept_callback, pattern=r"^lore_accept_"))
+    application.add_handler(CallbackQueryHandler(lambda u,c: u.callback_query.message.edit_text("❌ Challenge rejected."), pattern="^lore_reject$"))
+    application.add_handler(CallbackQueryHandler(lore_answer_callback, pattern=r"^loreq_\d+"))
     application.add_handler(CommandHandler("clash", clash))
     application.add_handler(CallbackQueryHandler(clash_callback, pattern=r"^cla_(Accept|Decline)_[0-9]+_[0-9]+$"))
     application.add_handler(CallbackQueryHandler(accept_callback, pattern=r"^cla_(Anemo|Geo|Electro|Dendro|Hydro|Pyro)_[0-9]+_[0-9]+$"))
     application.add_handler(CommandHandler("resetquiz", reset_quiz_command))
     application.add_handler(CommandHandler("clashboard", clashboard))
-
     print("🧠 Quiz handlers and DB backup integrated successfully!")

@@ -1,7 +1,7 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto, ReplyKeyboardRemove, ForceReply
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters, CallbackContext, ConversationHandler
 from quiz import register_quiz_handlers
-from gacha import register_gacha_handlers,ensure_gacha_columns
+from gacha import register_gacha_handlers
 from harem import register_harem_handlers
 from mine import register_game_handlers
 from coc import register_coc_handlers
@@ -856,77 +856,7 @@ async def char_upload_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['upload']['entry_name'] = None
     await update.message.reply_text(f"Character '{name}' saved. Send next character name or /done to finish.")
     return CHAR_GET_NAME
-
-
-DATABASE = "/mnt/data/quiz.db"
-
-import html  
-from telegram.constants import ParseMode
-
-async def database(update: Update, context: CallbackContext):
-    user_id = update.effective_user.id
-    if user_id not in ADMIN_IDS:
-        await update.message.reply_text("❌ BAKA !!You don't have permission to do that.")
-        return
-
-    try:
-        conn = sqlite3.connect(DATABASE)
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            SELECT u.user_id, u.primogems, g.pity_4, g.pity_5
-            FROM users u
-            LEFT JOIN gacha_state g ON u.user_id = g.user_id
-        """)
-        rows = cursor.fetchall()
-
-        if not rows:
-            await update.message.reply_text("📦 No data found in the database.")
-            return
-
-        msg = "📊 <b>User Database Snapshot:</b>\n"
-
-        for row in rows:
-            uid, primogems, pity_4, pity_5 = row
-            try:
-                user = await context.bot.get_chat(uid)
-                display_name = user.full_name or f"User {uid}"
-                username = user.username  
-            except:
-                display_name = f"User {uid}"
-                username = None
-
-            escaped_name = html.escape(display_name)
-
-            if username:  
-                mention = f"<a href='https://t.me/{username}'>{username}</a>"  
-            else:  # fallback to user id link
-                mention = f"<a href='tg://user?id={uid}'>{uid}</a>"
-
-            msg += (
-                f"\n👤 {mention}\n"
-                f"💎 Primogems: {primogems}\n"
-                f"⭐ Pity 4★: {pity_4 if pity_4 is not None else '—'}\n"
-                f"✨ Pity 5★: {pity_5 if pity_5 is not None else '—'}\n"
-            )
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=msg,
-            parse_mode=ParseMode.HTML,
-            disable_web_page_preview=True,
-        )
-
-
-
-
-    except Exception as e:
-        await update.message.reply_text(f"❌ Error: {e}")
-
-    finally:
-        try:
-            conn.close()
-        except:
-            pass
+import html
 IMAGE_URL = "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752989365/generated-image_4_djjntd.png"  
 lunar_url="https://res.cloudinary.com/dvpz1tzam/image/upload/v1763399722/76042255-09ae-452a-a04d-17e73c90ff2a_exsuln.png"
 async def primosboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1317,32 +1247,7 @@ async def delete_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 from telegram import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, Update, WebAppInfo
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 OWNER_ID  = 5192424390
-WEBAPP_URL = "https://web-apps-production.up.railway.app/"
 
-async def webtest(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    kb = [[KeyboardButton(text="Open Mini App", web_app=WebAppInfo(url=WEBAPP_URL))]]
-    await update.message.reply_text(
-        "Tap to open the Mini App, then press Send to Bot.",
-        reply_markup=ReplyKeyboardMarkup(kb),
-    )
-
-async def webapp_receiver(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    raw = update.effective_message.web_app_data.data
-    try:
-        payload = json.loads(raw)
-    except Exception:
-        payload = {"raw": raw}
-
-    u = update.effective_user
-    clicker = {
-        "id": u.id,
-        "first_name": u.first_name,
-        "last_name": u.last_name,
-        "username": u.username,
-    }
-    await update.message.reply_text("Received. Forwarding to owner…", reply_markup=ReplyKeyboardRemove())
-    text = "Mini App submission:\n" + json.dumps({"clicker": clicker, "payload": payload}, ensure_ascii=False, indent=2)
-    await context.bot.send_message(chat_id=OWNER_ID, text=text)
 
 from telegram.ext import CommandHandler
 
@@ -1392,11 +1297,7 @@ def setup_application():
     register_shop_handlers(application)
     register_coc_handlers(application)
 
-    ensure_gacha_columns()
-
     #web apps
-    application.add_handler(CommandHandler("webtest", webtest))
-    application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, webapp_receiver))
     application.add_handler(CommandHandler("ahelp", ahelp_command))
     application.add_handler(CommandHandler("help", help_command))
     # Add all your existing handlers
@@ -1414,7 +1315,6 @@ def setup_application():
     application.add_handler(CommandHandler("theatreinfo", theatre_command))
     application.add_handler(CallbackQueryHandler(theatre_show_handler, pattern=r"^theatre_show:"))
     application.add_handler(CallbackQueryHandler(theatre_nav_handler, pattern=r"^theatre_(next|prev|menu)$"))
-    application.add_handler(CommandHandler("database", database))
     application.add_handler(CommandHandler("pboard", primosboard))
     application.add_handler(CommandHandler("lboard", lunarboard))
     application.add_handler(MessageHandler(filters.COMMAND, send_character_image), group=100)

@@ -7,6 +7,11 @@ from telegram import Update
 from telegram.ext import CommandHandler, ContextTypes
 
 import os
+from db import (
+    ensure_gacha_user, get_pity, update_pity, update_last_five_star,
+    get_character, add_character, increment_constellation, get_user_characters,
+    get_primogems, update_primos
+)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -44,119 +49,7 @@ THREE_STAR_POOL = [
     "Black Tassel", "Bloodtainted Greatsword", "Skyrider Sword", "Raven Bow",
     "Emerald Orb", "Ferrous Shadow", "Magic Guide", "Debate Club"
 ]
-def ensure_power_column():
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        
-        # Create table if it doesn't exist
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS owned_characters (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                character_name TEXT NOT NULL,
-                rarity INTEGER NOT NULL,
-                count INTEGER DEFAULT 1,
-                power INTEGER DEFAULT 0,
-                obtained_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
-        # Check if power column exists
-        c.execute("PRAGMA table_info(owned_characters)")
-        columns = [col[1] for col in c.fetchall()]
-        if "power" not in columns:
-            c.execute("ALTER TABLE owned_characters ADD COLUMN power INTEGER DEFAULT 0")
-        conn.commit()
 
-def update_character_powers():
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        
-        # Ensure table exists first
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS owned_characters (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                character_name TEXT NOT NULL,
-                rarity INTEGER NOT NULL,
-                count INTEGER DEFAULT 1,
-                power INTEGER DEFAULT 0,
-                obtained_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
-        for name, power in ALL_CHARACTERS["five_star"].items():
-            c.execute("UPDATE owned_characters SET power = ? WHERE character_name = ? AND rarity = 5", (power, name))
-        for name, power in ALL_CHARACTERS["four_star"].items():
-            c.execute("UPDATE owned_characters SET power = ? WHERE character_name = ? AND rarity = 4", (power, name))
-        conn.commit()
-
-def ensure_gacha_columns():
-    os.makedirs(os.path.dirname(DB_PATH) or ".", exist_ok=True)
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-
-        # 0) If any leftover object named Furina exists, drop it first (index or table)
-        c.execute("SELECT name, type FROM sqlite_master WHERE name='Furina';")
-        row = c.fetchone()
-        if row:
-            obj_type = row[1].lower()
-            if obj_type == "index":
-                c.execute("DROP INDEX IF EXISTS Furina;")
-            elif obj_type == "table":
-                c.execute("DROP TABLE IF EXISTS Furina;")
-
-        # 1) Create table (clean DDL)
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS gacha_state (
-                user_id     INTEGER PRIMARY KEY,
-                pity_5      INTEGER DEFAULT 0,
-                pity_4      INTEGER DEFAULT 0,
-                last_5star  TEXT,
-                total_pulls INTEGER DEFAULT 0
-            );
-        """)
-
-        # 2) Add columns if missing (idempotent)
-        c.execute("PRAGMA table_info(gacha_state);")
-        cols = {r[1] for r in c.fetchall()}
-        if "pity_5" not in cols:
-            c.execute("ALTER TABLE gacha_state ADD COLUMN pity_5 INTEGER DEFAULT 0;")
-        if "pity_4" not in cols:
-            c.execute("ALTER TABLE gacha_state ADD COLUMN pity_4 INTEGER DEFAULT 0;")
-        if "last_5star" not in cols:
-            c.execute("ALTER TABLE gacha_state ADD COLUMN last_5star TEXT;")
-        if "total_pulls" not in cols:
-            c.execute("ALTER TABLE gacha_state ADD COLUMN total_pulls INTEGER DEFAULT 0;")
-
-        # 3) Final health check for logs
-        c.execute("PRAGMA integrity_check;")
-        print("DB integrity after gacha init:", c.fetchone()[0])
-
-        conn.commit()
-
-
-def init_gacha_db():
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("""CREATE TABLE IF NOT EXISTS users (
-            user_id INTEGER PRIMARY KEY,
-            primogems INTEGER DEFAULT 0
-        )""")
-        c.execute("""CREATE TABLE IF NOT EXISTS gacha_state (
-            user_id INTEGER PRIMARY KEY,
-            pity_4 INTEGER DEFAULT 0,
-            pity_5 INTEGER DEFAULT 0,
-            last_five_star TEXT DEFAULT NULL
-        )""")
-        c.execute("""CREATE TABLE IF NOT EXISTS owned_characters (
-            user_id INTEGER,
-            character_name TEXT,
-            rarity INTEGER,
-            constellation INTEGER DEFAULT 0,
-            PRIMARY KEY (user_id, character_name)
-        )""")
-        conn.commit()
 
 def get_user_data(user_id):
     with sqlite3.connect(DB_PATH) as conn:
@@ -167,84 +60,65 @@ def get_user_data(user_id):
 
 async def multiwish(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    get_user_data(user_id)
 
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("SELECT primogems FROM users WHERE user_id = ?", (user_id,))
-        row = c.fetchone()
-        primos = row[0] if row else 0
+    ensure_gacha_user(user_id)
 
-        if primos < 1600:
-            await update.message.reply_text("❌ Not enough primogems! You need 1600 primogems for a 10-pull.")
-            return
+    primos = get_primogems(user_id)
+    if primos < 1600:
+        await update.message.reply_text("❌ Not enough primogems! You need 1600 for 10-pull.")
+        return
 
-        c.execute("UPDATE users SET primogems = primogems - 1600 WHERE user_id = ?", (user_id,))
-        c.execute("SELECT pity_4, pity_5 FROM gacha_state WHERE user_id = ?", (user_id,))
-        pity4, pity5 = c.fetchone()
+    update_primos(user_id, -1600)
 
-        results = []
-        for _ in range(10):
-            pity5 += 1
-            pity4 += 1
-            base_5 = 0.006
-            soft_pity = max(0, pity5 - 74) * 0.06
-            chance_5 = base_5 + soft_pity
-            roll = random.random()
+    pity4, pity5, last5 = get_pity(user_id)
 
-            if roll < chance_5 or pity5 >= 90:
-                name = random.choice(list(ALL_CHARACTERS["five_star"].keys()))
-                results.append((name, 5))
-                pity5 = 0
-                c.execute("UPDATE gacha_state SET last_five_star = ? WHERE user_id = ?", (name, user_id))
-            elif roll < 0.10 or pity4 >= 10:
-                name = random.choice(list(ALL_CHARACTERS["four_star"].keys()))
-                results.append((name, 4))
-                pity4 = 0
-            else:
-                name = random.choice(THREE_STAR_POOL)
-                results.append((name, 3))
+    results = []
 
-        c.execute("UPDATE gacha_state SET pity_4 = ?, pity_5 = ? WHERE user_id = ?", (pity4, pity5, user_id))
+    for _ in range(10):
+        pity4 += 1
+        pity5 += 1
 
-        for name, rarity in results:
-            if rarity >= 4:
-                c.execute(
-                    "SELECT constellation FROM owned_characters WHERE user_id = ? AND character_name = ?",
-                    (user_id, name)
-                )
-                result = c.fetchone()
-                if result:
-                    current_const = result[0]
-                    if current_const < 6:
-                        # Update constellation
-                        c.execute(
-                            "UPDATE owned_characters SET constellation = constellation + 1 WHERE user_id = ? AND character_name = ?",
-                            (user_id, name)
-                        )
-                        # Increase power based on rarity
-                        if rarity == 5:
-                            c.execute(
-                                "UPDATE owned_characters SET power = power + 10 WHERE user_id = ? AND character_name = ?",
-                                (user_id, name)
-                            )
-                        elif rarity == 4:
-                            c.execute(
-                                "UPDATE owned_characters SET power = power + 5 WHERE user_id = ? AND character_name = ?",
-                                (user_id, name)
-                            )
-                else:
-                    if rarity == 5:
-                        power = ALL_CHARACTERS["five_star"].get(name, 0)
-                    else:
-                        power = ALL_CHARACTERS["four_star"].get(name, 0)
-                    c.execute(
-                        "INSERT INTO owned_characters (user_id, character_name, rarity, constellation, power) VALUES (?, ?, ?, 0, ?)",
-                        (user_id, name, rarity, power)
-                    )
+        base_5 = 0.006
+        soft = max(0, pity5 - 74) * 0.06
+        chance_5 = base_5 + soft
+
+        roll = random.random()
+
+        if roll < chance_5 or pity5 >= 90:
+            name = random.choice(list(ALL_CHARACTERS["five_star"].keys()))
+            rarity = 5
+            pity5 = 0
+            update_last_five_star(user_id, name)
+
+        elif roll < 0.10 or pity4 >= 10:
+            name = random.choice(list(ALL_CHARACTERS["four_star"].keys()))
+            rarity = 4
+            pity4 = 0
+
+        else:
+            name = random.choice(THREE_STAR_POOL)
+            rarity = 3
+
+        results.append((name, rarity))
+
+    update_pity(user_id, pity4, pity5)
+
+    for name, rarity in results:
+
+        if rarity < 4:
+            continue   
+
+        char = get_character(user_id, name)
+
+        if char:
+            increment_constellation(user_id, name, rarity)
+        else:
+            power = ALL_CHARACTERS["five_star"].get(name) if rarity == 5 else ALL_CHARACTERS["four_star"].get(name)
+            add_character(user_id, name, rarity, power)
 
 
-    highest_rarity = max(rarity for _, rarity in results)
+    highest_rarity = max(r for _, r in results)
+
     if highest_rarity == 5:
         animation_path = os.path.join(BASE_DIR, "assets", "animations", "gold.mp4")
     elif highest_rarity == 4:
@@ -263,27 +137,11 @@ async def multiwish(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await asyncio.sleep(3)
         try:
             await animation_msg.delete()
-        except Exception as e:
-            print(f"⚠️ Could not delete animation message: {e}")
-
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        summary = []
-        for name, rarity in results:
-            constellation_text = ""
-            if rarity >= 4:
-                c.execute(
-                    "SELECT constellation FROM owned_characters WHERE user_id = ? AND character_name = ?",
-                    (user_id, name)
-                )
-                constellation = c.fetchone()[0]
-                if constellation > 0:
-                    constellation_text = f" (C{constellation})"
-            summary.append(f"{'★'*rarity} {name}{constellation_text}")
-
-    summary_text = "🎁 Wish Results:\n" + "\n".join(summary)
+        except:
+            pass
 
     display_img = None
+
     for name, rarity in results:
         if rarity == 5:
             for ext in ["png", "jpg", "jpeg"]:
@@ -293,6 +151,7 @@ async def multiwish(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     break
             if display_img:
                 break
+
     if not display_img:
         for name, rarity in results:
             if rarity == 4:
@@ -304,64 +163,73 @@ async def multiwish(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 if display_img:
                     break
 
-    if display_img:
-        with open(display_img, "rb") as photo_file:
-            await update.message.reply_photo(photo=photo_file, caption=summary_text)
-    else:
-        await update.message.reply_text(summary_text)
+    summary = "🎁 Wish Results:\n"
 
+    for name, rarity in results:
+        const_suffix = ""
+        if rarity >= 4:
+            c = get_character(user_id, name)["constellation"]
+            if c > 0:
+                const_suffix = f" (C{c})"
+        summary += f"{'★'*rarity} {name}{const_suffix}\n"
+
+    if display_img:
+        with open(display_img, "rb") as img:
+            await update.message.reply_photo(photo=img, caption=summary)
+
+    else:
+        await update.message.reply_text(summary)
 
 
 async def characters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("SELECT character_name, rarity, constellation FROM owned_characters WHERE user_id = ?", (user_id,))
-        characters = c.fetchall()
 
-    if not characters:
-        await update.message.reply_text("😢 You don't own any characters yet.")
+    chars = get_user_characters(user_id)
+    if not chars:
+        await update.message.reply_text("😢 You don’t own any characters yet.")
         return
 
-    chars_by_rarity = {}
-    for name, rarity, constellation in characters:
-        chars_by_rarity.setdefault(rarity, []).append((name, constellation))
+    msg = "📜 **Your Characters:**\n\n"
 
-    msg = "📜 **Your Characters:**\n"
-    for rarity in sorted(chars_by_rarity.keys(), reverse=True):
-        msg += f"\n{'★'*rarity}  Characters:\n"
-        for name, const in sorted(chars_by_rarity[rarity]):
-            msg += f"• {name} C{const}\n"
+    sorted_chars = sorted(
+        chars.items(),
+        key=lambda x: (-x[1]["rarity"], x[0])
+    )
+
+    for name, data in sorted_chars:
+        msg += f"{'★'*data['rarity']} {name} C{data['constellation']}\n"
 
     await update.message.reply_text(msg, parse_mode="Markdown")
+
 
 
 async def pity(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    get_user_data(user_id)
 
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("SELECT primogems FROM users WHERE user_id = ?", (user_id,))
-        primos = c.fetchone()[0]
+    ensure_gacha_user(user_id)
 
-        c.execute("SELECT pity_4, pity_5, last_five_star FROM gacha_state WHERE user_id = ?", (user_id,))
-        pity4, pity5, last_five_star = c.fetchone()
+    pity4, pity5, last5 = get_pity(user_id)
+    primos = get_primogems(user_id)
 
-    msg = "🔮 **Wish Stats**\n\n"
-    msg += f"💎 **Primogems:** {primos} ({primos//160} wishes)\n\n"
-    msg += f"4★ Pity: {pity4}/10\n"
-    msg += f"5★ Pity: {pity5}/90\n\n"
-    msg += f"Last 5★: {last_five_star if last_five_star else 'None yet'}"
+    msg = f"""
+🔮 **Wish Stats**
+
+💎 Primogems: {primos} ({primos//160} wishes)
+
+4★ Pity: {pity4}/10
+5★ Pity: {pity5}/90
+
+Last 5★: {last5 or 'None yet'}
+"""
 
     await update.message.reply_text(msg, parse_mode="Markdown")
+
 
 
 
 def register_gacha_handlers(application):
     # === Gacha Feature Handlers ===
-    ensure_power_column()
-    update_character_powers()
+
     application.add_handler(CommandHandler("multiwish", multiwish))
     application.add_handler(CommandHandler("characters", characters))
     application.add_handler(CommandHandler("pity", pity))

@@ -2,6 +2,9 @@ from pymongo import MongoClient
 from bson import objectid
 from datetime import datetime
 import time
+from pymongo import ASCENDING, DESCENDING
+
+
 client=MongoClient("mongodb+srv://bakahatake:anush%40123@bakabot.to9paey.mongodb.net/?appName=BAKABOT")
 
 db=client["Main"]
@@ -16,6 +19,12 @@ mines=db['mines']
 paimonbox=db['paimonbox']
 steals=db['steals']
 clash=db['clash']
+gacha = db["gacha"]
+owned = db["owned_characters"]
+pvp = db["pvp_users"]
+monster_defeats = db["monster_defeats"] 
+
+
 def update_inv(user_id,primogems=0,mora=0,lunar_crystals=0):
     return inv.update_one(
         {"user_id":str(user_id)},
@@ -503,3 +512,280 @@ def get_id(user_id):
         return None
     return doc.get("id",None)
     
+def ensure_gacha_user(user_id):
+    gacha.update_one(
+        {"user_id": str(user_id)},
+        {
+            "$setOnInsert": {
+                "pity_4": 0,
+                "pity_5": 0,
+                "last_five_star": None,
+                "total_pulls": 0
+            }
+        },
+        upsert=True
+    )
+def get_pity(user_id):
+    doc = gacha.find_one({"user_id": str(user_id)})
+    if not doc:
+        ensure_gacha_user(user_id)
+        doc = gacha.find_one({"user_id": str(user_id)})
+    return doc["pity_4"], doc["pity_5"], doc.get("last_five_star")
+
+def update_pity(user_id, pity4, pity5):
+    gacha.update_one(
+        {"user_id": str(user_id)},
+        {"$set": {"pity_4": pity4, "pity_5": pity5}},
+    )
+def update_last_five_star(user_id, name):
+    gacha.update_one(
+        {"user_id": str(user_id)},
+        {"$set": {"last_five_star": name}}
+    )
+def get_character(user_id, name):
+    doc = owned.find_one({"user_id": str(user_id)})
+    if not doc:
+        return None
+    return doc.get("characters", {}).get(name)
+def add_character(user_id, name, rarity, power):
+
+    try:
+        rarity = int(rarity)
+    except:
+        return
+
+    if rarity < 4:
+
+        return
+
+    owned.update_one(
+        {"user_id": str(user_id)},
+        {
+            "$set": {
+                f"characters.{name}": {
+                    "rarity": rarity,
+                    "power": power,
+                    "constellation": 0
+                }
+            }
+        },
+        upsert=True
+    )
+
+def increment_constellation(user_id, name, rarity):
+    try:
+        rarity = int(rarity)
+    except:
+        return
+
+    if rarity < 4:
+        return
+
+    inc_power = 10 if rarity == 5 else 5
+
+    owned.update_one(
+        {"user_id": str(user_id)},
+        {
+            "$inc": {
+                f"characters.{name}.constellation": 1,
+                f"characters.{name}.power": inc_power
+            }
+        }
+    )
+
+def get_user_characters(user_id):
+    doc = owned.find_one({"user_id": str(user_id)})
+    if not doc:
+        ensure_owned_doc(user_id)
+        return {}
+    return doc.get("characters", {})
+
+
+def ensure_owned_doc(user_id):
+    owned.update_one(
+        {"user_id": str(user_id)},
+        {"$setOnInsert": {"characters": {}}},
+        upsert=True
+    )
+def list_characters(user_id):
+    chars = get_user_characters(user_id)
+    arr = []
+    for name, data in chars.items():
+        arr.append({
+            "name": name,
+            "rarity": data["rarity"],
+            "constellation": data["constellation"],
+            "power": data["power"]
+        })
+    return arr
+
+
+
+quiz_questions = db["quiz_questions"]
+quiz_scores = db["quiz_scores"]
+quiz_meta = db["quiz_meta"] 
+quiz_clash = db["quiz_clash"] 
+quiz_questions = db["quiz_questions"]
+
+def insert_question_doc(question_text: str, options_str: str, answer: str):
+    doc = {
+        "question": question_text,
+        "options": options_str,
+        "answer": answer,
+        "created_at": datetime.utcnow()
+    }
+    quiz_questions.insert_one(doc)
+    return doc
+
+def get_random_question():
+    doc = list(quiz_questions.aggregate([{"$sample": {"size": 1}}]))
+    if not doc:
+        return None
+    d = doc[0]
+    return (str(d["_id"]), d["question"], d["options"], d["answer"])
+
+def get_question_by_id(qid):
+    from bson import ObjectId
+    try:
+        return quiz_questions.find_one({"_id": ObjectId(qid)})
+    except:
+        return None
+
+
+def get_random_question():
+    doc = list(quiz_questions.aggregate([{"$sample": {"size": 1}}]))
+    if not doc:
+        return None
+    d = doc[0]
+    return (str(d.get("_id")), d.get("question"), d.get("options"), d.get("answer"))
+
+def get_all_questions():
+    return list(quiz_questions.find({}, {"question":1, "options":1, "answer":1}))
+
+def delete_question_by_id(qid):
+
+    try:
+        from bson import ObjectId
+        oid = ObjectId(qid)
+    except:
+        return None
+    return quiz_questions.delete_one({"_id": oid})
+
+def update_score_db(user_id, username, increment=1):
+    quiz_scores.update_one(
+        {"user_id": str(user_id)},
+        {
+            "$setOnInsert": {"username": username},
+            "$inc": {"points": increment}
+        },
+        upsert=True
+    )
+
+def get_leaderboard_db(limit=10):
+    docs = list(quiz_scores.find({}, {"user_id":1, "username":1, "points":1}).sort("points", DESCENDING).limit(limit))
+
+    return [(d.get("username") or f"id_{d['user_id']}", d.get("points",0), d.get("user_id")) for d in docs]
+
+def reset_scores_and_reward_top(rewards=[1600, 1000, 500], owner_notify_id=None):
+
+    top = list(quiz_scores.find({}, {"user_id":1, "username":1, "points":1}).sort("points", DESCENDING).limit(len(rewards)))
+    rewarded = []
+    for i, doc in enumerate(top):
+        uid = doc.get("user_id")
+        uname = doc.get("username")
+        pts = doc.get("points", 0)
+        amount = rewards[i]
+        try:
+            update_primos(uid, amount)
+        except Exception:
+            update_primos(int(uid), amount)
+        rewarded.append((uid, uname, pts, amount))
+
+    quiz_scores.delete_many({})
+    return rewarded
+
+def update_clash_points_db(user_id, username, points=1):
+    quiz_clash.update_one(
+        {"user_id": str(user_id)},
+        {"$setOnInsert": {"username": username}, "$inc": {"points": points}},
+        upsert=True
+    )
+
+def get_clash_leaderboard_db(limit=10):
+    docs = list(quiz_clash.find({}, {"user_id":1, "username":1, "points":1}).sort("points", DESCENDING).limit(limit))
+    return [(d.get("user_id"), d.get("username"), d.get("points",0)) for d in docs]
+
+authorized = db["authorized_users"]
+
+def is_authorized(uid):
+    return authorized.count_documents({"user_id": str(uid)}, limit=1) > 0
+
+def add_authorized(uid):
+    authorized.update_one({"user_id": str(uid)}, {"$set": {}}, upsert=True)
+
+def get_authorized_users():
+    return [doc["user_id"] for doc in authorized.find({}, {"_id": 0, "user_id": 1})]
+def get_user_party(user_id):
+    doc = pvp.find_one({"user_id": str(user_id)}, {"_id": 0, "party": 1})
+    return doc.get("party", []) if doc else []
+
+
+def save_user_party(user_id, party_list):
+    pvp.update_one(
+        {"user_id": str(user_id)},
+        {"$set": {"party": party_list}},
+        upsert=True
+    )
+
+def get_defeats_today(user_id):
+    doc = pvp.find_one({"user_id": str(user_id)}, {"_id": 0, "defeats_today": 1})
+    return doc.get("defeats_today", 0) if doc else 0
+
+
+def set_defeats_today(user_id, value):
+    pvp.update_one(
+        {"user_id": str(user_id)},
+        {"$set": {"defeats_today": value}},
+        upsert=True
+    )
+
+
+def reset_daily_defeats():
+    pvp.update_many({}, {"$set": {"defeats_today": 0}})
+def increment_monster_kill(user_id, monster_name):
+    monster_defeats.update_one(
+        {"user_id": str(user_id), "monster": monster_name},
+        {"$inc": {"count": 1}},
+        upsert=True
+    )
+
+
+def get_user_monster_kills(user_id):
+    docs = monster_defeats.find({"user_id": str(user_id)}, {"_id": 0})
+    return list(docs)
+def get_monsterboard_top(limit=10):
+    pipeline = [
+        {"$group": {
+            "_id": "$user_id",
+            "total_kills": {"$sum": "$count"}
+        }},
+        {"$sort": {"total_kills": -1}},
+        {"$limit": limit}
+    ]
+
+    results = list(monster_defeats.aggregate(pipeline))
+    out = []
+
+    for r in results:
+        user_id = r["_id"]
+        total = r["total_kills"]
+
+        # fetch username from your inv/users collection
+        user = inv.find_one({"user_id": user_id})
+        name = user.get("Name", f"User {user_id}")
+
+        out.append((user_id, name, total))
+
+    return out
+def reset_monster_season():
+    monster_defeats.delete_many({})

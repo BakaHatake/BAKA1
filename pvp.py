@@ -16,132 +16,34 @@ from telegram.ext import (
     MessageHandler,
     filters
 )
+from html import escape as html_escape
+from telegram.constants import ParseMode
+import telegram
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 import pytz
 
-from db import ensure_bank,get_bank,get_primogems,update_primos,update_bank,ensure_bank,get_balance,update_balance,update_paimon_box,user_exists
-from db import get_steal_doc,unlock_steal_mode,lock_steal_mode,set_steal_mode
+from db import ensure_bank,get_bank,get_primogems,update_primos,update_bank,ensure_bank,get_balance,update_balance,update_paimon_box,user_exists,get_user_party,save_user_party
+from db import get_steal_doc,unlock_steal_mode,lock_steal_mode,set_steal_mode,get_user_characters,get_defeats_today,increment_monster_kill,set_defeats_today,get_monsterboard_top,get_user_monster_kills,reset_monster_season
 DB_PATH = "/mnt/data/quiz.db"
 ADMIN_ID = 5192424390
 
-with sqlite3.connect(DB_PATH) as conn:
-    cursor = conn.cursor()
-    try:
-        cursor.execute("ALTER TABLE users ADD COLUMN party TEXT")
-        print("✅ Column 'party' added.")
-    except sqlite3.OperationalError:
-        print("⚠️ Column already exists.")
 
-with sqlite3.connect(DB_PATH) as conn:
-    cursor = conn.cursor()
-    try:
-        cursor.execute("ALTER TABLE users ADD COLUMN defeats_today INTEGER DEFAULT 0")
-        print("✅ Column 'defeats_today' added.")
-    except sqlite3.OperationalError:
-        print("⚠️ Column 'defeats_today' already exists.")
+def resolve_party_stats(user_id, party_list):
+    chars = get_user_characters(user_id)
+    final = []
 
+    for name in party_list:
+        if name in chars:
+            data = chars[name]
+            final.append((
+                name,
+                data["power"],
+                data["constellation"]
+            ))
 
-with sqlite3.connect("/mnt/data/quiz.db") as conn:
-    c = conn.cursor()
-    try:
-        c.execute("ALTER TABLE owned_characters ADD COLUMN power INTEGER DEFAULT 0")
-        print("✅ Added 'power' column to owned_characters.")
-    except sqlite3.OperationalError:
-        print("⚠️ 'power' column already exists.")
-
-with sqlite3.connect(DB_PATH) as conn:
-    c = conn.cursor()
-    try:
-        c.execute("ALTER TABLE users ADD COLUMN steal_mode TEXT DEFAULT 'off'")
-        print("✅ Added 'steal_mode' column.")
-    except sqlite3.OperationalError:
-        print("⚠️ 'steal_mode' already exists.")
-
-    try:
-        c.execute("ALTER TABLE users ADD COLUMN steal_cooldown INTEGER DEFAULT 0")
-        print("✅ Added 'steal_cooldown' column.")
-    except sqlite3.OperationalError:
-        print("⚠️ 'steal_cooldown' already exists.")
-
-    try:
-        c.execute("ALTER TABLE users ADD COLUMN mode_lock_until INTEGER DEFAULT 0")
-        print("✅ Added 'mode_lock_until' column.")
-    except sqlite3.OperationalError:
-        print("⚠️ 'mode_lock_until' already exists.")
-    try:
-        c.execute("ALTER TABLE users ADD COLUMN bank INTEGER DEFAULT 0")
-        print("created bank")
-    except sqlite3.OperationalError:
-        print("already has bank")
-def ensure_monsterboard_table():
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS monster_defeats (
-                user_id INTEGER,
-                monster_type TEXT,
-                defeats INTEGER DEFAULT 0,
-                PRIMARY KEY (user_id, monster_type)
-            )
-        """)
-        conn.commit()
-ensure_monsterboard_table()
-def init_paimonbox_db():
-    conn = sqlite3.connect("/mnt/data/quiz.db")  
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS paimonbox (
-            user_id INTEGER,
-            date TEXT,
-            plays INTEGER,
-            PRIMARY KEY (user_id, date)
-        )
-    """)
-    conn.commit()
-    conn.close()
-
-init_paimonbox_db()
-
-def get_user_party(user_id):
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-
-        c.execute("SELECT party FROM users WHERE user_id = ?", (user_id,))
-        row = c.fetchone()
-
-        if not row or not row[0]:
-            return []
-
-        try:
-            party_names = json.loads(row[0])
-        except (json.JSONDecodeError, TypeError):
-            return []
-
-        party_with_power = []
-        for name in party_names:
-            c.execute("SELECT power, constellation, rarity FROM owned_characters WHERE user_id = ? AND character_name = ?", 
-                      (user_id, name))
-            result = c.fetchone()
-            if result:
-                base_power, const, rarity = result
-                bonus = const * (10 if rarity == 5 else 5)  
-                total_power = base_power + bonus
-                party_with_power.append((name, total_power, const))
-            else:
-                party_with_power.append((name, 0, 0))
-
-        return party_with_power
-
-
-
-
-def save_user_party(user_id, party_list):
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("UPDATE users SET party = ? WHERE user_id = ?", (json.dumps(party_list), user_id))
-        conn.commit()
-
+    return final
 
 async def party_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -166,33 +68,39 @@ async def party_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["party_selection"] = []
         await send_party_selection(update, context, user_id)
 
-
 async def send_party_selection(update, context, user_id):
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("SELECT character_name, rarity, power, constellation FROM owned_characters WHERE user_id = ?", (user_id,))
-        char_data = c.fetchall()
+    # Fetch characters using your existing helper
+    characters = get_user_characters(user_id)  # {name: {rarity, power, constellation}}
+
+    # Convert dict → list of tuples
+    char_data = [
+        (name, data.get("rarity", 4), data.get("power", 0), data.get("constellation", 0))
+        for name, data in characters.items()
+    ]
 
     selected = context.user_data.get("party_selection", [])
     mode = context.user_data.get("star_mode", "5")
 
     buttons = []
+
     if mode == "5":
-        stars = [(name, rarity, power, const) for name, rarity, power, const in char_data if rarity == 5]
+        filtered = [(n, r, p, c) for n, r, p, c in char_data if r == 5]
         toggle_button = InlineKeyboardButton("⭐ Show 4★ Characters", callback_data=f"party_toggle_4_{user_id}")
     else:
-        stars = [(name, rarity, power, const) for name, rarity, power, const in char_data if rarity == 4]
+        filtered = [(n, r, p, c) for n, r, p, c in char_data if r == 4]
         toggle_button = InlineKeyboardButton("🌟 Show 5★ Characters", callback_data=f"party_toggle_5_{user_id}")
 
-    for name, rarity, power, const in sorted(stars):
-
+    for name, rarity, power, const in sorted(filtered):
         prefix = "✅" if name in selected else "❌"
         bonus = const * (10 if rarity == 5 else 5)
         total = power + bonus
-        buttons.append([InlineKeyboardButton(
-            f"{prefix} {name} (C{const}, ⚔️ {total})",
-            callback_data=f"party_{name}_{user_id}"
-        )])
+
+        buttons.append([
+            InlineKeyboardButton(
+                f"{prefix} {name} (C{const}, ⚔️ {total})",
+                callback_data=f"party_{name}_{user_id}"
+            )
+        ])
 
     buttons.append([toggle_button])
     buttons.append([InlineKeyboardButton("💾 Save Party", callback_data=f"party_save_{user_id}")])
@@ -203,6 +111,7 @@ async def send_party_selection(update, context, user_id):
         await update.callback_query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(buttons))
     else:
         await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(buttons))
+
 
 
 async def party_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -398,7 +307,9 @@ async def fight_monster(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer("❌ Someone else already started this battle!", show_alert=True)
         return
 
-    party = get_user_party(user_id)
+    party_names = get_user_party(user_id)
+    party = resolve_party_stats(user_id, party_names)
+
     if not party:
         await query.answer("❌ You need to set up a party first! Use /party", show_alert=True)
         return
@@ -406,36 +317,29 @@ async def fight_monster(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer("❌ Your party is empty! Add characters with /party", show_alert=True)
         return
 
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("SELECT primogems, defeats_today FROM users WHERE user_id = ?", (user_id,))
-        row = c.fetchone()
-        if not row:
-            await query.answer("❌ User not found in database.", show_alert=True)
-            return
+    # --- MONGO REPLACEMENT ---
+    primogems = get_primogems(user_id)
+    defeats_today = get_defeats_today(user_id)
+    lose_primos = battle["monster"].get("lose_primos", 500)
 
-        primogems, defeats_today = row
+    if primogems < lose_primos:
+        await query.answer(f"💎 You need at least {lose_primos} primogems to fight!", show_alert=True)
+        return
 
-        lose_primos = battle["monster"].get("lose_primos", 500) 
-        if primogems < lose_primos:
-            await query.answer(f"💎 You need at least {lose_primos} primogems to fight!", show_alert=True)
-            return
-
-
-        if defeats_today >= MAX_DEFEATS_PER_DAY:
-            await query.answer(
-                f"🚫 You've reached your daily monster defeat limit ({defeats_today}/{MAX_DEFEATS_PER_DAY}). Try again tomorrow!",
-                show_alert=True
-            )
-            return
-        conn.commit()
+    if defeats_today >= MAX_DEFEATS_PER_DAY:
+        await query.answer(
+            f"🚫 You've reached your daily monster defeat limit ({defeats_today}/{MAX_DEFEATS_PER_DAY}). "
+            "Try again tomorrow!",
+            show_alert=True
+        )
+        return
 
     battle["locked_by"] = user_id
-
     await query.answer("⚔️ Battle begins!")
 
     monster = battle["monster"]
     await battle_sequence(update, context, user_id, username, party, monster, battle_id)
+
 
 async def battle_sequence(update, context, user_id, username, party, monster, battle_id):
     # Store battle state
@@ -614,48 +518,61 @@ async def battle_victory(update, context, battle_id):
     user_id = battle_state["user_id"]
     monster_name = monster["type"]
 
-
     user = await context.bot.get_chat(user_id)
     name = user.first_name or "Unknown"
 
     reward = MONSTERS[monster_name]["reward_primos"]
 
+    # Prepare safe HTML text
+    raw_log = battle_state.get("battle_log", "") or ""
+    safe_log = html_escape(raw_log)
+    safe_name = html_escape(name)
+    safe_monster = html_escape(monster_name)
+    safe_reward = html_escape(str(reward))
 
-    escaped_name = escape_markdown(name, version=2)
-    escaped_monster = escape_markdown(monster_name, version=2)
-    escaped_reward = escape_markdown(str(reward), version=2)
+    msg = ""
+    if safe_log:
+        msg += f"<pre>{safe_log}</pre>\n\n"
+    msg += f"🎉 <b>{safe_name}</b> is VICTORIOUS against <b>{safe_monster}</b>!\n"
+    msg += f"💎 +<b>{safe_reward}</b> primogems earned!"
 
+    # --- MONGO updates ---
+    update_primos(user_id, reward)
+    increment_monster_kill(user_id, monster_name)
+    current_defeats = get_defeats_today(user_id)
+    set_defeats_today(user_id, current_defeats + 1)
 
-    msg = battle_state.get("battle_log", "")
-    msg = escape_markdown(msg, version=2)
-
-    msg += f"\n🎉 *{escaped_name}* is VICTORIOUS against *{escaped_monster}*\\!"
-    msg += f"\n💎 \\+{escaped_reward} primogems earned\\!"
-
-
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("UPDATE users SET primogems = primogems + ? WHERE user_id = ?", (reward, user_id))
-        conn.commit()
-
-
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-    
-
-        c.execute("""
-            INSERT INTO monster_defeats (user_id, monster_type, defeats)
-            VALUES (?, ?, 1)
-            ON CONFLICT(user_id, monster_type) DO UPDATE SET defeats = defeats + 1
-        """, (user_id, monster_name))
-
-
-        c.execute("UPDATE users SET defeats_today = defeats_today + 1 WHERE user_id = ?", (user_id,))
+    # Clean up
     del active_battles[battle_id]
-    await update.callback_query.edit_message_text(
-        text=msg,
-        parse_mode="MarkdownV2"
-    )
+
+    # send edit with HTML and guard against "message not modified"
+    try:
+        await update.callback_query.edit_message_text(
+            text=msg,
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True
+        )
+    except telegram.error.BadRequest as e:
+        # If message not modified or can't parse, try sending plain text fallback
+        if "Message is not modified" in str(e):
+            try:
+                await update.callback_query.answer()  # acknowledge quietly
+            except:
+                pass
+        else:
+            try:
+                await update.callback_query.edit_message_text(
+                    text=f"{html_escape(safe_name)} defeated {html_escape(safe_monster)}! +{safe_reward} primogems",
+                    parse_mode=ParseMode.HTML
+                )
+            except Exception:
+                # last resort: send as new message
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text=f"{safe_name} defeated {safe_monster}! +{safe_reward} primogems"
+                )
+
+
 async def battle_defeat(update, context, battle_id):
     battle_state = active_battles[battle_id]
     monster = battle_state["monster"]
@@ -664,39 +581,56 @@ async def battle_defeat(update, context, battle_id):
     penalty = MONSTERS[monster["type"]]["lose_primos"]
     lose_quote = MONSTERS[monster["type"]].get("lose_message")
 
+    raw_log = battle_state.get("battle_log", "") or ""
+    safe_log = html_escape(raw_log)
+    user_name = html_escape(update.effective_user.first_name or "Unknown")
+    monster_name = html_escape(monster["type"])
+    hp = html_escape(str(monster["hp"]))
+    primos_lost = html_escape(str(penalty))
 
-    user_name = escape_markdown(update.effective_user.first_name or "Unknown", version=2)
-    monster_name = escape_markdown(monster["type"], version=2)
-    hp = escape_markdown(str(monster["hp"]), version=2)
-    primos_lost = escape_markdown(str(penalty), version=2)
+    msg = ""
+    if safe_log:
+        msg += f"<pre>{safe_log}</pre>\n\n"
 
- 
-    msg = battle_state.get("battle_log", "")
-    if msg:
-        msg = escape_markdown(msg, version=2)
-
-    msg += f"\n💀 *DEFEAT\\!*"
-    msg += f"\n*{user_name}* lost to *{monster_name}* with *{hp} HP* remaining\\."
-    msg += f"\n💸 *\\-{primos_lost} primogems* lost\\!"
+    msg += f"💀 <b>DEFEAT!</b>\n"
+    msg += f"<b>{user_name}</b> lost to <b>{monster_name}</b> with <b>{hp} HP</b> remaining.\n"
+    msg += f"💸 <b>-{primos_lost}</b> primogems lost!\n"
 
     if lose_quote:
-        safe_quote = escape_markdown(lose_quote, version=2)
-        msg += f"\n\n❝_{safe_quote}_❞"
+        msg += f"\n❝<i>{html_escape(lose_quote)}</i>❞\n"
 
-
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("UPDATE users SET primogems = primogems - ? WHERE user_id = ?", (penalty, user_id))
-        c.execute("UPDATE users SET primogems = 0 WHERE user_id = ? AND primogems < 0", (user_id,))
-        conn.commit()
-
-
-    await update.callback_query.edit_message_text(
-        text=msg,
-        parse_mode="MarkdownV2"
-    )
+    # --- MONGO updates ---
+    update_primos(user_id, -penalty)
+    if get_primogems(user_id) < 0:
+        update_primos(user_id, -get_primogems(user_id))
 
     del active_battles[battle_id]
+
+    # edit message with HTML and guard against parse errors/message-not-modified
+    try:
+        await update.callback_query.edit_message_text(
+            text=msg,
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True
+        )
+    except telegram.error.BadRequest as e:
+        if "Message is not modified" in str(e):
+            try:
+                await update.callback_query.answer()
+            except:
+                pass
+        else:
+            # fallback: try simpler message
+            try:
+                await update.callback_query.edit_message_text(
+                    text=f"{user_name} lost to {monster_name}. -{primos_lost} primogems",
+                    parse_mode=ParseMode.HTML
+                )
+            except Exception:
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text=f"{user_name} lost to {monster_name}. -{primos_lost} primogems"
+                )
 
 async def handle_retreat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -720,15 +654,18 @@ async def handle_retreat(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     retreat_penalty = 100
 
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("UPDATE users SET primogems = primogems - ? WHERE user_id = ?", (retreat_penalty, user_id))
-        c.execute("UPDATE users SET primogems = 0 WHERE user_id = ? AND primogems < 0", (user_id,))
-        conn.commit()
+    # --- MONGO REPLACEMENT ---
+    update_primos(user_id, -retreat_penalty)
+    if get_primogems(user_id) < 0:
+        update_primos(user_id, -get_primogems(user_id))
 
     del active_battles[battle_id]
-    await query.edit_message_text(f"🏃‍♂️ **{name} retreated from battle with {monster_name}!**\n💸 -{retreat_penalty} primogems penalty.")
+
+    await query.edit_message_text(
+        f"🏃‍♂️ **{name} retreated from battle with {monster_name}!**\n💸 -{retreat_penalty} primogems penalty."
+    )
     await query.answer("Retreated with penalty!")
+
 
 
 
@@ -773,282 +710,64 @@ async def reset_defeats_command(update: Update, context: ContextTypes.DEFAULT_TY
     await update.message.reply_text("✅ Daily monster defeat counters have been reset.")
 
 async def monsterboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("""
-            SELECT user_id, SUM(defeats) as total_defeats 
-            FROM monster_defeats 
-            GROUP BY user_id 
-            ORDER BY total_defeats DESC
-        """)
-        user_totals = c.fetchall()
 
-    if not user_totals:
+    leaderboard = get_monsterboard_top()
+
+    if not leaderboard:
         await update.message.reply_text("📊 No monster defeats recorded yet!")
         return
 
     msg = "🏆 *Monster Defeat Leaderboard*\n"
-    
 
-    for user_id, total_defeats in user_totals:
-        try:
-            user = await context.bot.get_chat(user_id)
-            name = escape_markdown(user.first_name, version=2)
-        except:
-            name = f"User {user_id}"
+    for user_id, name, total in leaderboard:
+        esc_name = escape_markdown(name, version=2)
+        msg += f"\n👤 *{esc_name}* ({total} total):\n"
 
-        msg += f"\n👤 *{name}* \\({total_defeats} total\\):\n"
-        
-
-        with sqlite3.connect(DB_PATH) as conn:
-            c = conn.cursor()
-            c.execute("""
-                SELECT monster_type, defeats 
-                FROM monster_defeats 
-                WHERE user_id = ? 
-                ORDER BY defeats DESC
-            """, (user_id,))
-            monsters = c.fetchall()
-        
-        for monster, count in monsters:
-            safe_monster = escape_markdown(monster, version=2)
-            msg += f"• {safe_monster}: {count}x\n"
+        # Get monster breakdown
+        kills = get_user_monster_kills(user_id)
+        for row in kills:
+            monster = escape_markdown(row['monster'], 2)
+            count = row['count']
+            msg += f"• {monster}: {count}x\n"
 
     await update.message.reply_text(msg, parse_mode="MarkdownV2")
+
     
 async def resetmonster(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    ADMIN_IDS = [5192424390]
 
-    ADMIN_IDS = [5192424390]  
-    GROUP_ID = -1002043895840
-    YOUR_DM_ID = 5192424390  
-    
-    user_id = update.effective_user.id
-    if user_id not in ADMIN_IDS:
-        await update.message.reply_text("❌ You don't have permission to use this command!")
+    if update.effective_user.id not in ADMIN_IDS:
+        await update.message.reply_text("❌ You don't have permission.")
         return
-    
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        
 
-        c.execute("""
-            SELECT user_id, SUM(defeats) as total_defeats 
-            FROM monster_defeats 
-            GROUP BY user_id 
-            ORDER BY total_defeats DESC
-        """)
-        leaderboard = c.fetchall()
-        
-        if not leaderboard:
-            await update.message.reply_text("📊 No monster defeats recorded yet!")
-            return
-        
+    leaderboard = get_monsterboard_top(9999)
 
-        top_3 = leaderboard[:3]
-        rewards = [1600, 1000, 500]  
-        
+    if not leaderboard:
+        await update.message.reply_text("📊 No monster defeats recorded yet!")
+        return
 
-        detailed_results = []
-        for user_id, total_defeats in leaderboard:
-            c.execute("""
-                SELECT monster_type, defeats 
-                FROM monster_defeats 
-                WHERE user_id = ? 
-                ORDER BY defeats DESC
-            """, (user_id,))
-            monster_details = c.fetchall()
-            detailed_results.append((user_id, total_defeats, monster_details))
-        
+    rewards = [1600, 1000, 500]
 
-        c.execute("DELETE FROM monster_defeats")
-        conn.commit()
-    
+    # Distribute rewards
+    for i, (user_id, name, total) in enumerate(leaderboard[:3]):
+        update_primos(user_id, rewards[i])
 
-    group_msg = "🏆 <b>MONSTER DEFEAT SEASON ENDED!</b>\n\n"
-    group_msg += "🎉 <b>Final Leaderboard &amp; Rewards:</b>\n\n"
-    
-    for i, (user_id, total_defeats) in enumerate(top_3):
-        try:
-            user = await context.bot.get_chat(user_id)
-            name = user.first_name
-            username = f"@{user.username}" if user.username else ""
-        except:
-            name = f"User {user_id}"
-            username = ""
-        
-        position_emoji = ["🥇", "🥈", "🥉"][i]
-        reward = rewards[i]
-        
-        group_msg += f"{position_emoji} <b>{i+1}st Place:</b> <a href='tg://user?id={user_id}'>{name}</a> {username}\n"
-        group_msg += f"   └ Total Defeats: {total_defeats}\n"
-        group_msg += f"   └ Reward: {reward} Primogems 💎\n\n"
-    
+    # Prepare message
+    msg = "🏆 <b>Monster Defeat Season Ended!</b>\n\n"
 
-    group_msg += "📊 <b>Complete Leaderboard:</b>\n\n"
-    for i, (user_id, total_defeats, monster_details) in enumerate(detailed_results):
-        try:
-            user = await context.bot.get_chat(user_id)
-            name = user.first_name
-            username = f"@{user.username}" if user.username else ""
-        except:
-            name = f"User {user_id}"
-            username = ""
-        
-        group_msg += f"#{i+1} <a href='tg://user?id={user_id}'>{name}</a> {username}\n"
-        group_msg += f"   └ Total Defeats: {total_defeats}\n"
-        group_msg += f"   └ Monster Breakdown:\n"
-        
-        for monster_type, defeats in monster_details:
-            group_msg += f"      • {monster_type}: {defeats}x\n"
-        group_msg += "\n"
-    
-    group_msg += f"🗑️ <b>Database Reset:</b> All monster defeat records cleared\n"
-    group_msg += f"📅 <b>Reset Time:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-    group_msg += "📊 <b>Monster Defeat Board has been reset!</b>\n"
-    group_msg += "New season starts now! 🎯"
-    
+    msg += "<b>Top 3 Rewards:</b>\n"
+    for i, (user_id, name, total) in enumerate(leaderboard[:3]):
+        msg += f"{['🥇','🥈','🥉'][i]} {name} — {total} defeats — +{rewards[i]} 💎\n"
 
-    dm_msg = "🏆 <b>MONSTER DEFEAT SEASON RESET REPORT</b>\n\n"
-    dm_msg += "🎉 <b>Top 3 Winners:</b>\n\n"
-    
-    for i, (user_id, total_defeats) in enumerate(top_3):
-        try:
-            user = await context.bot.get_chat(user_id)
-            name = user.first_name
-            username = f"@{user.username}" if user.username else ""
-        except:
-            name = f"User {user_id}"
-            username = ""
-        
-        position_emoji = ["🥇", "🥈", "🥉"][i]
-        reward = rewards[i]
-        
-        dm_msg += f"{position_emoji} <b>{i+1}st Place:</b> {name} {username}\n"
-        dm_msg += f"   └ User ID: <code>{user_id}</code>\n"
-        dm_msg += f"   └ Total Defeats: {total_defeats}\n"
-        dm_msg += f"   └ Reward: {reward} Primogems 💎\n\n"
-    
+    msg += "\n<b>Full Leaderboard:</b>\n"
+    for rank, (user_id, name, total) in enumerate(leaderboard, 1):
+        msg += f"#{rank} {name} — {total}\n"
 
-    dm_msg += "📊 <b>Complete Leaderboard:</b>\n\n"
-    for i, (user_id, total_defeats, monster_details) in enumerate(detailed_results):
-        try:
-            user = await context.bot.get_chat(user_id)
-            name = user.first_name
-            username = f"@{user.username}" if user.username else ""
-        except:
-            name = f"User {user_id}"
-            username = ""
-        
-        dm_msg += f"#{i+1} {name} {username}\n"
-        dm_msg += f"   └ User ID: <code>{user_id}</code>\n"
-        dm_msg += f"   └ Total Defeats: {total_defeats}\n"
-        dm_msg += f"   └ Monster Breakdown:\n"
-        
-        for monster_type, defeats in monster_details:
-            dm_msg += f"      • {monster_type}: {defeats}x\n"
-        dm_msg += "\n"
-    
-    dm_msg += f"🗑️ <b>Database Reset:</b> All monster defeat records cleared\n"
-    dm_msg += f"📅 <b>Reset Time:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-    
-    try:
-        group_msg_1 = "🏆 <b>MONSTER DEFEAT SEASON ENDED!</b>\n\n"
-        group_msg_1 += "🎉 <b>Final Leaderboard &amp; Rewards:</b>\n\n"
-        
-        for i, (user_id, total_defeats) in enumerate(top_3):
-            try:
-                user = await context.bot.get_chat(user_id)
-                name = user.first_name
-                username = f"@{user.username}" if user.username else ""
-            except:
-                name = f"User {user_id}"
-                username = ""
-            
-            position_emoji = ["🥇", "🥈", "🥉"][i]
-            reward = rewards[i]
-            
-            group_msg_1 += f"{position_emoji} <b>{i+1}st Place:</b> <a href='tg://user?id={user_id}'>{name}</a> {username}\n"
-            group_msg_1 += f"   └ Total Defeats: {total_defeats}\n"
-            group_msg_1 += f"   └ Reward: {reward} Primogems 💎\n\n"
-        
+    # Clear season data
+    reset_monster_season()
 
-        chunk_size = 5
-        user_chunks = [detailed_results[i:i+chunk_size] for i in range(0, len(detailed_results), chunk_size)]
-        
+    await update.message.reply_text(msg, parse_mode="HTML")
 
-        await context.bot.send_message(
-            chat_id=GROUP_ID,
-            text=group_msg_1,
-            parse_mode="HTML"
-        )
-        
-
-        for chunk_num, chunk in enumerate(user_chunks):
-            chunk_msg = f"📊 <b>Complete Leaderboard (Part {chunk_num + 1}):</b>\n\n"
-            
-            for user_id, total_defeats, monster_details in chunk:
-                try:
-                    user = await context.bot.get_chat(user_id)
-                    name = user.first_name
-                    username = f"@{user.username}" if user.username else ""
-                except:
-                    name = f"User {user_id}"
-                    username = ""
-                
-                user_rank = detailed_results.index((user_id, total_defeats, monster_details)) + 1
-                chunk_msg += f"#{user_rank} <a href='tg://user?id={user_id}'>{name}</a> {username}\n"
-                chunk_msg += f"   └ Total Defeats: {total_defeats}\n"
-                chunk_msg += f"   └ Top Monsters:\n"
-                
-
-                for monster_type, defeats in monster_details[:3]:
-                    chunk_msg += f"      • {monster_type}: {defeats}x\n"
-                if len(monster_details) > 3:
-                    chunk_msg += f"      • ... and {len(monster_details) - 3} more\n"
-                chunk_msg += "\n"
-            
-            await context.bot.send_message(
-                chat_id=GROUP_ID,
-                text=chunk_msg,
-                parse_mode="HTML"
-            )
-        
-
-        final_msg = f"🗑️ <b>Database Reset:</b> All monster defeat records cleared\n"
-        final_msg += f"📅 <b>Reset Time:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-        final_msg += "📊 <b>Monster Defeat Board has been reset!</b>\n"
-        final_msg += "New season starts now! 🎯"
-        
-        await context.bot.send_message(
-            chat_id=GROUP_ID,
-            text=final_msg,
-            parse_mode="HTML"
-        )
-        
-        if len(dm_msg) > 4000:
-
-            dm_chunks = [dm_msg[i:i+4000] for i in range(0, len(dm_msg), 4000)]
-            for chunk in dm_chunks:
-                await context.bot.send_message(
-                    chat_id=YOUR_DM_ID,
-                    text=chunk,
-                    parse_mode="HTML"
-                )
-        else:
-            await context.bot.send_message(
-                chat_id=YOUR_DM_ID,
-                text=dm_msg,
-                parse_mode="HTML"
-            )
-        
-        await update.message.reply_text(
-            "✅ Monster defeat board has been reset!\n\n"
-            "🏆 Rewards distributed to top 3 players\n"
-            "📨 Detailed report sent to group and your DM"
-        )
-        
-    except Exception as e:
-        await update.message.reply_text(f"❌ Error occurred: {str(e)}")
 
 async def paimonbox(update, context):
     user = update.effective_user
@@ -1068,14 +787,12 @@ async def paimonbox(update, context):
 
     if not row or row < bet:
         await update.message.reply_text("You don't have enough primogems.")
-        conn.close()
         return
     
     plays = update_paimon_box(user_id)
 
     if plays >= 3:
         await update.message.reply_text("You've already played Paimon's Bargain 3 times today!")
-        conn.close()
         return
 
 
@@ -1097,7 +814,6 @@ async def paimonbox(update, context):
         parse_mode="Markdown"
     )
 
-    conn.close()
 async def handle_paimonbox_callback(update, context):
     query = update.callback_query
     await query.answer()

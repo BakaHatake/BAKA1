@@ -19,143 +19,7 @@ ADMIN_IDS = [5192424390]
 DB_PATH = "/mnt/data/quiz.db" 
 from db import update_balance
 
-def init_whitelist_db():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS whitelist (
-            user_id INTEGER PRIMARY KEY
-        )
-    """)
-    conn.commit()
-    conn.close()
 
-def create_daily_claims_table():
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS daily_claims (
-                user_id INTEGER PRIMARY KEY,
-                last_claim TEXT
-            )
-        """)
-        conn.commit()
-        print("columns done")
-def get_user_last_claim(user_id):
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("SELECT last_claim FROM daily_claims WHERE user_id=?", (user_id,))
-        row = c.fetchone()
-        if row:
-            return row[0]
-        return None
-
-def update_user_claim(user_id):
-    from datetime import datetime
-    today = datetime.now().strftime('%Y-%m-%d')
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("""
-            INSERT INTO daily_claims (user_id, last_claim)
-            VALUES (?, ?)
-            ON CONFLICT(user_id) DO UPDATE SET last_claim=excluded.last_claim
-        """, (user_id, today))
-        conn.commit()
-
-
-def get_whitelisted_ids():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT user_id FROM whitelist")
-    ids = [row[0] for row in cursor.fetchall()]
-    conn.close()
-    return ids
-
-def add_user_to_whitelist(user_id):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("INSERT OR IGNORE INTO whitelist (user_id) VALUES (?)", (user_id,))
-    conn.commit()
-    conn.close()
-
-def add_to_user(user_id: int, amount: int):
-    conn = sqlite3.connect(DATABASE)
-    c = conn.cursor()
-    c.execute("SELECT primogems FROM users WHERE user_id = ?", (user_id,))
-    result = c.fetchone()
-    if result:
-        c.execute("UPDATE users SET primogems = primogems + ? WHERE user_id = ?", (amount, user_id))
-    else:
-        c.execute("INSERT INTO users (user_id, primogems) VALUES (?, ?)", (user_id, amount))
-    conn.commit()
-    conn.close()
-def init_db():
-    with sqlite3.connect(DATABASE) as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                user_id INTEGER PRIMARY KEY,
-                primogems INTEGER DEFAULT 0,
-                mine_state TEXT
-            )
-        """)
-        conn.commit()
-
-def get_user(user_id):
-    with sqlite3.connect(DATABASE) as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT user_id, primogems, mine_state FROM users WHERE user_id = ?", (user_id,))
-        return cursor.fetchone()
-
-
-def update_user_state(user_id, state):
-    with sqlite3.connect(DATABASE) as conn:
-        cursor = conn.cursor()
-        cursor.execute("UPDATE users SET mine_state = ? WHERE user_id = ?", (state, user_id))
-        conn.commit()
-
-def update_primogems(user_id, amount):
-    WHITELISTED_IDS = get_whitelisted_ids()
-    if user_id in WHITELISTED_IDS:
-        with sqlite3.connect(DATABASE) as conn:
-            cursor = conn.cursor()
-            cursor.execute("UPDATE users SET primogems = primogems + ? WHERE user_id = ?", (amount, user_id))
-            conn.commit()
-
-
-# === Database Init ===
-def init_transfers_table():
-    with sqlite3.connect(DATABASE) as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS transfers (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                sender_id INTEGER,
-                recipient_id INTEGER,
-                amount INTEGER,
-                currency TEXT,           -- <-- add this column
-                timestamp TEXT
-            )
-        """)
-        conn.commit()
-def reset_transfers_table():
-    with sqlite3.connect(DATABASE) as conn:
-        cursor = conn.cursor()
-        # Drop old table if exists
-        cursor.execute("DROP TABLE IF EXISTS transfers")
-        
-        # Create new table with 'currency' column
-        cursor.execute("""
-            CREATE TABLE transfers (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                sender_id INTEGER,
-                recipient_id INTEGER,
-                amount INTEGER,
-                currency TEXT,
-                timestamp TEXT
-            )
-        """)
-        conn.commit()
 CURRENCY_MAP = {
     "primogems": "Primogems",
     "mora": "Mora",
@@ -571,92 +435,7 @@ async def add_primos_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="HTML"
     )
 
-async def list(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id not in ADMIN_IDS:
-        await update.message.reply_text("❌ BAKA!! You don't have permission to do that.")
-        return
 
-    ids = get_whitelisted_ids()
-    if not ids:
-        await update.message.reply_text("ℹ️ The whitelist is currently empty.")
-        return
-
-    entries = []
-    for uid in ids:
-        try:
-            user = await context.bot.get_chat(uid)
-            name = user.full_name or user.username or "Unknown"
-        except:
-            name = "Unknown"
-        entries.append(f"• {name} ({uid})")
-
-    await update.message.reply_text("📋 Whitelisted Users:\n" + "\n".join(entries))
-
-
-
-
-async def add_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id not in ADMIN_IDS:
-        await update.message.reply_text("❌ BAKA!! You don't have permission to do that.")
-        return
-
-    if not update.message.reply_to_message:
-        await update.message.reply_text("❌ Reply to a user's message to whitelist them.")
-        return
-
-    user_id = update.message.reply_to_message.from_user.id
-    WHITELISTED_IDS = get_whitelisted_ids()
-    if user_id in WHITELISTED_IDS:
-        await update.message.reply_text(f"ℹ️ User {user_id} is already whitelisted.")
-    else:
-        add_user_to_whitelist(user_id)
-        WHITELISTED_IDS.append(user_id)
-        await update.message.reply_text(f"✅ Added {user_id} to the whitelist.")
-
-
-
-async def remove_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id not in ADMIN_IDS:
-        await update.message.reply_text("❌ BAKA!! You don't have permission to do that.")
-        return
-
-    if not update.message.reply_to_message:
-        await update.message.reply_text("❌ Reply to a user's message to remove them from the whitelist.")
-        return
-
-    user_id = update.message.reply_to_message.from_user.id
-    WHITELISTED_IDS = get_whitelisted_ids()
-
-    if user_id not in WHITELISTED_IDS:
-        await update.message.reply_text(f"ℹ️ User {user_id} is not in the whitelist.")
-        return
-
-
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM whitelist WHERE user_id = ?", (user_id,))
-        conn.commit()
-        conn.close()
-        await update.message.reply_text(f"✅ Removed {user_id} from the whitelist.")
-    except Exception as e:
-        await update.message.reply_text(f"❌ Error removing {user_id}: {e}")
-        
-async def claim(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-
-    WHITELISTED_IDS = get_whitelisted_ids()
-    if user_id in WHITELISTED_IDS:
-        await update.message.reply_text("🌟 You have already begun your journey! Only one claim per adventurer.")
-        return
-
-    
-    add_user_to_whitelist(user_id)                       
-    add_to_user(user_id, 1600)                
-
-    await update.message.reply_text(
-        "🏆 Welcome, traveler! You've claimed your starter reward of 1600 primogems. Begin your adventure!"
-    )
 async def dice_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
@@ -1059,26 +838,7 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
 import sqlite3
 import random
-
-DATABASE = "/mnt/data/quiz.db"
-
-
 rps_matches = {}  
-
-
-def get_user_primogems(user_id):
-    with sqlite3.connect(DATABASE) as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT primogems FROM users WHERE user_id = ?", (user_id,))
-        result = cursor.fetchone()
-        return result[0] if result else 0
-
-def add_primogems(user_id, amount):
-    with sqlite3.connect(DATABASE) as conn:
-        conn.execute("UPDATE users SET primogems = primogems + ? WHERE user_id = ?", (amount, user_id))
-        conn.commit()
-
-
 def format_name(user):
     full_name = user.first_name
     if user.last_name:
@@ -1418,7 +1178,7 @@ async def explore(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Update user currencies
     update_balance(user_id,"Primogems", primogems_amount)
     update_balance(user_id, "Mora", mora_amount)
-    update_balance(user_id, "lunar Crystals", lunar_crystals_amount)
+    update_balance(user_id, "Lunar Crystals", lunar_crystals_amount)
 
     user_last_explore[user_id] = now
 
@@ -1451,8 +1211,7 @@ async def explore(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def register_game_handlers(application):
-    create_daily_claims_table()
-    reset_transfers_table()
+
     # === Mines Feature ===
     application.add_handler(CommandHandler("mines", start_mines))
     application.add_handler(CommandHandler("stopmine", stop_mine))
@@ -1463,7 +1222,6 @@ def register_game_handlers(application):
     application.add_handler(CommandHandler("add", add_primos_admin))
     application.add_handler(CallbackQueryHandler(handle_tile_click, pattern=r"^tile_\d+_\d+$"))
     application.add_handler(CallbackQueryHandler(handle_cashout, pattern=r"^cashout_\d+$"))
-    application.add_handler(CommandHandler("claim", claim))
     application.add_handler(CommandHandler("explore", explore))  
     # === TicTacToe Feature ===
     application.add_handler(CommandHandler("tic", start_tictactoe))
@@ -1478,7 +1236,5 @@ def register_game_handlers(application):
     application.add_handler(CallbackQueryHandler(rps_reject_callback, pattern=r"^rps_reject_"))
     application.add_handler(CallbackQueryHandler(rps_choice_callback, pattern=r"^rps_choice_"))
     application.add_handler(CommandHandler("dice", dice_game))
-    application.add_handler(CommandHandler("addid", add_id))
-    application.add_handler(CommandHandler("removeid", remove_id))
     application.add_handler(CommandHandler("list", list))
     print("✅ Mines, TicTacToe, RPS, and Backup handlers registered!")

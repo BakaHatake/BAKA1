@@ -17,8 +17,8 @@ from pvp import apply_daily_interest, register_monster_handlers,reset_defeats_to
 from db import get_top_users
 ADMIN_IDS = [5192424390]
 # ======= CONFIG =======
-#TOKEN = "7592457873:AAEFFNDOVQWcRZ6bJQCisjSNkoGauHRXUAE"
-TOKEN = "7952386138:AAHUwRqnHcRvHVholUSy7hPzyAicdZQ8Isg"
+TOKEN = "7592457873:AAEFFNDOVQWcRZ6bJQCisjSNkoGauHRXUAE"
+#TOKEN = "7952386138:AAHUwRqnHcRvHVholUSy7hPzyAicdZQ8Isg"
 TEXT_FOLDER = "texts"
 IMAGE_FOLDER = "images"
 BANNER_FOLDER = os.path.join(IMAGE_FOLDER, "banners")
@@ -894,7 +894,9 @@ async def lunarboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     for i, user in enumerate(top, 1):
         uid = user["user_id"]
-        name = html.escape(user["name"])
+        raw_name = user.get("name")
+        name = html.escape(raw_name) if raw_name else f"User {user['user_id']}"
+
         primos = user.get("value", 0)
 
 

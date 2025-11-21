@@ -58,7 +58,7 @@ async def start_quiz(update: Update, context: ContextTypes.DEFAULT_TYPE, ignore_
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-
+import html
 # --- ANSWER HANDLER ---
 async def answer_quiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -74,19 +74,38 @@ async def answer_quiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
     correct = qdoc["answer"]
     user = query.from_user
 
+    uid = user.id
+    raw_name = user.first_name or user.username or f"User {uid}"
+    safe_name = html.escape(raw_name)
+    mention = f"<a href='tg://user?id={uid}'>{safe_name}</a>"
+
     if selected == correct:
-        update_score_db(user.id, user.username or f"id_{user.id}", 1)
-        update_primos(user.id, 200)
-        update_balance(user.id, "Lunar Crystals", 10)
+        update_score_db(uid, user.username or f"id_{uid}", 1)
+        update_primos(uid, 200)
+        update_balance(uid, "Lunar Crystals", 10)
 
         await query.edit_message_text(
-            f"✅ Correct!\n+1 point\n+200 primogems\n+10 lunar crystals",
+            f"✅ Correct!\nAnswered by: {mention}",
+            parse_mode="HTML"
+        )
+
+        await context.bot.send_message(
+            chat_id=query.message.chat_id,
+            text=f"🎉 {mention} answered correctly!\n+1 point • +200 Primogems • +10 Lunar Crystals",
             parse_mode="HTML"
         )
 
     else:
-        await query.edit_message_text("❌ Wrong.")
+        await query.edit_message_text(
+            f"❌ Wrong!\nAnswered by: {mention}",
+            parse_mode="HTML"
+        )
 
+        await context.bot.send_message(
+            chat_id=query.message.chat_id,
+            text=f"❌ {mention} answered incorrectly.",
+            parse_mode="HTML"
+        )
 
 # --- LEADERBOARD ---
 async def show_leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE):

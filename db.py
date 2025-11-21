@@ -23,6 +23,7 @@ gacha = db["gacha"]
 owned = db["owned_characters"]
 pvp = db["pvp_users"]
 monster_defeats = db["monster_defeats"] 
+path = db["waifu_paths"]
 
 
 def update_inv(user_id,primogems=0,mora=0,lunar_crystals=0):
@@ -789,3 +790,58 @@ def get_monsterboard_top(limit=10):
     return out
 def reset_monster_season():
     monster_defeats.delete_many({})
+def get_user_path(user_id):
+    return path.find_one({"user_id": str(user_id)})
+def set_user_path(user_id, waifu_id):
+    path.update_one(
+        {"user_id": str(user_id)},
+        {"$set": {"waifu_id": waifu_id, "pity": 0}},
+        upsert=True
+    )
+def clear_user_path(user_id):
+    path.update_one(
+        {"user_id": str(user_id)},
+        {"$unset": {"waifu_id": "", "pity": ""}}
+    )
+
+def increment_pity(user_id):
+    path.update_one(
+        {"user_id": str(user_id)},
+        {"$inc": {"pity": 1}}
+    )
+def get_setwaifu_count(user_id):
+    doc = path.find_one({"user_id": str(user_id)}, {"usage_count": 1, "last_used": 1})
+    if not doc:
+        return 0
+    
+    today = datetime.now().strftime("%Y-%m-%d")
+    if doc.get("last_used") != today:
+        path.update_one(
+            {"user_id": str(user_id)},
+            {"$set": {"usage_count": 0, "last_used": today}},
+            upsert=True
+        )
+        return 0
+
+    return doc.get("usage_count", 0)
+def increment_setwaifu_count(user_id):
+    today = datetime.now().strftime("%Y-%m-%d")
+    path.update_one(
+        {"user_id": str(user_id)},
+        {
+            "$inc": {"usage_count": 1},
+            "$set": {"last_used": today}
+        },
+        upsert=True
+    )
+import random
+
+def roll_for_path_waifu(user_id, waifu_id):
+    doc = get_user_path(user_id)
+    pity = doc.get("pity", 0)
+
+    chance = 10 + (pity * 9)  
+
+    return random.randint(1, 100) <= chance
+def get_all_users_ids():
+    return [doc["user_id"] for doc in inv.find({}, {"user_id": 1, "_id": 0})]

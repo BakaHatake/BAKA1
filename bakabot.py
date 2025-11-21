@@ -859,6 +859,7 @@ async def char_upload_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
 import html
 IMAGE_URL = "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752989365/generated-image_4_djjntd.png"  
 lunar_url="https://res.cloudinary.com/dvpz1tzam/image/upload/v1763399722/76042255-09ae-452a-a04d-17e73c90ff2a_exsuln.png"
+
 async def primosboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     top = get_top_users("Primogems")
 
@@ -869,39 +870,36 @@ async def primosboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = "🏆 <b>Primogems Leaderboard</b> 🪙\n\n"
 
     for i, user in enumerate(top, 1):
-        uid = user["user_id"]
-        name = html.escape(user["name"])
-        primos = user["value"]
+        uid = str(user.get("user_id") or 0)
+        raw_name = user.get("name") or f"User {uid}"
+        safe_name = html.escape(raw_name)
+        primos = user.get("value", 0)
 
-        mention = f"<a href='tg://user?id={uid}'>{name}</a>"
-        msg += f"{i}. {mention} — <b>{primos}</b> 💎\n"
+        link = f"<a href='tg://user?id={uid}'>{safe_name}</a>"
+        msg += f"{i}. {link} — <b>{primos}</b> 💎\n"
 
     await update.message.reply_photo(
         photo=IMAGE_URL,
         caption=msg,
         parse_mode="HTML"
     )
-
 async def lunarboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     top = get_top_users("Lunar Crystals")
-    print(top)
 
     if not top:
         await update.message.reply_text("📦 No data found.")
         return
 
-    msg = "🏆 <b>Lunar Crystals Leaderboard</b> 🪙\n\n"
+    msg = "🏆 <b>Lunar Crystals Leaderboard</b> 🌙\n\n"
 
     for i, user in enumerate(top, 1):
-        uid = user["user_id"]
-        raw_name = user.get("name")
-        name = html.escape(raw_name) if raw_name else f"User {user['user_id']}"
+        uid = str(user.get("user_id") or 0)
+        raw_name = user.get("name") or f"User {uid}"
+        safe_name = html.escape(raw_name)
+        lunar = user.get("value", 0)
 
-        primos = user.get("value", 0)
-
-
-        mention = f"<a href='tg://user?id={uid}'>{name}</a>"
-        msg += f"{i}. {mention} — <b>{primos}</b> 🌙\n"
+        link = f"<a href='tg://user?id={uid}'>{safe_name}</a>"
+        msg += f"{i}. {link} — <b>{lunar}</b> 🌙\n"
 
     await update.message.reply_photo(
         photo=lunar_url,

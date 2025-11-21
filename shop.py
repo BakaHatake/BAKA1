@@ -19,7 +19,7 @@ from harem import (
 )
 
 from db import get_balance,update_shop,get_shop,update_balance,refresh_shop,get_harem,record_roll,increment_character,get_primogems,update_primos
-
+from db import get_setwaifu_count,get_user_path,set_user_path,increment_setwaifu_count,clear_user_path,increment_pity,roll_for_path_waifu,update_harem
 DEFAULT_BANNER = "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752917631/74ca7946-ebeb-4873-b24e-f00fd1219dce_fqsepm.png"
 WIN_BANNER = "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752918095/01d1867d-d611-4dda-8abc-7ea78c49656f_n6rk6a.png"
 LOSE_BANNER = "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752918099/generated-image_1_l25yk8.png"
@@ -301,172 +301,173 @@ async def reset_rolls_command(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     await update.message.reply_text(f"✅ Reset rolls & refreshes for user ID `{target_user_id}`", parse_mode='Markdown')
 
-# async def setwaifu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     user_id = update.effective_user.id
+async def setwaifu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
 
-#     if not context.args:
-#         await update.message.reply_text("❗ Usage: /setwaifu <waifu_id>")
-#         return
+    if not context.args:
+        await update.message.reply_text("❗ Usage: /setwaifu <waifu_id>")
+        return
 
-#     # Check limit
-#     usage_count = get_setwaifu_count(user_id)
-#     if usage_count >= 2:
-#         await update.message.reply_text("🚫 You can only set your waifu path 2 times per day. Try again tomorrow.")
-#         return
+    # Check limit
+    usage_count = get_setwaifu_count(user_id)
+    if usage_count >= 2:
+        await update.message.reply_text("🚫 You can only set your waifu path 2 times per day. Try again tomorrow.")
+        return
 
-#     waifu_id = context.args[0].strip()
-#     path = get_user_path(user_id)
+    waifu_id = context.args[0].strip()
+    path_doc = get_user_path(user_id)
 
-#     # User has already set a path, do not allow change until claimed
-#     if path:
-#         waifu_id = path['waifu_id']
-#         pity = path['pity']
-#         characters = load_characters()
-#         waifu = characters.get(waifu_id)
+    # User already has a path set and it's valid
+    if path_doc and path_doc.get("waifu_id"):
+        waifu_id = path_doc["waifu_id"]
+        pity = path_doc.get("pity", 0)
+        characters = load_characters()
+        waifu = characters.get(waifu_id)
 
-#         name = waifu['name']
-#         rarity = waifu['rarity']
-#         emoji = RARITY_CONFIG[rarity]['symbol']
-#         img_url = waifu.get('image_path', DEFAULT_BANNER)
+        name = waifu['name']
+        rarity = waifu['rarity']
+        emoji = RARITY_CONFIG[rarity]['symbol']
+        img_url = waifu.get('image_path', DEFAULT_BANNER)
 
-#         caption = (
-#             f"⚠️ <b>You already have a wish path set!</b>\n\n"
-#             f"🆔 <b>{waifu_id}</b>\n"
-#             f"👤 <b>{name}</b>\n"
-#             f"{emoji} <b>{rarity}</b>\n"
-#             f"🎲 <b>Pity: {pity}/10</b>\n\n"
-#             f"You must wish and win this waifu before setting a new path.\n"
-#             f"100 🌙 Lunar Crystals per wish"
-#         )
+        caption = (
+            f"⚠️ <b>You already have a wish path set!</b>\n\n"
+            f"🆔 <b>{waifu_id}</b>\n"
+            f"👤 <b>{name}</b>\n"
+            f"{emoji} <b>{rarity}</b>\n"
+            f"🎲 <b>Pity: {pity}/10</b>\n\n"
+            f"You must wish and win this waifu before setting a new path.\n"
+            f"100 🌙 Lunar Crystals per wish"
+        )
 
-#         await context.bot.send_photo(
-#             chat_id=update.effective_chat.id,
-#             photo=img_url,
-#             caption=caption,
-#             parse_mode="HTML"
-#         )
-#         return
+        await context.bot.send_photo(
+            chat_id=update.effective_chat.id,
+            photo=img_url,
+            caption=caption,
+            parse_mode="HTML"
+        )
+        return
 
-#     # Load waifu data
-#     characters = load_characters()
-#     waifu = characters.get(waifu_id)
 
-#     if not waifu:
-#         await update.message.reply_text("❌ Waifu not found.")
-#         return
+    # Load waifu data
+    characters = load_characters()
+    waifu = characters.get(waifu_id)
+
+    if not waifu:
+        await update.message.reply_text("❌ Waifu not found.")
+        return
     
-#     # Check if the waifu is of 'Bride' rarity and disallow setting it
-#     if waifu["rarity"] == "Bride":
-#         await update.message.reply_text("🚫 You cannot set a waifu with 'Bride' rarity as your wish path.")
-#         return
+    # Check if the waifu is of 'Bride' rarity and disallow setting it
+    if waifu["rarity"] == "Bride":
+        await update.message.reply_text("🚫 You cannot set a waifu with 'Bride' rarity as your wish path.")
+        return
 
-#     name = waifu["name"]
-#     rarity = waifu["rarity"]
-#     emoji = RARITY_CONFIG[rarity]["symbol"]
-#     img_url = waifu.get("image_path", DEFAULT_BANNER)
+    name = waifu["name"]
+    rarity = waifu["rarity"]
+    emoji = RARITY_CONFIG[rarity]["symbol"]
+    img_url = waifu.get("image_path", DEFAULT_BANNER)
 
-#     caption = f"🆔 <b>{waifu_id}</b>\n <b>{name}</b>\n <b>{rarity}</b> {emoji}\n\nSet this waifu as your wish path?"
-#     keyboard = InlineKeyboardMarkup([
-#         [
-#             InlineKeyboardButton("✅ Confirm", callback_data=f"setpath_confirm_{waifu_id}"),
-#             InlineKeyboardButton("❌ Cancel", callback_data="setpath_cancel")
-#         ]
-#     ])
+    caption = f"🆔 <b>{waifu_id}</b>\n <b>{name}</b>\n <b>{rarity}</b> {emoji}\n\nSet this waifu as your wish path?"
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("✅ Confirm", callback_data=f"setpath_confirm_{waifu_id}"),
+            InlineKeyboardButton("❌ Cancel", callback_data="setpath_cancel")
+        ]
+    ])
 
-#     await context.bot.send_photo(
-#         chat_id=update.effective_chat.id,
-#         photo=img_url,
-#         caption=caption,
-#         parse_mode="HTML",
-#         reply_markup=keyboard
-#     )
-# async def setwaifu_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     query = update.callback_query
-#     data = query.data
-#     user_id = query.from_user.id
+    await context.bot.send_photo(
+        chat_id=update.effective_chat.id,
+        photo=img_url,
+        caption=caption,
+        parse_mode="HTML",
+        reply_markup=keyboard
+    )
+async def setwaifu_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    data = query.data
+    user_id = query.from_user.id
 
-#     if data.startswith("setpath_confirm_"):
-#         waifu_id = data.split("_", 2)[2]
-#         try:
-#             set_user_path(user_id, waifu_id)
-#             increment_setwaifu_count(user_id)
-#             await query.edit_message_caption(
-#                 caption=f"✅ Path set to <b>{waifu_id}</b>.\nUse /waifu to make your wish!\nNote:100 lunar crystals per /waifu",
-#                 parse_mode="HTML"
-#             )
-#         except Exception as e:
-#             print(f"[ERROR: setwaifu_callback_handler] {e}")
-#             await query.edit_message_caption(
-#                 caption="❌ An error occurred while setting path. Please try again.",
-#                 parse_mode="HTML"
-#             )
+    if data.startswith("setpath_confirm_"):
+        waifu_id = data.split("_", 2)[2]
+        try:
+            set_user_path(user_id, waifu_id)
+            increment_setwaifu_count(user_id)
+            await query.edit_message_caption(
+                caption=f"✅ Path set to <b>{waifu_id}</b>.\nUse /waifu to make your wish!\nNote:100 lunar crystals per /waifu",
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            print(f"[ERROR: setwaifu_callback_handler] {e}")
+            await query.edit_message_caption(
+                caption="❌ An error occurred while setting path. Please try again.",
+                parse_mode="HTML"
+            )
 
-# WISH_GIF = "https://res.cloudinary.com/dvpz1tzam/video/upload/v1752931804/le-sserafim-le-sserafim-easy_k68zwt.mp4"  
-# WISH_COST = 100
-# async def makeawish_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     user = update.effective_user
-#     user_id = user.id
-#     chat_id = update.effective_chat.id
-#     username = user.first_name or user.username or "Someone"
-#     path = get_user_path(user_id)
+WISH_GIF = "https://res.cloudinary.com/dvpz1tzam/video/upload/v1752931804/le-sserafim-le-sserafim-easy_k68zwt.mp4"  
+WISH_COST = 100
+async def makeawish_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    user_id = user.id
+    chat_id = update.effective_chat.id
+    username = user.first_name or user.username or "Someone"
+    path = get_user_path(user_id)
 
-#     if not path:
-#         await update.message.reply_text(
-#             "🎯 You need to /setwaifu <id> before wishing!",
-#             reply_to_message_id=update.message.message_id,
-#         )
-#         return
+    if not path:
+        await update.message.reply_text(
+            "🎯 You need to /setwaifu <id> before wishing!",
+            reply_to_message_id=update.message.message_id,
+        )
+        return
 
-#     waifu_id = path["waifu_id"]
-#     pity = path["pity"]
+    waifu_id = path["waifu_id"]
+    pity = path["pity"]
 
-#     if get_balance(user_id, "lunar_crystals") < WISH_COST:
-#         await update.message.reply_text(
-#             "🌙 Not enough lunar crystals to make a wish!",
-#             reply_to_message_id=update.message.message_id,
-#         )
-#         return
+    if get_balance(user_id, "Lunar Crystals") < WISH_COST:
+        await update.message.reply_text(
+            "🌙 Not enough lunar crystals to make a wish!",
+            reply_to_message_id=update.message.message_id,
+        )
+        return
 
-#     deduct_currency(user_id, "lunar_crystals", WISH_COST)
-#     gif_msg = await context.bot.send_animation(
-#         chat_id=chat_id,
-#         animation=WISH_GIF,
-#         reply_to_message_id=update.message.message_id,
-#     )
+    update_balance(user_id, "Lunar Crystals", -WISH_COST)
+    gif_msg = await context.bot.send_animation(
+        chat_id=chat_id,
+        animation=WISH_GIF,
+        reply_to_message_id=update.message.message_id,
+    )
     
-#     await asyncio.sleep(1)
-#     await gif_msg.delete()
-#     won = roll_for_path_waifu(user_id, waifu_id)
-#     waifu = load_characters().get(waifu_id)
-#     name = waifu["name"]
-#     rarity = waifu["rarity"]
-#     emoji = RARITY_CONFIG[rarity]["symbol"]
-#     art = waifu.get("image_path", DEFAULT_BANNER)
+    await asyncio.sleep(1)
+    await gif_msg.delete()
+    won = roll_for_path_waifu(user_id, waifu_id)
+    waifu = load_characters().get(waifu_id)
+    name = waifu["name"]
+    rarity = waifu["rarity"]
+    emoji = RARITY_CONFIG[rarity]["symbol"]
+    art = waifu.get("image_path", DEFAULT_BANNER)
 
-#     if won:
-#         add_character_to_inventory(user_id, waifu_id)
-#         clear_user_path(user_id)
-#         await context.bot.send_photo(
-#             chat_id=chat_id,
-#             photo=art,
-#             caption=(
-#                 f"🎉 <b>{username}</b> successfully wished for <b>{name}</b> {emoji}!\n"
-#                 "She is now in your harem! ❤️"
-#             ),
-#             parse_mode="HTML",
-#             reply_to_message_id=update.message.message_id,
-#         )
-#     else:
-#         increment_pity(user_id)
-#         await context.bot.send_message(
-#             chat_id=chat_id,
-#             text=(
-#                 f"💔 <b>{username}</b> failed to win <b>{name}</b>...\n"
-#                 f"Pity: {pity + 1}/10\nBetter luck next time!"
-#             ),
-#             parse_mode="HTML",
-#             reply_to_message_id=update.message.message_id,
-#         )
+    if won:
+        update_harem(user_id, waifu_id,1,rarity=None)
+        clear_user_path(user_id)
+        await context.bot.send_photo(
+            chat_id=chat_id,
+            photo=art,
+            caption=(
+                f"🎉 <b>{username}</b> successfully wished for <b>{name}</b> {emoji}!\n"
+                "She is now in your harem! ❤️"
+            ),
+            parse_mode="HTML",
+            reply_to_message_id=update.message.message_id,
+        )
+    else:
+        increment_pity(user_id)
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=(
+                f"💔 <b>{username}</b> failed to win <b>{name}</b>...\n"
+                f"Pity: {pity + 1}/10\nBetter luck next time!"
+            ),
+            parse_mode="HTML",
+            reply_to_message_id=update.message.message_id,
+        )
 
 async def convert_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -601,108 +602,274 @@ ADMIN_GROUP_CHAT_ID = -1002043895840
 
 TG_MSG_LIMIT = 4000
 
-def bold(text):
-    return f"*{text}*"
+import random
+from telegram.helpers import escape_markdown
 
-def mono(text):
-    return f"`{text}`"
+async def airdrop(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
 
-def italic(text):
-    return f"_{text}_"
+    if user_id not in ADMIN_IDS:
+        await update.message.reply_text("❌ You are not authorized to use this command.")
+        return
 
-# async def airdrop(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     user_id = update.effective_user.id
+    if not context.args or not context.args[0].isdigit():
+        await update.message.reply_text("Usage: /airdrop <max_amount> [message]")
+        return
 
-#     # Admin lock
-#     if user_id not in ADMIN_IDS:
-#         await update.message.reply_text("❌ You are not authorized to use this command.")
-#         return
+    max_amount = int(context.args[0])
+    if max_amount <= 0:
+        await update.message.reply_text("Please specify a positive integer amount.")
+        return
 
-#     # Require at least amount; optional message follows
-#     if not context.args or not context.args[0].isdigit():
-#         await update.message.reply_text("Usage: /airdrop <max_amount> [message]")
-#         return
+    msg_text = " ".join(context.args[1:]).strip()
+    if not msg_text:
+        await update.message.reply_text("Usage: /airdrop <max_amount> [message]")
+        return
+    from db import get_all_users_ids
+    user_ids = get_all_users_ids
+    if not user_ids:
+        await update.message.reply_text("No users found to airdrop Lunar Crystals.")
+        return
 
-#     max_amount = int(context.args[0])
-#     if max_amount <= 0:
-#         await update.message.reply_text("Please specify a positive integer amount.")
-#         return
+    results = []
 
+    for uid in user_ids:
+        amount = random.randint(0, max_amount)
 
-#     msg_text = " ".join(context.args[1:]).strip()
+        if amount > 0:
+            update_balance(uid, "Lunar Crystals", amount)
+            try:
+                await context.bot.send_message(
+                    chat_id=uid,
+                    text=f"🎉 You received <b>{amount}</b> Lunar Crystals! 🌙\n{msg_text}",
+                    parse_mode="HTML"
+                )
+            except Exception as e:
+                print(f"Failed to send DM to user {uid}: {e}")
 
-#     if not msg_text:
-#         await update.message.reply_text("Usage: /airdrop <max_amount> [message]")
-#         return
+        results.append((uid, amount))
 
-#     user_ids = get_all_users_ids()
-#     if not user_ids:
-#         await update.message.reply_text("No users found to airdrop lunar crystals.")
-#         return
+    report_lines = [
+        "<b>🌙 Airdrop Moment!</b>",
+        "━━━━━━━━━━━━━━━━━━━━",
+        "<b>🎁 Lucky Travelers received Lunar Crystals! 🎁</b>",
+        ""
+    ]
 
-#     results = []
+    for uid, amt in results:
+        report_lines.append(f"✨ <code>{uid}</code> — {amt} Lunar Crystals")
 
-#     for uid in user_ids:
-#         amount = random.randint(0, max_amount)
-#         if amount > 0:
-#             add_currency(uid, "lunar_crystals", amount)
-#             try:
-#                 # Send DM to each user
-#                 await context.bot.send_message(
-#                     chat_id=uid,
-#                     text=(
-#                         f"🎉 You received {bold(str(amount))} Lunar Crystals as part of an airdrop! 🌙\n"
-#                         f"{msg_text}"
-#                     ),
-#                     parse_mode="Markdown"
-#                 )
-#             except Exception as e:
-#                 # Likely the user hasn't started the bot or blocked it
-#                 print(f"Failed to send DM to user {uid}: {e}")
+    report_lines.append("")
+    report_lines.append(msg_text)
+    report_lines.append("━━━━━━━━━━━━━━━━━━━━")
+    report_lines.append("<b>🏮 May your fortune shine bright in Teyvat! 🏮</b>")
 
-#         results.append((uid, amount))
+    TG_MSG_LIMIT = 3900
+    chunks = []
+    current_chunk = []
+    current_length = 0
 
-#     report_lines = [
-#         bold("🌙 Airdrop Moment! 🌙"),
-#         "━━━━━━━━━━━━━━━━━━━━",
-#         "🎁 *Lucky Travelers received Lunar Crystals!* 🎁",
-#         "",
-#     ]
+    for line in report_lines:
+        line_len = len(line) + 1
+        if current_length + line_len > TG_MSG_LIMIT:
+            chunks.append("\n".join(current_chunk))
+            current_chunk = [line]
+            current_length = line_len
+        else:
+            current_chunk.append(line)
+            current_length += line_len
 
-#     for uid, amt in results:
-#         report_lines.append(f"✨ {mono(str(uid))} — _{amt} Lunar Crystals_ ")
+    if current_chunk:
+        chunks.append("\n".join(current_chunk))
 
-#     report_lines.append("")
-#     report_lines.append(f"{msg_text}")
-#     report_lines.append("━━━━━━━━━━━━━━━━━━━━")
-#     report_lines.append("🏮 *May your fortune shine bright in Teyvat!* 🏮")
+    for chunk in chunks:
+        await context.bot.send_message(
+            chat_id=ADMIN_GROUP_CHAT_ID,
+            text=chunk,
+            parse_mode="HTML"
+        )
 
-#     # Chunk to respect Telegram message limits
-#     chunks = []
-#     current_chunk = []
-#     current_length = 0
+    await update.message.reply_text("🎉 Airdrop completed! Report sent to the admin group.")
 
-#     for line in report_lines:
-#         line_len = len(line) + 1
-#         if current_length + line_len > TG_MSG_LIMIT:
-#             chunks.append("\n".join(current_chunk))
-#             current_chunk = [line]
-#             current_length = line_len
-#         else:
-#             current_chunk.append(line)
-#             current_length += line_len
+async def drop(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
 
-#     if current_chunk:
-#         chunks.append("\n".join(current_chunk))
+    if user_id not in ADMIN_IDS:
+        await update.message.reply_text("❌ You are not authorized to use this command.")
+        return
 
-#     for chunk in chunks:
-#         await context.bot.send_message(
-#             chat_id=ADMIN_GROUP_CHAT_ID,
-#             text=chunk,
-#             parse_mode="Markdown"
-#         )
+    if not context.args or not context.args[0].isdigit():
+        await update.message.reply_text("Usage: /drop <amount> [message]")
+        return
 
-#     await update.message.reply_text("🎉 Airdrop completed! Report sent to the admin group.")
+    amount = int(context.args[0])
+    if amount <= 0:
+        await update.message.reply_text("Please specify a positive integer amount.")
+        return
+
+    msg_text = " ".join(context.args[1:]).strip()
+    if not msg_text:
+        await update.message.reply_text("Usage: /drop <amount> [message]")
+        return
+
+    from db import get_all_users_ids
+    user_ids = get_all_users_ids()
+    if not user_ids:
+        await update.message.reply_text("No users found to drop Lunar Crystals.")
+        return
+
+    results = []
+
+    for uid in user_ids:
+        update_balance(uid, "Lunar Crystals", amount)
+        try:
+            await context.bot.send_message(
+                chat_id=uid,
+                text=f"🎉 You received <b>{amount}</b> Lunar Crystals! 🌙\n{msg_text}",
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            print(f"Failed to send DM to user {uid}: {e}")
+
+        results.append((uid, amount))
+
+    report_lines = [
+        "<b>🌙 Drop Event!</b>",
+        "━━━━━━━━━━━━━━━━━━━━",
+        f"<b>Every user received {amount} Lunar Crystals!</b>",
+        ""
+    ]
+
+    for uid, amt in results:
+        report_lines.append(f"✨ <code>{uid}</code> — {amt} Lunar Crystals")
+
+    report_lines.append("")
+    report_lines.append(msg_text)
+    report_lines.append("━━━━━━━━━━━━━━━━━━━━")
+    report_lines.append("<b>🏮 May fortune bless all Travelers! 🏮</b>")
+
+    TG_MSG_LIMIT = 3900
+    chunks = []
+    current_chunk = []
+    current_length = 0
+
+    for line in report_lines:
+        line_len = len(line) + 1
+        if current_length + line_len > TG_MSG_LIMIT:
+            chunks.append("\n".join(current_chunk))
+            current_chunk = [line]
+            current_length = line_len
+        else:
+            current_chunk.append(line)
+            current_length += line_len
+
+    if current_chunk:
+        chunks.append("\n".join(current_chunk))
+
+    for chunk in chunks:
+        await context.bot.send_message(
+            chat_id=ADMIN_GROUP_CHAT_ID,
+            text=chunk,
+            parse_mode="HTML"
+        )
+
+    await update.message.reply_text("🎉 Drop completed! Report sent to the admin group.")
+
+async def buy_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+
+    if not context.args:
+        await update.message.reply_text("Usage: /buy <waifu_id>")
+        return
+
+    waifu_id = context.args[0].strip()
+    characters = load_characters()
+    waifu = characters.get(waifu_id)
+
+    if not waifu:
+        await update.message.reply_text("❌ Waifu not found.")
+        return
+
+    price = waifu.get("price", 300)
+    name = waifu["name"]
+    rarity = waifu["rarity"]
+    emoji = RARITY_CONFIG[rarity]["symbol"]
+    img_url = waifu.get("image_path", DEFAULT_BANNER)
+
+    user_balance = get_balance(user_id, "Lunar Crystals")
+    if user_balance < price:
+        await update.message.reply_text(
+            f"❌ Not enough Lunar Crystals.\nRequired: <b>{price}</b>\nYou have: <b>{user_balance}</b>",
+            parse_mode="HTML"
+        )
+        return
+
+    caption = (
+        f"🆔 <b>{waifu_id}</b>\n"
+        f"👤 <b>{name}</b>\n"
+        f"{emoji} <b>{rarity}</b>\n"
+        f"🌙 <b>Price: {price} Lunar Crystals</b>\n\n"
+        f"Do you want to buy this waifu?"
+    )
+
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("✅ Buy", callback_data=f"buy_confirm_{waifu_id}"),
+            InlineKeyboardButton("❌ Cancel", callback_data="buy_cancel")
+        ]
+    ])
+
+    await context.bot.send_photo(
+        chat_id=update.effective_chat.id,
+        photo=img_url,
+        caption=caption,
+        parse_mode="HTML",
+        reply_markup=keyboard
+    )
+async def buy_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    user_id = query.from_user.id
+    data = query.data
+
+    if data == "buy_cancel":
+        await query.edit_message_caption(
+            caption="❌ Purchase cancelled.",
+            parse_mode="HTML",
+            reply_markup=None
+        )
+        return
+
+    if data.startswith("buy_confirm_"):
+        waifu_id = data.split("_", 2)[2]
+        characters = load_characters()
+        waifu = characters.get(waifu_id)
+
+        if not waifu:
+            await query.edit_message_caption(
+                caption="❌ Waifu no longer exists.",
+                parse_mode="HTML"
+            )
+            return
+
+        price = waifu.get("price", 300)
+        user_balance = get_balance(user_id, "Lunar Crystals")
+
+        if user_balance < price:
+            await query.edit_message_caption(
+                caption="❌ Purchase failed. Not enough Lunar Crystals.",
+                parse_mode="HTML",
+                reply_markup=None
+            )
+            return
+
+        update_balance(user_id, "Lunar Crystals", -price)
+        increment_character(user_id, waifu_id)
+
+        await query.edit_message_caption(
+            caption=f"🎉 Purchase successful!\nYou bought <b>{waifu['name']}</b> ❤️",
+            parse_mode="HTML",
+            reply_markup=None
+        )
 
                                      
 
@@ -711,11 +878,14 @@ def register_shop_handlers(application):
     application.add_handler(CommandHandler("shop", shop_command), group=0)
     application.add_handler(CallbackQueryHandler(shop_callback_handler, pattern="^shop"), group=0)
     application.add_handler(CommandHandler("resetrolls", reset_rolls_command), group=0)
-    # application.add_handler(CommandHandler("setwaifu", setwaifu_command))
-    # application.add_handler(CommandHandler("waifu", makeawish_command))
-    # application.add_handler(CallbackQueryHandler(setwaifu_callback_handler, pattern="^setpath_"))
+    application.add_handler(CommandHandler("setwaifu", setwaifu_command))
+    application.add_handler(CommandHandler("waifu", makeawish_command))
+    application.add_handler(CallbackQueryHandler(setwaifu_callback_handler, pattern="^setpath_"))
     application.add_handler(CommandHandler("convert", convert_command))
     application.add_handler(CallbackQueryHandler(convert_callback, pattern=r"^convert:"))
     application.add_handler(CommandHandler("inv", inv_command))
-    # application.add_handler(CommandHandler("airdrop", airdrop))
+    application.add_handler(CommandHandler("airdrop", airdrop))
+    application.add_handler(CommandHandler("drop", drop))
+    application.add_handler(CommandHandler("buy", buy_command))
+    application.add_handler(CallbackQueryHandler(buy_callback, pattern=r"^buy_"))
     print("✅ Shop system registered.")

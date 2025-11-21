@@ -2368,12 +2368,16 @@ async def wtop_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("No waifu data available.")
         return
 
-    lines = ["🏆 *Top Waifu Collectors* 🏆\n"]
+    lines = ["🏆 <b>Top Waifu Collectors</b> 🏆\n"]
 
     for i, (user_id, total) in enumerate(rows, start=1):
         username = get_user_display_name(user_id) or "User"
-        username_md = md2_escape(username)
-        lines.append(f"{i}. [{username_md}](tg://user?id={user_id}) — *{total}* waifus")
+        safe_name = html.escape(username)
+
+        # clickable name, zero tagging
+        mention = f"<a href='tg://user?id={user_id}'>{safe_name}</a>"
+
+        lines.append(f"{i}. {mention} — <b>{total}</b> waifus")
 
     text = "\n".join(lines)
 
@@ -2381,8 +2385,9 @@ async def wtop_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=chat_id,
         photo=LEADERBOARD_BANNER,
         caption=text,
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
+
 
 
 def register_harem_handlers(application):

@@ -24,7 +24,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 import pytz
 
-from db import ensure_bank,get_bank,get_primogems,update_primos,update_bank,ensure_bank,get_balance,update_balance,update_paimon_box,user_exists,get_user_party,save_user_party
+from db import ensure_bank,get_bank,get_primogems,update_primos,update_bank,ensure_bank,get_balance,update_balance,update_paimon_box,user_exists,get_user_party,save_user_party,get_all_users_ids,unlock_expired_modes
 from db import get_steal_doc,unlock_steal_mode,lock_steal_mode,set_steal_mode,get_user_characters,get_defeats_today,increment_monster_kill,set_defeats_today,get_monsterboard_top,get_user_monster_kills,reset_monster_season
 DB_PATH = "/mnt/data/quiz.db"
 ADMIN_ID = 5192424390
@@ -48,15 +48,19 @@ def resolve_party_stats(user_id, party_list):
 async def party_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     context.user_data["party_owner_id"] = user_id 
-    
     party = get_user_party(user_id)
 
+
     if party:
-        total_power = sum(p for _, p, _ in party)
+        total_power = sum(p["power"] for p in party)
+
         msg = "👥 *Your Current Party*\n"
         msg += f"⚔️ *Total Power:* {total_power}\n\n"
-        for name, power, const in party:
-            msg += f"• {name}" + (f" (C{const})" if const > 0 else "") + f" — ⚔️ {power}\n"
+
+        for m in party:
+            const_txt = f" (C{m['const']})" if m['const'] > 0 else ""
+            msg += f"• {m['name']}{const_txt} — ⚔️ {m['power']}\n"
+
 
         keyboard = [
             [InlineKeyboardButton("✏️ Edit Party", callback_data="party_edit")],
@@ -140,7 +144,7 @@ async def party_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if action == "party_edit":
         party = get_user_party(target_id)
         context.user_data["star_mode"] = "5"
-        context.user_data["party_selection"] = [name for name, _, _ in party]
+        context.user_data["party_selection"] = [m["name"] for m in party]
         await send_party_selection(update, context, target_id)
         return
 
@@ -163,9 +167,25 @@ async def party_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if action == "party_save":
-        selected = context.user_data.get("party_selection", [])[:4]
-        save_user_party(target_id, selected)
-        await query.edit_message_text(f"✅ Party saved!\n📜 Selected: {', '.join(selected) if selected else 'No characters'}")
+        selected_names = context.user_data.get("party_selection", [])[:4]
+        party_data = []
+        characters = get_user_characters(target_id)
+        selected_names = context.user_data.get("party_selection", [])[:4]
+
+        party_data = []
+        for name in selected_names:
+            data = characters.get(name, {})
+            party_data.append({
+                "name": name,
+                "power": data.get("power", 0),
+                "const": data.get("constellation", 0),
+                "rarity": data.get("rarity", 4)
+            })
+
+        save_user_party(target_id, party_data)
+
+
+        await query.edit_message_text(f"✅ Party saved!\n📜 Selected: {', '.join(selected_names) if selected_names else 'No characters'}")
         return
 
     if action.startswith("party"):
@@ -1006,6 +1026,7 @@ import sqlite3
 
 async def toggle_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
+
     if len(context.args) != 1 or context.args[0].lower() not in ["on", "off"]:
         await update.message.reply_text("Usage: /mode on | /mode off")
         return
@@ -1023,15 +1044,15 @@ async def toggle_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     unlock = doc["Unlock"]
 
     if req == "on":
-        if mode == "On":
+        if mode == "On" and not locked:
             await update.message.reply_text("ℹ️ Mode already ON.")
             return
-
         if locked and now < unlock:
             mins = (unlock - now) // 60
             await update.message.reply_text(f"⏳ Cannot enable ON yet. Wait {mins} minutes.")
             return
 
+        # lock expired -> unlock now
         unlock_steal_mode(user_id)
         await update.message.reply_text("✅ Mode turned ON.")
         return
@@ -1039,11 +1060,11 @@ async def toggle_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if req == "off":
         if locked:
             mins = (unlock - now) // 60
-            await update.message.reply_text(f"⏳ Mode is locked OFF for {mins} more minutes.")
+            await update.message.reply_text(f"⏳ Mode already OFF for {mins} more minutes.")
             return
 
-        set_steal_mode(user_id, "Off")
-        await update.message.reply_text("⏸️ Mode turned OFF (manual).")
+        lock_steal_mode(user_id)    
+        await update.message.reply_text("⏸️ Mode turned OFF for 1 hour.")
         return
 
 
@@ -1379,44 +1400,52 @@ async def bank(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 ADMIN_ID = 5192424390
 MAX_MESSAGE_LENGTH = 4000  
-
 async def reset_defeats_today(application):
-    """Reset users' defeats_today and DM fight stats in safe chunks."""
-    rows = []
+    """Reset defeats_today using only helper functions."""
+    from datetime import datetime
+    import pytz
+
+    ist = pytz.timezone("Asia/Kolkata")
+
     message_lines = ["🧾 <b>Daily Monster Fight Summary</b>\n"]
+    rows_found = False
 
-    with sqlite3.connect(DB_PATH) as conn:
-        c = conn.cursor()
+    user_ids = get_all_users_ids()   # your helper
 
+    for uid in user_ids:
+        count = get_defeats_today(uid)   # your helper
 
-        c.execute("SELECT user_id, defeats_today FROM users WHERE defeats_today > 0")
-        rows = c.fetchall()
+        if count > 0:
+            rows_found = True
 
-        if not rows:
-            message_lines.append("📭 No users fought any monsters today.")
-        else:
-            for user_id, count in rows:
-                try:
-                    user = await application.bot.get_chat(user_id)
-                    name = user.first_name or f"User {user_id}"
-                    line = f"👤 <a href='tg://user?id={user_id}'>{name}</a> — {count}/10 fights used"
-                except:
-                    line = f"👤 User {user_id} — {count}/10 fights used"
-                message_lines.append(line)
+            try:
+                user = await application.bot.get_chat(uid)
+                name = user.first_name or f"User {uid}"
+                line = f"👤 <a href='tg://user?id={uid}'>{name}</a> — {count}/10 fights used"
+            except:
+                line = f"👤 User {uid} — {count}/10 fights used"
 
+            message_lines.append(line)
 
-        c.execute("UPDATE users SET defeats_today = 0")
-        conn.commit()
+        # reset regardless
+        set_defeats_today(uid, 0)
 
+    if not rows_found:
+        message_lines.append("📭 No users fought any monsters today.")
 
-    footer = f"\n\n🗓️ Reset Time: <code>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</code>"
-
+    footer = (
+        f"\n\n🗓️ Reset Time: <code>"
+        f"{datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')}"
+        f"</code>"
+    )
 
     full_report = "\n".join(message_lines) + footer
+
+    MAX_MESSAGE_LENGTH = 4000
     chunks = []
 
+    # chunk it
     while len(full_report) > MAX_MESSAGE_LENGTH:
-
         split_index = full_report.rfind("\n", 0, MAX_MESSAGE_LENGTH)
         if split_index == -1:
             split_index = MAX_MESSAGE_LENGTH
@@ -1426,150 +1455,99 @@ async def reset_defeats_today(application):
     if full_report:
         chunks.append(full_report)
 
-
+    # send them
     for chunk in chunks:
         try:
             await application.bot.send_message(
                 chat_id=ADMIN_ID,
                 text=chunk,
-                parse_mode=constants.ParseMode.HTML
+                parse_mode="HTML"
             )
         except Exception as e:
             print(f"❌ Error sending chunk: {e}")
 
-    print("✅ defeats_today reset and fight summary sent.")
+    print("✅ defeats_today reset and summary sent.")
 
 async def apply_daily_interest(application, is_manual=False):
-    """Apply daily interest and send report to admin"""
     try:
         from datetime import datetime
         import pytz
-        
-        conn = sqlite3.connect("/mnt/data/quiz.db")
-        cursor = conn.cursor()
 
-        # Get users with positive bank balance
-        cursor.execute("SELECT user_id, bank, primogems FROM users WHERE bank > 0")
-        rows = cursor.fetchall()
+        ist = pytz.timezone("Asia/Kolkata")
+        now = datetime.now(ist)
 
+        user_ids = get_all_users_ids()
         interest_data = []
-        wealth_cap_data = []
-        
-        for user_id, bank, primogems in rows:
-            # Calculate interest
-            interest = int(bank * 0.05)
-            new_bank = bank + interest if interest > 0 else bank
-            new_primogems = primogems
-            
-            # Check wealth cap (10k each for bank and wallet)
-            bank_capped = False
-            wallet_capped = False
-            original_bank = new_bank
-            original_primogems = new_primogems
-            
-            if new_bank > 10000:
-                new_bank = 10000
-                bank_capped = True
-                
-            if new_primogems > 10000:
-                new_primogems = 10000
-                wallet_capped = True
-            
-            # Update database
-            cursor.execute("UPDATE users SET bank = ?, primogems = ? WHERE user_id = ?", 
-                         (new_bank, new_primogems, user_id))
-            
-            # Track changes
-            if interest > 0:
-                interest_data.append((user_id, bank, interest, new_bank))
-                
-            if bank_capped or wallet_capped:
-                wealth_cap_data.append((user_id, bank_capped, wallet_capped, original_bank, new_bank, original_primogems, new_primogems))
 
-        conn.commit()
-        conn.close()
+        # Calculate interest
+        for uid in user_ids:
+            bank_balance = get_bank(uid)
+            if bank_balance <= 0:
+                continue
 
-        # Send report to admin
-        if interest_data or wealth_cap_data:
-            ist = pytz.timezone('Asia/Kolkata')
-            current_time = datetime.now(ist)
-            
-            if is_manual:
-                title = "📈 *Manual Bank Interest Report \\(5%\\)*"
-                time_text = f"🕛 _Applied manually at {current_time.strftime('%H:%M:%S')} IST_"
-            else:
-                title = "📈 *Daily Bank Interest Report \\(5%\\)*"
-                time_text = "🕛 _Applied at 12:00 AM IST_"
-            
-            message = f"{title}\n\n"
-            bot = application.bot
+            interest = int(bank_balance * 0.05)
+            if interest <= 0:
+                continue
 
-            # Interest applied section
-            if interest_data:
-                message += "💰 *Interest Applied:*\n"
-                for uid, prev_bank, interest, new_bank in interest_data:
-                    try:
-                        user = await bot.get_chat(uid)
-                        name = escape_markdown(user.first_name, version=2)
-                    except:
-                        name = f"User {uid}"
+            update_bank(uid, interest)
+            interest_data.append((uid, bank_balance, interest, bank_balance + interest))
 
-                    message += (
-                        f"👤 *{name}* \\(`{uid}`\\)\n"
-                        f"  ├ Previous: {prev_bank}\n"
-                        f"  └ New Total: {new_bank} \\+{interest}\n\n"
-                    )
+        if not interest_data:
+            return "ℹ️ No positive balances. No interest applied."
 
-            # Wealth cap section
-            if wealth_cap_data:
-                message += "⚠️ *Wealth Cap Applied \\(10k limit\\):*\n"
-                for uid, bank_capped, wallet_capped, old_bank, new_bank, old_primogems, new_primogems in wealth_cap_data:
-                    try:
-                        user = await bot.get_chat(uid)
-                        name = escape_markdown(user.first_name, version=2)
-                    except:
-                        name = f"User {uid}"
-
-                    caps = []
-                    if bank_capped:
-                        caps.append(f"🏦 Bank \\({old_bank}→{new_bank}\\)")
-                    if wallet_capped:
-                        caps.append(f"💼 Wallet \\({old_primogems}→{new_primogems}\\)")
-                    
-                    join_str = r" \& "
-                    message += f"👤 *{name}* \\(`{uid}`\\): {join_str.join(caps)}"
-
-
-
-            message += f"\n{time_text}"
-            
-            try:
-                await bot.send_message(chat_id=ADMIN_ID, text=message, parse_mode="MarkdownV2")
-                print("✅ Daily interest applied and report sent to admin")
-                
-                result_parts = []
-                if interest_data:
-                    result_parts.append(f"Applied interest to {len(interest_data)} users")
-                if wealth_cap_data:
-                    result_parts.append(f"Applied wealth cap to {len(wealth_cap_data)} users")
-                
-                return f"✅ {', '.join(result_parts)}"
-                
-            except Exception as e:
-                print("❌ Failed to send interest report to admin:", e)
-                return f"❌ Failed to send report: {e}"
+        # Header
+        if is_manual:
+            title = "<b>Manual Bank Interest Report (5%)</b>"
+            time_text = f"<i>Applied manually at {now.strftime('%H:%M:%S')} IST</i>"
         else:
-            print("ℹ️ No users with positive bank balance found")
-            return "ℹ️ No users with positive bank balance found"
-            
+            title = "<b>Daily Bank Interest Report (5%)</b>"
+            time_text = "<i>Applied at 12:00 AM IST</i>"
+
+        # Start message
+        lines = [title, ""]  # blank line
+
+        bot = application.bot
+
+        # Per-user details
+        for uid, old_bal, inc, new_bal in interest_data:
+            try:
+                user = await bot.get_chat(uid)
+                name = user.first_name or f"User {uid}"
+            except:
+                name = f"User {uid}"
+
+            name_link = f"<a href='tg://user?id={uid}'>{name}</a>"
+
+            lines.append(f"{name_link} (ID: <code>{uid}</code>)")
+            lines.append(f"Previous: {old_bal}")
+            lines.append(f"New Total: {new_bal} (+{inc})")
+            lines.append("")  # blank line for spacing
+
+        # Footer
+        lines.append(time_text)
+
+        # Join safely
+        msg = "\n".join(lines)
+
+        await bot.send_message(
+            chat_id=ADMIN_ID,
+            text=msg,
+            parse_mode="HTML"
+        )
+
+        print("✅ Daily interest applied.")
+        return f"Applied interest to {len(interest_data)} users"
+
     except Exception as e:
-        print(f"❌ Error in apply_daily_interest: {e}")
+        print("❌ Error in apply_daily_interest:", e)
         return f"❌ Error: {e}"
+
+
+
 async def auto_unlock_modes(application):
     ADMIN_ID = 5192424390
 
-    from db import unlock_expired_modes  
-
+    # Call your helper function (this handles all DB updates)
     unlocked = unlock_expired_modes()
 
     if not unlocked:
@@ -1577,15 +1555,15 @@ async def auto_unlock_modes(application):
         return
 
     bot = application.bot
-
-    msg = "🔓 <b>Auto unlock report:</b>\n\n"
+    msg = "🔓 <b>Auto Unlock Report</b>\n\n"
 
     for uid in unlocked:
         try:
             user = await bot.get_chat(uid)
             name = user.full_name or f"User {uid}"
-        except:
+        except Exception:
             name = f"User {uid}"
+
         msg += f"• {name} (<code>{uid}</code>) is now <b>ON</b>\n"
 
     try:
@@ -1600,8 +1578,8 @@ async def auto_unlock_modes(application):
     print("[auto_unlock_modes] Unlocked:", unlocked)
 
 
+
 async def trigger_interest_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Manual trigger for daily interest (Admin only)"""
     if update.effective_user.id != ADMIN_ID:
         await update.message.reply_text("❌ Only admin can use this command")
         return
@@ -1610,63 +1588,175 @@ async def trigger_interest_command(update: Update, context: ContextTypes.DEFAULT
     
     result = await apply_daily_interest(context.application, is_manual=True)
     await update.message.reply_text(result)
+
 async def bank_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Show bank statistics (Admin only)"""
     if update.effective_user.id != ADMIN_ID:
         await update.message.reply_text("❌ Only admin can use this command")
         return
-    
+
     try:
-        conn = sqlite3.connect("/mnt/data/quiz.db")
-        cursor = conn.cursor()
+        user_ids = get_all_users_ids()
 
+        balances = []
+        for uid in user_ids:
+            bal = get_bank(uid)
+            if bal > 0:
+                balances.append((uid, bal))
 
-        cursor.execute("SELECT COUNT(*) FROM users WHERE bank > 0")
-        users_with_money = cursor.fetchone()[0]
+        if not balances:
+            await update.message.reply_text("📭 No users with bank balance found.")
+            return
 
-        cursor.execute("SELECT SUM(bank) FROM users WHERE bank > 0")
-        total_money = cursor.fetchone()[0] or 0
+        # Extract values
+        only_values = [b for _, b in balances]
 
-        cursor.execute("SELECT AVG(bank) FROM users WHERE bank > 0")
-        avg_money = cursor.fetchone()[0] or 0
+        total_users = len(balances)
+        total_money = sum(only_values)
+        avg_balance = total_money / total_users
+        max_uid, max_bal = max(balances, key=lambda x: x[1])
+        min_uid, min_bal = min(balances, key=lambda x: x[1])
 
-        cursor.execute("SELECT user_id, bank FROM users WHERE bank > 0 ORDER BY bank DESC LIMIT 1")
-        max_user = cursor.fetchone()
-        max_user_id, max_money = max_user if max_user else (None, 0)
+        # Fetch clickable names without tagging
+        try:
+            max_user = await context.bot.get_chat(max_uid)
+            max_name = max_user.first_name
+        except:
+            max_name = f"User {max_uid}"
 
- 
-        cursor.execute("SELECT user_id, bank FROM users WHERE bank > 0 ORDER BY bank ASC LIMIT 1")
-        min_user = cursor.fetchone()
-        min_user_id, min_money = min_user if min_user else (None, 0)
+        try:
+            min_user = await context.bot.get_chat(min_uid)
+            min_name = min_user.first_name
+        except:
+            min_name = f"User {min_uid}"
 
+        max_link = f"<a href='tg://user?id={max_uid}'>{max_name}</a>"
+        min_link = f"<a href='tg://user?id={min_uid}'>{min_name}</a>"
 
-        cursor.execute("SELECT SUM(CAST(bank * 0.05 AS INTEGER)) FROM users WHERE bank > 0")
-        daily_interest = cursor.fetchone()[0] or 0
+        # Extra details
+        sorted_vals = sorted(only_values)
+        median_balance = sorted_vals[len(sorted_vals) // 2]
+        top_10_percent_threshold = sorted_vals[int(len(sorted_vals) * 0.9)]
+        bottom_10_percent_threshold = sorted_vals[int(len(sorted_vals) * 0.1)]
 
-        conn.close()
+        daily_interest_projection = sum(int(b * 0.05) for b in only_values)
 
-        max_name = (await context.bot.get_chat(max_user_id)).first_name if max_user_id else "Unknown"
-        min_name = (await context.bot.get_chat(min_user_id)).first_name if min_user_id else "Unknown"
+        stats_message = f"""
+🏦 <b>Bank System Report</b>
 
+📌 <u>General Overview</u>
+• Active bank users: <b>{total_users}</b>
+• Total money circulating: <b>{total_money:,}</b>
+• Average balance: <b>{avg_balance:,.2f}</b>
+• Median balance: <b>{median_balance:,}</b>
 
-        max_user_link = f"[{max_name}](tg://user?id={max_user_id})"
-        min_user_link = f"[{min_name}](tg://user?id={min_user_id})"
+📌 <u>Inequality Snapshot</u>
+• Richest user: {max_link} — <b>{max_bal:,}</b>
+• Poorest user: {min_link} — <b>{min_bal:,}</b>
+• Top 10% threshold: <b>{top_10_percent_threshold:,}</b>
+• Bottom 10% threshold: <b>{bottom_10_percent_threshold:,}</b>
 
-        stats_message = f"""📊 *Bank Statistics*
+📌 <u>Daily Interest Projection</u>
+• 5% payout expected: <b>{daily_interest_projection:,}</b>
+• Avg interest per user: <b>{(daily_interest_projection / total_users):.2f}</b>
 
-👥 Users with money: {users_with_money}
-💰 Total money in circulation: {total_money:,}
-📈 Average balance: {avg_money:,.2f}
-🔝 Highest balance: {max_money:,} — {max_user_link}
-🔻 Lowest balance: {min_money:,} — {min_user_link}
-📅 Daily interest payout: {daily_interest:,}"""
+📌 <u>Distribution Details</u>
+• Users above 5k: <b>{sum(1 for _, b in balances if b > 5000)}</b>
+• Users below 1k: <b>{sum(1 for _, b in balances if b < 1000)}</b>
+• Users at 10k cap: <b>{sum(1 for _, b in balances if b >= 10000)}</b>
 
-        await update.message.reply_text(stats_message, parse_mode="Markdown")
-        
+📝 <i>All stats are calculated using stored MongoDB values via your helper functions.</i>
+"""
+
+        await update.message.reply_text(stats_message, parse_mode="HTML")
+
     except Exception as e:
-        await update.message.reply_text(f"❌ Error getting bank stats: `{e}`", parse_mode="Markdown")
+        await update.message.reply_text(
+            f"❌ Error generating bank stats: <code>{e}</code>",
+            parse_mode="HTML"
+        )
 
-    
+async def mode_status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    import time, asyncio
+    start = time.time()
+
+    print("DEBUG: /stealstats triggered")
+    now = int(time.time())
+
+    user_ids = get_all_users_ids()
+    print(f"DEBUG: fetched {len(user_ids)} user IDs")
+
+    off_list = []  # store (uid, mins_left)
+
+    # -------------------------
+    #   GATHER OFF USERS ONLY
+    # -------------------------
+    for uid in user_ids:
+        doc = get_steal_doc(uid)
+        locked = doc["Locked"]
+        unlock = doc["Unlock"]
+
+        if locked:
+            mins_left = max(0, (unlock - now) // 60)
+            off_list.append((uid, mins_left))
+
+    print(f"DEBUG: total OFF users = {len(off_list)}")
+
+    if not off_list:
+        await update.message.reply_text("🟢 Everyone is ON", parse_mode="HTML")
+        return
+
+    # --------------------------------------
+    #   SORT BY TIME-LEFT (ascending)
+    # --------------------------------------
+    off_list.sort(key=lambda x: x[1])
+
+    lines = []
+    lines.append("<b>🔴 Steal Mode OFF Users</b>\n")
+
+    RATE_DELAY = 0.05  # anti-flood throttle
+
+    # --------------------------------------
+    #   BUILD MESSAGE
+    # --------------------------------------
+    for i, (uid, mins_left) in enumerate(off_list, 1):
+        print(f"DEBUG: Processing OFF user {uid} ({i}/{len(off_list)})")
+
+        try:
+            user = await context.bot.get_chat(uid)
+            name = user.first_name or f"User {uid}"
+        except Exception as e:
+            print(f"DEBUG: Failed to get name for {uid}: {e}")
+            name = f"User {uid}"
+
+        name_link = f"<a href='tg://user?id={uid}'>{name}</a>"
+
+        lines.append(f"🔴 {name_link} — <b>{mins_left} min left</b>")
+
+        await asyncio.sleep(RATE_DELAY)
+
+    total_time = time.time() - start
+    print(f"DEBUG: stealstats finished in {total_time:.2f}s")
+
+    msg = "\n".join(lines)
+
+    # --------------------------------------
+    #   CHUNK MESSAGE (safe)
+    # --------------------------------------
+    chunks = []
+    while len(msg) > 3500:
+        split = msg.rfind("\n", 0, 3500)
+        if split == -1:
+            split = 3500
+        chunks.append(msg[:split])
+        msg = msg[split:]
+
+    chunks.append(msg)
+
+    # --------------------------------------
+    #   SEND CLEAN CHUNKS
+    # --------------------------------------
+    for chunk in chunks:
+        await update.message.reply_text(chunk, parse_mode="HTML")
 
 
 
@@ -1698,6 +1788,7 @@ def register_monster_handlers(application):
     application.add_handler(CommandHandler("bank", bank))
     application.add_handler(CommandHandler("interest", trigger_interest_command))
     application.add_handler(CommandHandler("bankstats", bank_stats_command))
+    application.add_handler(CommandHandler("stealstats",mode_status_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, track_message_for_spawn), group=1)
     application.add_handler(CommandHandler("resetmonster", resetmonster))
     application.add_handler(CommandHandler("resetdefeats", reset_defeats_command))

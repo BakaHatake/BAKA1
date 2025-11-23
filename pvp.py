@@ -34,7 +34,8 @@ def resolve_party_stats(user_id, party_list):
     chars = get_user_characters(user_id)
     final = []
 
-    for name in party_list:
+    for item in party_list:
+        name=item["name"]
         if name in chars:
             data = chars[name]
             final.append((
@@ -337,7 +338,6 @@ async def fight_monster(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer("❌ Your party is empty! Add characters with /party", show_alert=True)
         return
 
-    # --- MONGO REPLACEMENT ---
     primogems = get_primogems(user_id)
     defeats_today = get_defeats_today(user_id)
     lose_primos = battle["monster"].get("lose_primos", 500)
@@ -732,25 +732,24 @@ async def reset_defeats_command(update: Update, context: ContextTypes.DEFAULT_TY
 async def monsterboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     leaderboard = get_monsterboard_top()
-
     if not leaderboard:
         await update.message.reply_text("📊 No monster defeats recorded yet!")
         return
 
-    msg = "🏆 *Monster Defeat Leaderboard*\n"
+    msg = "<b>🏆 Monster Defeat Leaderboard</b>\n"
 
     for user_id, name, total in leaderboard:
-        esc_name = escape_markdown(name, version=2)
-        msg += f"\n👤 *{esc_name}* ({total} total):\n"
+        safe_name = name or "Unknown"
+        msg += f"\n👤 <b>{safe_name}</b> ({total} total):\n"
 
-        # Get monster breakdown
         kills = get_user_monster_kills(user_id)
         for row in kills:
-            monster = escape_markdown(row['monster'], 2)
+            monster = row['monster']
             count = row['count']
             msg += f"• {monster}: {count}x\n"
 
-    await update.message.reply_text(msg, parse_mode="MarkdownV2")
+    await update.message.reply_text(msg, parse_mode="HTML")
+
 
     
 async def resetmonster(update: Update, context: ContextTypes.DEFAULT_TYPE):

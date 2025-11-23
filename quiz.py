@@ -85,25 +85,13 @@ async def answer_quiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
         update_balance(uid, "Lunar Crystals", 10)
 
         await query.edit_message_text(
-            f"✅ Correct!\nAnswered by: {mention}",
-            parse_mode="HTML"
-        )
-
-        await context.bot.send_message(
-            chat_id=query.message.chat_id,
-            text=f"🎉 {mention} answered correctly!\n+1 point • +200 Primogems • +10 Lunar Crystals",
+            f"🎉 {mention} answered correctly!\n+1 point • +200 Primogems • +10 Lunar Crystals",
             parse_mode="HTML"
         )
 
     else:
         await query.edit_message_text(
             f"❌ Wrong!\nAnswered by: {mention}",
-            parse_mode="HTML"
-        )
-
-        await context.bot.send_message(
-            chat_id=query.message.chat_id,
-            text=f"❌ {mention} answered incorrectly.",
             parse_mode="HTML"
         )
 

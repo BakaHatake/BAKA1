@@ -62,9 +62,6 @@ if not os.path.exists(json_path):
     with open(json_path, "w") as f:
         json.dump({}, f) 
 
-
-# Rarity system
-
 RARITY_CONFIG = {
     "Musician": {"cost": 25, "display": "🎸 Musician", "chance": 0.75, "symbol": "🎸"},
     "School": {"cost": 20, "display": "🎓 School", "chance": 0.75, "symbol": "🎓"},
@@ -85,9 +82,6 @@ RARITY_CONFIG = {
 
 AUTHORIZED_USERS = [5105207985, 5192424390,6057581189,5716946356,6792709908]
 
-
-
-# Setup Cloudinary
 cloudinary.config(
     cloud_name='dvpz1tzam',
     api_key='895687319552522',
@@ -500,21 +494,16 @@ def normalize_name(name: str) -> str:
 
 
 def names_match(user_input: str, actual_name: str) -> bool:
-    """Check if user input matches any whole word in actual name"""
     user_clean = normalize_name(user_input)
     if user_clean.startswith('/'):
         user_clean = user_clean[1:]
     
-    actual_clean = actual_name.lower().split()  # split into words (keep spaces to separate words)
+    actual_clean = actual_name.lower().split()  
     
-    # Normalize each word in actual name for flexible matching
     actual_words = [''.join(word.split()) for word in actual_clean]
     
-    # Match if user input equals any whole word in actual name
     return user_clean in actual_words
 
-
-# Drop system functions
 ALLOWED_CHAT_IDS = [ -1002043895840,-1002120721604]  
 
 def should_trigger_drop(chat_id: int):
@@ -767,7 +756,6 @@ async def wish_command(update: 'Update', context: 'ContextTypes.DEFAULT_TYPE'):
         await update.message.reply_text(f"⛔ {username}, you are temporarily blocked from using /wish due to spamming. Try again later.")
         return
 
-    # DAILY LIMIT CHECK FIRST
     can, remaining = await can_use_wish_mem(user_id)
     if not can:
         await update.message.reply_text(WISH_LIMIT_BLOCK_MSG)
@@ -808,7 +796,6 @@ async def wish_command(update: 'Update', context: 'ContextTypes.DEFAULT_TYPE'):
     success = (random.random() <= 100)
     clear_active_drop(chat_id)
 
-    # Count this attempt
     used = await record_wish_mem(user_id)
     remaining_after = max(0, DAILY_WISH_LIMIT - used)
 
@@ -1019,7 +1006,6 @@ async def harem_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         caption += "=" * 35
 
-        # Build inline keyboard
         keyboard = []
         nav_row = []
         if page > 1:
@@ -1176,7 +1162,7 @@ async def rarity_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.delete_message()
         return
 
-import re  # ensure this is imported at the top if not already
+import re 
 
 async def fav_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -1193,7 +1179,6 @@ async def fav_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ You don't own this character!")
         return
 
-    # Load character info
     characters = load_characters()
     if char_id not in characters:
         await update.message.reply_text("❌ Character not found!")
@@ -1202,7 +1187,6 @@ async def fav_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     char = characters[char_id]
     rarity_display = get_rarity_display(char['rarity'])
 
-    # Confirmation buttons (locked to this user)
     keyboard = [[
         InlineKeyboardButton("✅ Yes", callback_data=f"fav_yes_{char_id}_{user_id}"),
         InlineKeyboardButton("❌ No", callback_data="fav_no")
@@ -1369,7 +1353,6 @@ async def hall_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     selected_rarity = data.split("hall_rarity_")[1]
 
-    # ✅ Restrict ALL unless user is admin
     user_id = query.from_user.id
 
     if selected_rarity == "ALL" and user_id not in ADMIN_IDS:
@@ -1386,7 +1369,6 @@ async def hall_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("❌ No characters with that rarity.")
         return
 
-    # Build message
     msg = ""
     if selected_rarity != "ALL":
         rarity_info = RARITY_CONFIG.get(selected_rarity, {})
@@ -1407,7 +1389,6 @@ async def hall_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"---\n"
         )
 
-    # Split if too long
     if len(msg) > 4000:
         parts = [msg[i:i + 4000] for i in range(0, len(msg), 4000)]
         for part in parts:
@@ -1423,9 +1404,9 @@ LOG_ADMIN_ID = 5192424390
 
 
 def is_admin_dm(update: Update) -> bool:
-    """Check if the message is from admin in DM"""
     return (update.message.from_user.id in ADMIN_IDS and 
             update.message.chat.type == 'private')
+
 async def add_char_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin_dm(update):
         await update.message.reply_text("❌ This command is only available for admin in DM.")
@@ -1439,10 +1420,8 @@ import json
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 from cloudinary.uploader import upload as cloudinary_upload
 
-# Constants
-
 WAIFUS_JSON = os.path.join(BASE_PATH, "waifus.json")
-CHARACTER_IMAGE_DIR = os.path.join(BASE_PATH, "images")  # if local fallback used
+CHARACTER_IMAGE_DIR = os.path.join(BASE_PATH, "images") 
 
 async def handle_add_char_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin_dm(update):
@@ -1604,27 +1583,23 @@ async def handle_char_confirmation(update: Update, context: ContextTypes.DEFAULT
             f"*Saved to:* `{payload['image_path']}`"
         )
 
-# Send to admin
         await context.bot.send_message(
         chat_id=LOG_ADMIN_ID,
         text=log_text,
         parse_mode="Markdown"
     )
 
-# Send to channel
         await context.bot.send_message(
         chat_id=CHANNEL_ID,
         text=log_text,
         parse_mode="Markdown"
     )
 
-# Clear user data
         context.user_data.clear()
 
 
 
 async def cancel_add_char(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Cancel character addition process."""
     if not is_admin_dm(update):
         await update.message.reply_text("❌ This command is only available for admin in DM.")
         return
@@ -1763,7 +1738,6 @@ async def delete_character_callback(update: Update, context: ContextTypes.DEFAUL
     rarity = pending["rarity"]
     image_path = pending["image_path"]
 
-    # Delete from characters.json
     try:
         with open(CHARACTER_JSON_PATH, "r", encoding="utf-8") as f:
             characters = json.load(f)
@@ -1777,7 +1751,6 @@ async def delete_character_callback(update: Update, context: ContextTypes.DEFAUL
         await query.edit_message_text(f"❌ Error updating JSON: {e}")
         return
 
-    # Delete image (Cloudinary or local)
     if image_path:
         try:
             if image_path.startswith("https://res.cloudinary.com/"):
@@ -1790,7 +1763,6 @@ async def delete_character_callback(update: Update, context: ContextTypes.DEFAUL
         except Exception as e:
             print(f"[Image Delete Error] {e}")
 
-    # Delete from user_inventory
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
@@ -1816,7 +1788,6 @@ async def delete_character_callback(update: Update, context: ContextTypes.DEFAUL
 
 
 async def force_drop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Force character drop for testing (admin-only)"""
     user_id = update.effective_user.id
     if user_id not in ADMIN_ID:
         await update.message.reply_text("❌ This command is admin-only.")
@@ -1828,12 +1799,10 @@ async def set_drop_interval(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     chat_id = update.effective_chat.id
 
-    # Check if the user is the defined admin
     if user_id not in ADMIN_ID:
         await update.message.reply_text("❌ You are not authorized to use this command.")
         return
 
-    # Validate input
     if not context.args or not context.args[0].isdigit():
         await update.message.reply_text("Usage: /interval <messages> (e.g. /interval 50)")
         return
@@ -1848,7 +1817,7 @@ async def set_drop_interval(update: Update, context: ContextTypes.DEFAULT_TYPE):
 from telegram import InputFile
 import shutil
 
-awaiting_json_restore = {}  # user_id: True/False
+awaiting_json_restore = {} 
 
 async def clear_json_flag_later(user_id, delay=120):
     await asyncio.sleep(delay)
@@ -1877,7 +1846,7 @@ async def handle_uploaded_json_file(update: Update, context: ContextTypes.DEFAUL
         return
 
     if not awaiting_json_restore.get(user_id):
-        return  # Not expecting upload
+        return 
 
     document = update.message.document
     if not document or not document.file_name.endswith(".json"):
@@ -1899,20 +1868,18 @@ async def restore_characters(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.message.reply_text("❌ You’re not authorized.")
         return
 
-    # 1️⃣ Must be a reply to a document
     if not update.message.reply_to_message:
         await update.message.reply_text("ℹ️ Reply to the uploaded `.json` file with /restorechars.")
         return
 
     doc_msg = update.message.reply_to_message
 
-    # 2️⃣ The reply must be a .json file
     if not doc_msg.document or not doc_msg.document.file_name.endswith(".json"):
         await update.message.reply_text("❌ That’s not a .json file.")
         return
 
     try:
-        # 3️⃣ Download the uploaded file
+
         file = await doc_msg.document.get_file()
         await file.download_to_drive("characters_upload.json")
     except Exception as e:
@@ -1920,18 +1887,16 @@ async def restore_characters(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return
 
     try:
-        # 4️⃣ Copy into real path (overwrite if exists, create if not)
         shutil.copyfile("characters_upload.json", CHARACTER_JSON_PATH)
         await update.message.reply_text("✅ characters.json restored successfully! (new file created if none existed)")
     except Exception as e:
         await update.message.reply_text(f"❌ Restore failed: {e}")
         return
-    # ✅ Clear restore flag
     awaiting_json_restore.pop(user_id, None)
 
 
 
-awaiting_image_restore = {}  # user_id: True/False
+awaiting_image_restore = {}  
 
 async def clear_image_flag_later(user_id, delay=120):
     await asyncio.sleep(delay)
@@ -1969,7 +1934,7 @@ async def handle_uploaded_image_zip(update: Update, context: ContextTypes.DEFAUL
         return
 
     if not awaiting_image_restore.get(user_id):
-        return  # Not expecting an image ZIP upload
+        return 
 
     document = update.message.document
     if not document or not document.file_name.endswith(".zip"):
@@ -1990,7 +1955,6 @@ async def restore_images(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ You're not authorized.")
         return
 
-    # ✅ Must reply to ZIP message
     if not update.message.reply_to_message:
         await update.message.reply_text("ℹ️ Reply to the ZIP file with /restoreimages.")
         return
@@ -2007,7 +1971,6 @@ async def restore_images(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ Failed to download ZIP: {e}")
         return
 
-    # ✅ Restore ZIP contents
     try:
         os.makedirs(CHARACTER_IMAGE_DIR, exist_ok=True)
         for file in os.listdir(CHARACTER_IMAGE_DIR):
@@ -2167,7 +2130,6 @@ async def trade(update: Update, context: ContextTypes.DEFAULT_TYPE):
     receiver_id = receiver.id
     receiver_name = receiver.full_name
 
-    # Load characters from JSON
     characters = load_characters()
     char1 = characters.get(sending_id)
     char2 = characters.get(receiving_id)
@@ -2350,7 +2312,6 @@ async def check_callback(update, context):
         await query.delete_message()
     else:
         await query.edit_message_text(msg, parse_mode=ParseMode.MARKDOWN)
-    # If message is too long, split into parts
     if len(msg) > 4000:
         parts = [msg[i:i + 4000] for i in range(0, len(msg), 4000)]
         for part in parts:
@@ -2359,7 +2320,7 @@ async def check_callback(update, context):
     else:
         await query.edit_message_text(msg, parse_mode=ParseMode.MARKDOWN)
 
-LEADERBOARD_BANNER = "https://i.ibb.co/LDjdXBYJ/Img2url-bot.jpg"  # replace with your image
+LEADERBOARD_BANNER = "https://i.ibb.co/LDjdXBYJ/Img2url-bot.jpg" 
 async def wtop_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     rows = get_top_waifu_holders()
@@ -2374,7 +2335,6 @@ async def wtop_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         username = get_user_display_name(user_id) or "User"
         safe_name = html.escape(username)
 
-        # clickable name, zero tagging
         mention = f"<a href='tg://user?id={user_id}'>{safe_name}</a>"
 
         lines.append(f"{i}. {mention} — <b>{total}</b> waifus")
@@ -2391,7 +2351,7 @@ async def wtop_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def register_harem_handlers(application):
-# === GROUP 0: Core Commands, File Uploads, Backups, Callbacks ===
+
     application.add_handler(CommandHandler("wish", wish_command), group=0)
     application.add_handler(CommandHandler("harem", harem_command), group=0)
     application.add_handler(CommandHandler("fav", fav_command), group=0)
@@ -2428,10 +2388,9 @@ def register_harem_handlers(application):
     application.add_handler(InlineQueryHandler(inline_harem_gallery_handler, pattern=r"^harem:"))
     application.add_handler(InlineQueryHandler(inline_all_waifus_handler)) 
     application.add_handler(CallbackQueryHandler(who_collected_callback, pattern=r"^who_"))
-# === GROUP 1: Character Input (Images / Text) ===
+
     application.add_handler(MessageHandler(filters.PHOTO & filters.ChatType.PRIVATE, handle_add_char_image), group=1)
     application.add_handler(MessageHandler(filters.TEXT & filters.ChatType.PRIVATE, handle_dynamic_char_commands), group=1)
 
-# === GROUP 2: Fallback Message Tracker (e.g., spawn tracker) ===
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message), group=2)
     #application.add_error_handler(error_handler)

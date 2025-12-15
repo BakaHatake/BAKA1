@@ -228,8 +228,6 @@ Last 5★: {last5 or 'None yet'}
 
 
 def register_gacha_handlers(application):
-    # === Gacha Feature Handlers ===
-
     application.add_handler(CommandHandler("multiwish", multiwish))
     application.add_handler(CommandHandler("characters", characters))
     application.add_handler(CommandHandler("pity", pity))

@@ -797,37 +797,6 @@ async def cancel_tictactoe(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🎁 {bet} primogems awarded to the other player!"
     )
 
-import time
-import sqlite3
-
-async def check_tictactoe_timeouts(context):
-    now = int(time.time())
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-
-    # Find games where last move was over 2 minutes ago
-    c.execute("SELECT user_x_id, user_o_id, last_move_ts, bet FROM tictactoe_games")
-    rows = c.fetchall()
-
-    for uid1, uid2, last_move_ts, bet in rows:
-        if now - last_move_ts >= 120:
-            # Refund both players
-            update_primogems(uid1, bet)
-            update_primogems(uid2, bet)
-
-            try:
-                await context.bot.send_message(uid1, f"Tic-Tac-Toe game against {uid2} ended due to inactivity. Bet refunded.")
-            except:
-                pass
-            try:
-                await context.bot.send_message(uid2, f"Tic-Tac-Toe game against {uid1} ended due to inactivity. Bet refunded.")
-            except:
-                pass
-
-            c.execute("DELETE FROM tictactoe_games WHERE user_x_id = ? AND user_o_id = ?", (uid1, uid2))
-
-    conn.commit()
-    conn.close()
 
 
 

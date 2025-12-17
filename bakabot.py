@@ -1217,7 +1217,6 @@ def setup_application():
     register_quiz_handlers(application)
     register_gacha_handlers(application)
     register_harem_handlers(application)
-    register_game_handlers(application)
     register_monster_handlers(application)
     register_shop_handlers(application)
     register_coc_handlers(application)

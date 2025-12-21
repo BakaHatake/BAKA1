@@ -18,7 +18,7 @@ from db import get_top_users
 ADMIN_IDS = [5192424390]
 
 #TOKEN = "7592457873:AAEFFNDOVQWcRZ6bJQCisjSNkoGauHRXUAE"
-TOKEN = "7952386138:AAHUwRqnHcRvHVholUSy7hPzyAicdZQ8Isg"
+TOKEN = "8551419265:AAEhxM-a1ulHRWiXaNtnt3NO4rsJ1n1dOFo"
 TEXT_FOLDER = "texts"
 IMAGE_FOLDER = "images"
 BANNER_FOLDER = os.path.join(IMAGE_FOLDER, "banners")

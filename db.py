@@ -3,9 +3,9 @@ from bson import objectid
 from datetime import datetime
 import time
 from pymongo import ASCENDING, DESCENDING
+import os
 
-
-client=MongoClient("mongodb+srv://bakahatake:anush%40123@bakabot.to9paey.mongodb.net/?appName=BAKABOT")
+client = MongoClient(os.getenv("MONGO"))
 
 db=client["Main"]
 inv=db["inv"]

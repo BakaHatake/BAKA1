@@ -974,7 +974,6 @@ async def changetime_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 def get_remaining_time_str():
-    data = load_data()
     deadend_iso = data.get('deadend_time')
     if not deadend_iso:
         return "Deadend time not set."

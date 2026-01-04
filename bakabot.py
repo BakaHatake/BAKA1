@@ -15,7 +15,8 @@ from shop import register_shop_handlers
 import json
 from pvp import apply_daily_interest, register_monster_handlers,reset_defeats_today,auto_unlock_modes
 from db import get_top_users
-ADMIN_IDS = [5192424390]
+from config import ALL_ADMINS, BAKA_ID
+ADMIN_IDS = ALL_ADMINS
 
 #TOKEN = "7592457873:AAEFFNDOVQWcRZ6bJQCisjSNkoGauHRXUAE"
 TOKEN = os.getenv("TOKEN")
@@ -90,7 +91,7 @@ cloudinary.config(
 )
 
 BAKA_JSON_PATH = "baka.json"
-ADMIN_USER_IDS = {5192424390,5716946356}  
+ADMIN_USER_IDS = set(ALL_ADMINS)  
 
 DEFAULT_THEATRE_IMAGE_URL = "https://i.ibb.co/LDjdXBYJ/Img2url-bot.jpg"
 DEFAULT_THEATRE_CAPTION = "🎭 Theatre Entries"
@@ -1172,7 +1173,7 @@ async def delete_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text("Deleted successfully ✅")
 from telegram import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, Update, WebAppInfo
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
-OWNER_ID  = 5192424390
+OWNER_ID  = BAKA_ID
 
 
 from telegram.ext import CommandHandler

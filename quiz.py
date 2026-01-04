@@ -1,4 +1,4 @@
-# --- Updated quiz handlers using MongoDB ---
+
 import random
 from datetime import datetime, timezone, timedelta
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -10,7 +10,6 @@ from telegram.ext import (
 )
 import os, shutil, asyncio
 
-# your existing db module (assumes you pasted helper funcs above into db.py)
 from db import (
     get_random_question, insert_question_doc, get_all_questions, delete_question_by_id,
     update_score_db, get_leaderboard_db, reset_scores_and_reward_top,
@@ -19,20 +18,18 @@ from db import (
 )
 from db import is_authorized, get_authorized_users
 
-AUTHORIZED_USERS = [5192424390]
+from config import ALL_ADMINS, BAKA_ID
+AUTHORIZED_USERS = ALL_ADMINS
 
-# constants you already had
 BOT_START_TIME = datetime.now(timezone.utc)
-OWNER_ID = 5192424390
+OWNER_ID = BAKA_ID
 RESET_LOG_CHAT_ID = -1002043895840
 APPROVED_CHAT_ID = -1002043895840
 
-# conversation states you used earlier
 ADD_Q_TEXT = 1
 ADD_Q_OPTIONS = 2
 ADD_Q_ANSWER = 3
 
-# --- QUIZ START ---
 async def start_quiz(update: Update, context: ContextTypes.DEFAULT_TYPE, ignore_auth=False):
 
     if not ignore_auth:
@@ -59,7 +56,7 @@ async def start_quiz(update: Update, context: ContextTypes.DEFAULT_TYPE, ignore_
     )
 
 import html
-# --- ANSWER HANDLER ---
+
 async def answer_quiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -95,7 +92,6 @@ async def answer_quiz(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="HTML"
         )
 
-# --- LEADERBOARD ---
 async def show_leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lb = get_leaderboard_db()
     if not lb:
@@ -115,7 +111,6 @@ async def show_leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except FileNotFoundError:
         await update.message.reply_text(caption, parse_mode=ParseMode.HTML)
 
-# --- CLASH BOARD (uses quiz_clash collection) ---
 async def clashboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     leaderboard = get_clash_leaderboard_db()
     if not leaderboard:
@@ -134,7 +129,6 @@ async def clashboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ Failed to load leaderboard image, but here's the leaderboard:\n\n" + message, parse_mode=ParseMode.HTML)
         print(f"❌ Failed to send leaderboard image: {e}")
 
-# --- ADD QUESTION flow ---
 async def add_question_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in AUTHORIZED_USERS:
         await update.message.reply_text("You're not authorized to add questions.")
@@ -228,7 +222,6 @@ async def questions_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if msg:
         await update.message.reply_text(msg)
 
-# --- AUTO QUIZ (unchanged logic) ---
 AUTO_MIN = 25
 AUTO_MAX = 50
 msg_counter = 0
@@ -315,7 +308,6 @@ async def lore_accept_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         await query.answer("You're not the challenged player.", show_alert=True)
         return
 
-    # Check both have primos
     for uid in [p1, p2]:
         if get_primogems(uid) < amount:
             await query.message.edit_text("❌ One of the players doesn't have enough primogems.")
@@ -463,7 +455,6 @@ async def clash_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("❌ Opponent declined the clash.")
         return
 
-    # Show element choices
     keyboard = [
         [InlineKeyboardButton(f"{ELEMENT_ICONS[e]} {e}", callback_data=f"choose_{e}_{p1}_{p2}")]
         for e in ELEMENTS
@@ -490,7 +481,6 @@ async def accept_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.chat_data[f"clash_pick_{uid}"] = element
     bet = context.chat_data.get(f"clash_bet_{p1}_{p2}")
 
-    # wait for both players
     if f"clash_pick_{p1}" not in context.chat_data or f"clash_pick_{p2}" not in context.chat_data:
         await query.answer("Element locked. Waiting for other player.")
         return
@@ -532,7 +522,6 @@ async def accept_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.chat_data[f"clash_pick_{uid}"] = element
     bet = context.chat_data.get(f"clash_bet_{p1}_{p2}")
 
-    # wait for both players
     if f"clash_pick_{p1}" not in context.chat_data or f"clash_pick_{p2}" not in context.chat_data:
         await query.answer("Element locked. Waiting for other player.")
         return
@@ -569,7 +558,6 @@ async def accept_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.edit_message_text(final_msg, parse_mode="Markdown")
 
-    # clean up
     context.chat_data.pop(f"clash_pick_{p1}", None)
     context.chat_data.pop(f"clash_pick_{p2}", None)
     context.chat_data.pop(f"clash_bet_{p1}_{p2}", None)
@@ -583,16 +571,14 @@ def clash_result(c1, c2):
         "Pyro": "Dendro"
     }
     if c1 == c2:
-        return 0  # draw
+        return 0 
     if rules.get(c1) == c2:
-        return 1  # p1 wins
+        return 1  
     if rules.get(c2) == c1:
-        return 2  # p2 wins
+        return 2  
     return 0
 
 
-
-# --- RESET QUIZ command (rewards top users) ---
 REWARDS = [1600, 1000, 500]
 
 async def reset_quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -600,13 +586,11 @@ async def reset_quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.message.reply_text("❌ You are not authorized to use this command.")
         return
 
-    # find top 10 before wiping
     top = get_leaderboard_db(limit=10)
     if not top:
         await update.message.reply_text("❌ No leaderboard data found.")
         return
 
-    # Reward top 3
     rewarded = reset_scores_and_reward_top(rewards=REWARDS)
     result_msg = "🏆 <b>Leaderboard Reset & Rewards</b>\n\n"
     log_msg = "🧾 <b>Quiz Reset Log</b>\n\nTop rewarded:\n"
@@ -622,7 +606,6 @@ async def reset_quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     except Exception as e:
         await update.message.reply_text(f"⚠️ Couldn't send log: {e}")
 
-# --- REGISTER HANDLERS (same as before, keep your register function but import updated handlers) ---
 def register_quiz_handlers(application):
     application.add_handler(CommandHandler("quiz", start_quiz))
     application.add_handler(CallbackQueryHandler(answer_quiz, pattern=r"^quiz:"))

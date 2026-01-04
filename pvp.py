@@ -27,7 +27,9 @@ import pytz
 from db import ensure_bank,get_bank,get_primogems,update_primos,update_bank,ensure_bank,get_balance,update_balance,update_paimon_box,user_exists,get_user_party,save_user_party,get_all_users_ids,unlock_expired_modes
 from db import get_steal_doc,unlock_steal_mode,lock_steal_mode,set_steal_mode,get_user_characters,get_defeats_today,increment_monster_kill,set_defeats_today,get_monsterboard_top,get_user_monster_kills,reset_monster_season
 DB_PATH = "/mnt/data/quiz.db"
-ADMIN_ID = 5192424390
+from config import BAKA_ID, ALL_ADMINS
+ADMIN_ID = BAKA_ID
+ADMIN_IDS = ALL_ADMINS
 
 
 def resolve_party_stats(user_id, party_list):
@@ -691,7 +693,6 @@ async def handle_retreat(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def monster_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Admin command: /monster - Spawn monster manually"""
-    ADMIN_IDS = [5192424390]  
     
     if update.effective_user.id not in ADMIN_IDS:
         await update.message.reply_text("❌ You don't have permission to use this command.")
@@ -753,7 +754,6 @@ async def monsterboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     
 async def resetmonster(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    ADMIN_IDS = [5192424390]
 
     if update.effective_user.id not in ADMIN_IDS:
         await update.message.reply_text("❌ You don't have permission.")

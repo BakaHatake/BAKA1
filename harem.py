@@ -45,7 +45,8 @@ from zoneinfo import ZoneInfo
 from db import update_counters,get_counters,update_drops,update_balance,clear_active_drop,update_harem,get_drops,get_balance,get_harem_rarity
 from db import get_harem,transfer_character,set_fav,get_fav,who_collected,update_name,increment_character,decrement_character,user_has_character
 from db import block_user,is_blocked,increment_streak,unblock_user,get_top_waifu_holders,reset_streak,get_streak
-ADMIN_ID = [5192424390]
+from config import ALL_ADMINS
+ADMIN_ID = ALL_ADMINS
 import os
 USE_MOUNT = os.path.exists("/mnt/data")
 BASE_PATH = "/mnt/data" if USE_MOUNT else "."
@@ -80,7 +81,7 @@ RARITY_CONFIG = {
 }
 
 
-AUTHORIZED_USERS = [5105207985, 5192424390,6057581189,5716946356,6792709908]
+AUTHORIZED_USERS = ALL_ADMINS
 
 cloudinary.config(
     cloud_name='dvpz1tzam',
@@ -528,8 +529,8 @@ def create_drop(chat_id: int) -> Optional[Dict]:
         print("❌ No characters available to drop.")
         return None
 
-    # Bride_characters = {cid: c for cid, c in characters.items() if str(c.get('rarity', '')).lower() == 'bride'}
-    Bride_characters=characters
+    Bride_characters = {cid: c for cid, c in characters.items() if str(c.get('rarity', '')).lower() == 'kimono'}
+    # Bride_characters=characters
     
     if not Bride_characters:
         print("❌ No 'Bride' rarity characters available to drop.")
@@ -793,7 +794,7 @@ async def wish_command(update: 'Update', context: 'ContextTypes.DEFAULT_TYPE'):
     char_name = active_drop['Char name']
     char_id = active_drop['Char id']
 
-    success = (random.random() <= 100)
+    success = (random.random() <= chance)
     clear_active_drop(chat_id)
 
     used = await record_wish_mem(user_id)
@@ -1399,8 +1400,9 @@ async def hall_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 
-ADMIN_IDS = [5105207985, 5192424390,6057581189,5716946356,6792709908]
-LOG_ADMIN_ID = 5192424390  
+from config import BAKA_ID, ALL_ADMINS
+ADMIN_IDS = ALL_ADMINS
+LOG_ADMIN_ID = BAKA_ID  
 
 
 def is_admin_dm(update: Update) -> bool:

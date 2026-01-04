@@ -15,7 +15,8 @@ from db import get_daily,update_claim,update_inv,user_exists,get_balance,update_
 from db import update_mines,get_user_state,get_primogems
 DATABASE = "/mnt/data/quiz.db"
 
-ADMIN_IDS = [5192424390]  
+from config import ALL_ADMINS
+ADMIN_IDS = ALL_ADMINS  
 DB_PATH = "/mnt/data/quiz.db" 
 from db import update_balance
 
@@ -1054,7 +1055,8 @@ async def rps_choice_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
                 opponent_name = format_name(match["opponent"])
 
                 
-                admin_id = 5192424390 
+                from config import BAKA_ID
+                admin_id = BAKA_ID 
                 await context.bot.send_message(
                     chat_id=admin_id,
                     text=(

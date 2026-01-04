@@ -25,7 +25,8 @@ WIN_BANNER = "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752918095/01d1
 LOSE_BANNER = "https://res.cloudinary.com/dvpz1tzam/image/upload/v1752918099/generated-image_1_l25yk8.png"
 
 
-ADMIN_IDS = [5192424390]
+from config import ALL_ADMINS
+ADMIN_IDS = ALL_ADMINS
 
 import random
 
@@ -626,7 +627,7 @@ async def airdrop(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Usage: /airdrop <max_amount> [message]")
         return
     from db import get_all_users_ids
-    user_ids = get_all_users_ids
+    user_ids = get_all_users_ids()
     if not user_ids:
         await update.message.reply_text("No users found to airdrop Lunar Crystals.")
         return

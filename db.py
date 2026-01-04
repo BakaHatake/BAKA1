@@ -626,7 +626,7 @@ quiz_questions = db["quiz_questions"]
 quiz_scores = db["quiz_scores"]
 quiz_meta = db["quiz_meta"] 
 quiz_clash = db["quiz_clash"] 
-quiz_questions = db["quiz_questions"]
+
 
 def insert_question_doc(question_text: str, options_str: str, answer: str):
     doc = {
@@ -638,12 +638,7 @@ def insert_question_doc(question_text: str, options_str: str, answer: str):
     quiz_questions.insert_one(doc)
     return doc
 
-def get_random_question():
-    doc = list(quiz_questions.aggregate([{"$sample": {"size": 1}}]))
-    if not doc:
-        return None
-    d = doc[0]
-    return (str(d["_id"]), d["question"], d["options"], d["answer"])
+
 
 def get_question_by_id(qid):
     from bson import ObjectId

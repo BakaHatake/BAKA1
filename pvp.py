@@ -1483,6 +1483,10 @@ async def apply_daily_interest(application, is_manual=False):
             bank_balance = get_bank(uid)
             if bank_balance <= 0:
                 continue
+            if bank_balance >= 10000:
+                update_bank(uid,-bank_balance)
+                update_bank(uid, 10000)
+                continue
 
             interest = int(bank_balance * 0.05)
             if interest <= 0:

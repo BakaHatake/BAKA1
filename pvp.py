@@ -25,7 +25,7 @@ from apscheduler.triggers.cron import CronTrigger
 import pytz
 
 from db import ensure_bank,get_bank,get_primogems,update_primos,update_bank,ensure_bank,get_balance,update_balance,update_paimon_box,user_exists,get_user_party,save_user_party,get_all_users_ids,unlock_expired_modes
-from db import get_steal_doc,unlock_steal_mode,lock_steal_mode,set_steal_mode,get_user_characters,get_defeats_today,increment_monster_kill,set_defeats_today,get_monsterboard_top,get_user_monster_kills,reset_monster_season
+from db import get_steal_doc,unlock_steal_mode,lock_steal_mode,set_steal_mode,get_user_characters,get_defeats_today,increment_monster_kill,set_defeats_today,get_monsterboard_top,get_user_monster_kills,reset_monster_season,reset_daily_defeats
 DB_PATH = "/mnt/data/quiz.db"
 from config import BAKA_ID, ALL_ADMINS
 ADMIN_ID = BAKA_ID
@@ -438,15 +438,16 @@ async def handle_character_attack(update: Update, context: ContextTypes.DEFAULT_
 
     
 
-    last_underscore_pos = data_without_prefix.rfind("_")
-    
-    if last_underscore_pos == -1:
+    # Updated parsing logic to handle character names with underscores
+    parts = data_without_prefix.split("_")
+    if len(parts) < 3:
         await query.answer("❌ Invalid attack data format!", show_alert=True)
         return
-    
 
-    battle_id = data_without_prefix[:last_underscore_pos]
-    char_name = data_without_prefix[last_underscore_pos + 1:]
+    # battle_id is always 'battle_XXXX' (2 parts)
+    battle_id = f"{parts[0]}_{parts[1]}"
+    # char_name is everything after the battle_id
+    char_name = "_".join(parts[2:])
     
 
     
@@ -719,14 +720,11 @@ async def msgcount_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(msg, parse_mode="Markdown")
 
 async def reset_defeats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id not in ADMINS:
+    if update.effective_user.id not in ADMIN_IDS:
         await update.message.reply_text("🚫 Only admins can use this.")
         return
 
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute("UPDATE users SET defeats_today = 0")
-        conn.commit()
+    reset_daily_defeats()
 
     await update.message.reply_text("✅ Daily monster defeat counters have been reset.")
 

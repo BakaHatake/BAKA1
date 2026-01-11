@@ -1,5 +1,5 @@
 🚀 BakaBot - A Genshin Impact Telegram Bot
-Welcome to BakaBot, a feature-rich Telegram bot designed for Genshin Impact communities. BakaBot brings a variety of interactive games and social features to your Telegram group, from collecting waifus and battling monsters to engaging in quizzes and mini-games.
+Welcome to BakaBot, a feature-rich Telegram bot designed for Genshin Impact communities. BakaBot brings a variety of interactive games and social features to your Telegram group, from collecting waifus and battling monsters to engaging in quizzes and mini-games..
 
 ##📖 Table of Contents
 
